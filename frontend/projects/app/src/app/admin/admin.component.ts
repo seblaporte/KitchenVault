@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { interval, Subscription, switchMap, startWith } from 'rxjs';
+import { catchError, interval, of, Subscription, switchMap, startWith } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 interface SyncRun {
@@ -167,14 +167,19 @@ export class AdminComponent implements OnInit, OnDestroy {
       .pipe(
         startWith(0),
         switchMap(() =>
-          this.http.get<SyncRun>(`${environment.apiUrl}/api/v1/sync/latest`)
+          this.http.get<SyncRun>(`${environment.apiUrl}/api/v1/sync/latest`).pipe(
+            catchError(err => {
+              if (err.status === 404) return of(null);
+              throw err;
+            })
+          )
         )
       )
       .subscribe({
         next: run => {
           this.latestSync.set(run);
-          this.isSyncing.set(run.status === 'RUNNING');
-          if (run.status !== 'RUNNING') {
+          this.isSyncing.set(run?.status === 'RUNNING');
+          if (run && run.status !== 'RUNNING') {
             this.loadStats();
           }
         },

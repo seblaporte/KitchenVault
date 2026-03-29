@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "antora --fetch antora-playbook.yml",
-    "build:local": "antora antora-playbook.yml",
-    "serve": "antora antora-playbook.yml && npx serve build/site -l 8888"
+    "sync:spec": "cp ../contracts/src/main/resources/openapi/api.yaml modules/ROOT/attachments/openapi.yaml",
+    "build": "npm run sync:spec && antora --fetch antora-playbook.yml",
+    "build:local": "npm run sync:spec && antora antora-playbook.yml",
+    "serve": "npm run sync:spec && antora antora-playbook.yml && npx serve build/site -l 8888"
   },
   "dependencies": {
     "@antora/cli": "^3.1.0",

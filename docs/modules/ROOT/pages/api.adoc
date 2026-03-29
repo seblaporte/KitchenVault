@@ -1,88 +1,50 @@
 = API REST
-:description: Référence des endpoints de l'API my-cookidoo
+:description: Référence interactive de l'API my-cookidoo
 
-Le contrat complet est disponible au format OpenAPI YAML dans `contracts/src/main/resources/openapi/api.yaml`.
+Le contrat source est dans `contracts/src/main/resources/openapi/api.yaml`.
 
-Swagger UI (en développement) : http://localhost:8080/swagger-ui.html
+++++
+<style>
+  .redoc-wrap {
+    margin: 1rem -1.5rem 0;
+    height: calc(100vh - 10rem);
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+  }
+  .redoc-wrap redoc,
+  .redoc-wrap > div {
+    height: 100%;
+  }
+</style>
 
-== Endpoints
+<div class="redoc-wrap">
+  <div id="redoc-container"></div>
+</div>
 
-=== Synchronisation
-
-[cols="1,2,3"]
-|===
-|Méthode |Chemin |Description
-
-|`POST`
-|`/api/v1/sync`
-|Déclenche une synchronisation manuelle. Retourne 202 avec le SyncRun créé, ou 409 si une sync est déjà en cours.
-
-|`GET`
-|`/api/v1/sync/latest`
-|Retourne le dernier SyncRun (200) ou 404 si aucune sync n'a été effectuée.
-
-|`GET`
-|`/api/v1/sync/history`
-|Historique paginé des SyncRun. Paramètres : `page` (défaut 0), `size` (défaut 20).
-|===
-
-=== Administration
-
-[cols="1,2,3"]
-|===
-|Méthode |Chemin |Description
-
-|`GET`
-|`/api/v1/admin/stats`
-|Statistiques : nombre de recettes, collections, et date de la dernière sync réussie.
-|===
-
-=== Recettes
-
-[cols="1,2,3"]
-|===
-|Méthode |Chemin |Description
-
-|`GET`
-|`/api/v1/recipes`
-|Liste paginée. Paramètres : `page`, `size`, `search` (recherche sur le nom).
-
-|`GET`
-|`/api/v1/recipes/{id}`
-|Détail complet d'une recette (ingrédients, nutrition, catégories, ustensiles). 404 si introuvable.
-|===
-
-=== Collections
-
-[cols="1,2,3"]
-|===
-|Méthode |Chemin |Description
-
-|`GET`
-|`/api/v1/collections`
-|Liste de toutes les collections avec leurs chapitres et recettes associées.
-
-|`GET`
-|`/api/v1/collections/{id}`
-|Détail d'une collection. 404 si introuvable.
-|===
-
-== Gestion des erreurs
-
-Tous les endpoints d'erreur retournent un `ErrorDto` :
-
-[source,json]
-----
-{
-  "message": "Description de l'erreur",
-  "details": "Information complémentaire (optionnel)"
-}
-----
-
-Codes HTTP utilisés :
-
-* `202` — Synchronisation démarrée
-* `404` — Ressource introuvable
-* `409` — Conflit (sync déjà en cours)
-* `503` — Service Cookidoo indisponible
-* `500` — Erreur interne
+<script src="https://cdn.jsdelivr.net/npm/redoc@latest/bundles/redoc.standalone.js"></script>
+<script>
+  Redoc.init(
+    '_attachments/openapi.yaml',
+    {
+      scrollYOffset: 0,
+      hideDownloadButton: false,
+      noAutoAuth: false,
+      theme: {
+        colors: {
+          primary: { main: '#4f46e5' }
+        },
+        typography: {
+          fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+          fontSize: '14px'
+        },
+        sidebar: {
+          width: '260px',
+          backgroundColor: '#f8fafc'
+        }
+      }
+    },
+    document.getElementById('redoc-container')
+  );
+</script>
+++++

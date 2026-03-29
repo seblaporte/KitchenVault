@@ -1,0 +1,485 @@
+openapi: 3.1.0
+info:
+  title: My Cookidoo API
+  description: |
+    API REST de my-cookidoo — récupère et expose les recettes Cookidoo stockées en base.
+  version: 1.0.0
+  contact:
+    name: Sebastien Laporte
+
+servers:
+  - url: http://localhost:8080
+    description: Serveur de développement local
+
+tags:
+  - name: sync
+    description: Synchronisation avec Cookidoo
+  - name: admin
+    description: Administration et statistiques
+  - name: recipes
+    description: Consultation des recettes
+  - name: collections
+    description: Consultation des collections
+
+paths:
+
+  # ─── Synchronisation ─────────────────────────────────────────────────────────
+
+  /api/v1/sync:
+    post:
+      tags: [sync]
+      operationId: triggerSync
+      summary: Déclenche une synchronisation manuelle
+      description: |
+        Lance une synchronisation asynchrone avec Cookidoo.
+        Retourne immédiatement le SyncRun créé avec le statut RUNNING.
+      responses:
+        "202":
+          description: Synchronisation démarrée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncRunDto"
+        "409":
+          description: Une synchronisation est déjà en cours
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/sync/latest:
+    get:
+      tags: [sync]
+      operationId: getLatestSync
+      summary: Retourne le dernier SyncRun
+      description: Retourne le dernier SyncRun, quel que soit son statut.
+      responses:
+        "200":
+          description: Dernier SyncRun
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncRunDto"
+        "404":
+          description: Aucune synchronisation n'a encore eu lieu
+
+  /api/v1/sync/history:
+    get:
+      tags: [sync]
+      operationId: getSyncHistory
+      summary: Historique paginé des synchronisations
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/sizeParam"
+      responses:
+        "200":
+          description: Page d'historique de synchronisation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncRunPageDto"
+
+  # ─── Administration ──────────────────────────────────────────────────────────
+
+  /api/v1/admin/stats:
+    get:
+      tags: [admin]
+      operationId: getAdminStats
+      summary: Statistiques de la base de données
+      description: Retourne les compteurs globaux et la date de la dernière sync réussie.
+      responses:
+        "200":
+          description: Statistiques
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStatsDto"
+
+  # ─── Recettes ────────────────────────────────────────────────────────────────
+
+  /api/v1/recipes:
+    get:
+      tags: [recipes]
+      operationId: listRecipes
+      summary: Liste paginée des recettes
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/sizeParam"
+        - name: search
+          in: query
+          description: Recherche textuelle sur le nom de la recette
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Page de recettes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipePageDto"
+
+  /api/v1/recipes/{id}:
+    get:
+      tags: [recipes]
+      operationId: getRecipeById
+      summary: Détail d'une recette
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recette complète
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeDetailDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  # ─── Collections ─────────────────────────────────────────────────────────────
+
+  /api/v1/collections:
+    get:
+      tags: [collections]
+      operationId: listCollections
+      summary: Liste des collections
+      responses:
+        "200":
+          description: Liste des collections avec leurs chapitres
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CollectionDto"
+
+  /api/v1/collections/{id}:
+    get:
+      tags: [collections]
+      operationId: getCollectionById
+      summary: Détail d'une collection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Collection avec recettes complètes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionDto"
+        "404":
+          description: Collection introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+# ─── Schemas ───────────────────────────────────────────────────────────────────
+
+components:
+  parameters:
+    pageParam:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    sizeParam:
+      name: size
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+
+    # ── Synchronisation ────────────────────────────────────────────────────────
+
+    SyncStatus:
+      type: string
+      enum: [RUNNING, SUCCESS, PARTIAL, FAILED]
+
+    SyncRunDto:
+      type: object
+      required: [id, startedAt, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: "#/components/schemas/SyncStatus"
+        collectionsSynced:
+          type: integer
+          nullable: true
+        recipesSynced:
+          type: integer
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+
+    SyncRunPageDto:
+      type: object
+      required: [content, totalElements, totalPages, page, size]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncRunDto"
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    # ── Administration ─────────────────────────────────────────────────────────
+
+    AdminStatsDto:
+      type: object
+      required: [recipeCount, collectionCount]
+      properties:
+        recipeCount:
+          type: integer
+          format: int64
+        collectionCount:
+          type: integer
+          format: int64
+        lastSuccessfulSyncAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ── Recettes ───────────────────────────────────────────────────────────────
+
+    RecipeSummaryDto:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
+        totalTimeMinutes:
+          type: integer
+          nullable: true
+        activeTimeMinutes:
+          type: integer
+          nullable: true
+        difficulty:
+          type: string
+          nullable: true
+        servingSize:
+          type: integer
+          nullable: true
+
+    RecipePageDto:
+      type: object
+      required: [content, totalElements, totalPages, page, size]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecipeSummaryDto"
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    IngredientDto:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    IngredientGroupDto:
+      type: object
+      required: [name, ingredients]
+      properties:
+        name:
+          type: string
+          nullable: true
+        ingredients:
+          type: array
+          items:
+            $ref: "#/components/schemas/IngredientDto"
+
+    CategoryDto:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    NutritionDto:
+      type: object
+      required: [type, number, unitType]
+      properties:
+        type:
+          type: string
+        number:
+          type: number
+          format: double
+        unitType:
+          type: string
+
+    NutritionGroupDto:
+      type: object
+      required: [name, nutritions]
+      properties:
+        name:
+          type: string
+        nutritions:
+          type: array
+          items:
+            $ref: "#/components/schemas/NutritionDto"
+
+    RecipeDetailDto:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        difficulty:
+          type: string
+          nullable: true
+        servingSize:
+          type: integer
+          nullable: true
+        activeTimeMinutes:
+          type: integer
+          nullable: true
+        totalTimeMinutes:
+          type: integer
+          nullable: true
+        notes:
+          type: array
+          items:
+            type: string
+        utensils:
+          type: array
+          items:
+            type: string
+        ingredientGroups:
+          type: array
+          items:
+            $ref: "#/components/schemas/IngredientGroupDto"
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryDto"
+        nutritionGroups:
+          type: array
+          items:
+            $ref: "#/components/schemas/NutritionGroupDto"
+        lastSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ── Collections ────────────────────────────────────────────────────────────
+
+    CollectionRecipeDto:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        totalTimeMinutes:
+          type: integer
+          nullable: true
+
+    ChapterDto:
+      type: object
+      required: [name, recipes]
+      properties:
+        name:
+          type: string
+        recipes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CollectionRecipeDto"
+
+    CollectionDto:
+      type: object
+      required: [id, name, chapters]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        chapters:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChapterDto"
+
+    # ── Erreurs ────────────────────────────────────────────────────────────────
+
+    ErrorDto:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        details:
+          type: string
+          nullable: true

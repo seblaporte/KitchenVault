@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    # Overridden by @DynamicPropertySource from Testcontainers in integration tests
+    url: jdbc:tc:postgresql:17:///cookidoo
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+cookidoo:
+  service:
+    url: http://localhost:9999  # Overridden by WireMock in integration tests
+  sync:
+    cron: "-"  # Disable scheduled sync in tests
+    resync-after-hours: 24
+
+logging:
+  level:
+    fr.seblaporte.mycookidoo: DEBUG

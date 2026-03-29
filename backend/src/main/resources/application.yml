@@ -1,0 +1,44 @@
+spring:
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cookidoo
+    username: cookidoo
+    password: cookidoo
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        highlight_sql: false
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+cookidoo:
+  service:
+    url: http://localhost:8001
+  sync:
+    cron: "0 0 3 * * *"
+    resync-after-hours: 24
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+
+logging:
+  level:
+    fr.seblaporte.mycookidoo: INFO
+    org.liquibase: INFO

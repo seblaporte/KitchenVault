@@ -1,0 +1,431 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-recipe
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: recipe
+            columns:
+              - column:
+                  name: id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: difficulty
+                  type: varchar(100)
+              - column:
+                  name: thumbnail_url
+                  type: varchar(1000)
+              - column:
+                  name: image_url
+                  type: varchar(1000)
+              - column:
+                  name: url
+                  type: varchar(1000)
+              - column:
+                  name: serving_size
+                  type: int
+              - column:
+                  name: active_time_minutes
+                  type: int
+              - column:
+                  name: total_time_minutes
+                  type: int
+              - column:
+                  name: last_synced_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-ingredient-group
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: ingredient_group
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: recipe_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_ingredient_group_recipe
+                    references: recipe(id)
+              - column:
+                  name: name
+                  type: varchar(500)
+              - column:
+                  name: sort_order
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-ingredient
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: ingredient
+            columns:
+              - column:
+                  name: id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: ingredient_group_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_ingredient_group
+                    references: ingredient_group(id)
+              - column:
+                  name: name
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: varchar(500)
+              - column:
+                  name: sort_order
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-category
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: category
+            columns:
+              - column:
+                  name: id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-recipe-category
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: recipe_category
+            columns:
+              - column:
+                  name: recipe_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_recipe_category_recipe
+                    references: recipe(id)
+              - column:
+                  name: category_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_recipe_category_category
+                    references: category(id)
+        - addPrimaryKey:
+            tableName: recipe_category
+            columnNames: recipe_id, category_id
+
+  - changeSet:
+      id: 001-create-recipe-note
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: recipe_note
+            columns:
+              - column:
+                  name: recipe_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_recipe_note_recipe
+                    references: recipe(id)
+              - column:
+                  name: note
+                  type: varchar(2000)
+              - column:
+                  name: sort_order
+                  type: int
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-recipe-utensil
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: recipe_utensil
+            columns:
+              - column:
+                  name: recipe_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_recipe_utensil_recipe
+                    references: recipe(id)
+              - column:
+                  name: utensil
+                  type: varchar(255)
+              - column:
+                  name: sort_order
+                  type: int
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-nutrition-group
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: nutrition_group
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: recipe_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_nutrition_group_recipe
+                    references: recipe(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity
+                  type: int
+              - column:
+                  name: unit_notation
+                  type: varchar(100)
+
+  - changeSet:
+      id: 001-create-nutrition
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: nutrition
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: nutrition_group_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_nutrition_group
+                    references: nutrition_group(id)
+              - column:
+                  name: type
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: number
+                  type: decimal(10,3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: unit_type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-collection
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: collection
+            columns:
+              - column:
+                  name: id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: varchar(2000)
+              - column:
+                  name: type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_synced_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-chapter
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: chapter
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: collection_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_chapter_collection
+                    references: collection(id)
+              - column:
+                  name: name
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sort_order
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-chapter-recipe
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: chapter_recipe
+            columns:
+              - column:
+                  name: chapter_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_chapter_recipe_chapter
+                    references: chapter(id)
+              - column:
+                  name: recipe_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_chapter_recipe_recipe
+                    references: recipe(id)
+              - column:
+                  name: sort_order
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-sync-run
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: sync_run
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: started_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: completed_at
+                  type: timestamptz
+              - column:
+                  name: status
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: collections_synced
+                  type: int
+              - column:
+                  name: recipes_synced
+                  type: int
+              - column:
+                  name: error_message
+                  type: text
+
+  - changeSet:
+      id: 001-create-indexes
+      author: seblaporte
+      changes:
+        - createIndex:
+            tableName: recipe
+            indexName: idx_recipe_name
+            columns:
+              - column:
+                  name: name
+        - createIndex:
+            tableName: recipe
+            indexName: idx_recipe_last_synced_at
+            columns:
+              - column:
+                  name: last_synced_at
+        - createIndex:
+            tableName: sync_run
+            indexName: idx_sync_run_started_at
+            columns:
+              - column:
+                  name: started_at
+                  descending: true
+        - createIndex:
+            tableName: sync_run
+            indexName: idx_sync_run_status
+            columns:
+              - column:
+                  name: status

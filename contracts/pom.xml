@@ -54,12 +54,10 @@
                             <modelPackage>fr.seblaporte.mycookidoo.generated.model</modelPackage>
                             <configOptions>
                                 <useSpringBoot3>true</useSpringBoot3>
-                                <interfaceOnly>true</interfaceOnly>
                                 <delegatePattern>true</delegatePattern>
                                 <useJakartaEe>true</useJakartaEe>
                                 <openApiNullable>false</openApiNullable>
                                 <useTags>true</useTags>
-                                <skipDefaultInterface>true</skipDefaultInterface>
                                 <documentationProvider>springdoc</documentationProvider>
                                 <useOptional>false</useOptional>
                                 <generateBuilders>false</generateBuilders>

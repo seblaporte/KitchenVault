@@ -98,8 +98,7 @@ La documentation technique détaillée (architecture, modèle de données, API, 
 ```bash
 cd docs
 npm install
-npx antora antora-playbook.yml
-# → ouvrir build/site/index.html
+npm run serve   # build + serveur HTTP → http://localhost:8888
 ```
 
 Les diagrammes (architecture, flux, ERD) sont générés automatiquement en SVG depuis le code PlantUML via [Kroki](https://kroki.io/).

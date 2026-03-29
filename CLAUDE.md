@@ -150,6 +150,8 @@ Standard AssertJ is imported statically; AssertJ-DB is called fully qualified to
 Full technical documentation (architecture, data model, API reference, sync flow) is in `docs/` and built with Antora + asciidoctor-kroki. Diagrams are PlantUML/ERD as code inside `[kroki,plantuml,svg]` blocks.
 
 ```bash
-cd docs && npm install && npx antora antora-playbook.yml
-# → build/site/index.html
+cd docs
+npm install
+npm run serve   # build + HTTP server → http://localhost:8888
+# NB: ne jamais ouvrir build/site/ directement en file://, les assets CSS/JS sont bloqués
 ```

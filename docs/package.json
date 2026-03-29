@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "antora --fetch antora-playbook.yml",
-    "build:local": "antora antora-playbook.yml"
+    "build:local": "antora antora-playbook.yml",
+    "serve": "antora antora-playbook.yml && npx serve build/site -l 8888"
   },
   "dependencies": {
     "@antora/cli": "^3.1.0",

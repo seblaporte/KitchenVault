@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "ingredient")
 @Getter
@@ -13,8 +15,12 @@ import lombok.Setter;
 public class Ingredient {
 
     @Id
-    @Column(name = "id", nullable = false)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    private UUID id;
+
+    @Column(name = "cookidoo_id", nullable = false)
+    private String cookidooId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ingredient_group_id", nullable = false)
@@ -29,8 +35,8 @@ public class Ingredient {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
-    public Ingredient(String id, IngredientGroup ingredientGroup, String name, String description, int sortOrder) {
-        this.id = id;
+    public Ingredient(String cookidooId, IngredientGroup ingredientGroup, String name, String description, int sortOrder) {
+        this.cookidooId = cookidooId;
         this.ingredientGroup = ingredientGroup;
         this.name = name;
         this.description = description;

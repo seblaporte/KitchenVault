@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-ingredient-uuid-id
+      author: seblaporte
+      comment: Replace Cookidoo ingredient ID as PK with generated UUID; store Cookidoo ID in cookidoo_id column
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE ingredient ADD COLUMN cookidoo_id VARCHAR(255);
+              UPDATE ingredient SET cookidoo_id = id;
+              ALTER TABLE ingredient DROP CONSTRAINT ingredient_pkey;
+              ALTER TABLE ingredient DROP COLUMN id;
+              ALTER TABLE ingredient ADD COLUMN id UUID DEFAULT gen_random_uuid() NOT NULL;
+              ALTER TABLE ingredient ADD PRIMARY KEY (id);
+              ALTER TABLE ingredient ALTER COLUMN cookidoo_id SET NOT NULL;

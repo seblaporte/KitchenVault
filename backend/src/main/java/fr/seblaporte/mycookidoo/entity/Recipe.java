@@ -1,7 +1,10 @@
 package fr.seblaporte.mycookidoo.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -10,6 +13,9 @@ import java.util.Set;
 
 @Entity
 @Table(name = "recipe")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Recipe {
 
     @Id
@@ -70,53 +76,7 @@ public class Recipe {
     @OrderColumn(name = "sort_order")
     private List<String> utensils = new ArrayList<>();
 
-    protected Recipe() {}
-
     public Recipe(String id) {
         this.id = id;
     }
-
-    public String getId() { return id; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getDifficulty() { return difficulty; }
-    public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
-
-    public String getThumbnailUrl() { return thumbnailUrl; }
-    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
-
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-
-    public String getUrl() { return url; }
-    public void setUrl(String url) { this.url = url; }
-
-    public Integer getServingSize() { return servingSize; }
-    public void setServingSize(Integer servingSize) { this.servingSize = servingSize; }
-
-    public Integer getActiveTimeMinutes() { return activeTimeMinutes; }
-    public void setActiveTimeMinutes(Integer activeTimeMinutes) { this.activeTimeMinutes = activeTimeMinutes; }
-
-    public Integer getTotalTimeMinutes() { return totalTimeMinutes; }
-    public void setTotalTimeMinutes(Integer totalTimeMinutes) { this.totalTimeMinutes = totalTimeMinutes; }
-
-    public Instant getLastSyncedAt() { return lastSyncedAt; }
-    public void setLastSyncedAt(Instant lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; }
-
-    public List<IngredientGroup> getIngredientGroups() { return ingredientGroups; }
-    public void setIngredientGroups(List<IngredientGroup> ingredientGroups) { this.ingredientGroups = ingredientGroups; }
-
-    public List<NutritionGroup> getNutritionGroups() { return nutritionGroups; }
-    public void setNutritionGroups(List<NutritionGroup> nutritionGroups) { this.nutritionGroups = nutritionGroups; }
-
-    public Set<Category> getCategories() { return categories; }
-    public void setCategories(Set<Category> categories) { this.categories = categories; }
-
-    public List<String> getNotes() { return notes; }
-    public void setNotes(List<String> notes) { this.notes = notes; }
-
-    public List<String> getUtensils() { return utensils; }
-    public void setUtensils(List<String> utensils) { this.utensils = utensils; }
 }

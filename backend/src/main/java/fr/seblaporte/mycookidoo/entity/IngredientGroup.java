@@ -1,12 +1,19 @@
 package fr.seblaporte.mycookidoo.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "ingredient_group")
+@Getter
+@Setter
+@NoArgsConstructor
 public class IngredientGroup {
 
     @Id
@@ -28,20 +35,9 @@ public class IngredientGroup {
     @OrderBy("sortOrder ASC")
     private List<Ingredient> ingredients = new ArrayList<>();
 
-    protected IngredientGroup() {}
-
     public IngredientGroup(Recipe recipe, String name, int sortOrder) {
         this.recipe = recipe;
         this.name = name;
         this.sortOrder = sortOrder;
     }
-
-    public UUID getId() { return id; }
-    public Recipe getRecipe() { return recipe; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public int getSortOrder() { return sortOrder; }
-    public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
-    public List<Ingredient> getIngredients() { return ingredients; }
-    public void setIngredients(List<Ingredient> ingredients) { this.ingredients = ingredients; }
 }

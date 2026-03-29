@@ -1,12 +1,19 @@
 package fr.seblaporte.mycookidoo.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "collection")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Collection {
 
     @Id
@@ -30,21 +37,7 @@ public class Collection {
     @OrderBy("sortOrder ASC")
     private List<Chapter> chapters = new ArrayList<>();
 
-    protected Collection() {}
-
     public Collection(String id) {
         this.id = id;
     }
-
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public CollectionType getType() { return type; }
-    public void setType(CollectionType type) { this.type = type; }
-    public Instant getLastSyncedAt() { return lastSyncedAt; }
-    public void setLastSyncedAt(Instant lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; }
-    public List<Chapter> getChapters() { return chapters; }
-    public void setChapters(List<Chapter> chapters) { this.chapters = chapters; }
 }

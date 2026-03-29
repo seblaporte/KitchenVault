@@ -1,13 +1,19 @@
 package fr.seblaporte.mycookidoo.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "nutrition_group")
+@Getter
+@Setter
+@NoArgsConstructor
 public class NutritionGroup {
 
     @Id
@@ -31,23 +37,10 @@ public class NutritionGroup {
     @OneToMany(mappedBy = "nutritionGroup", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Nutrition> nutritions = new ArrayList<>();
 
-    protected NutritionGroup() {}
-
     public NutritionGroup(Recipe recipe, String name, Integer quantity, String unitNotation) {
         this.recipe = recipe;
         this.name = name;
         this.quantity = quantity;
         this.unitNotation = unitNotation;
     }
-
-    public UUID getId() { return id; }
-    public Recipe getRecipe() { return recipe; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
-    public String getUnitNotation() { return unitNotation; }
-    public void setUnitNotation(String unitNotation) { this.unitNotation = unitNotation; }
-    public List<Nutrition> getNutritions() { return nutritions; }
-    public void setNutritions(List<Nutrition> nutritions) { this.nutritions = nutritions; }
 }

@@ -1,11 +1,16 @@
 package fr.seblaporte.mycookidoo.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "sync_run")
+@Getter
+@NoArgsConstructor
 public class SyncRun {
 
     @Id
@@ -31,8 +36,6 @@ public class SyncRun {
 
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
-
-    protected SyncRun() {}
 
     public static SyncRun start() {
         SyncRun run = new SyncRun();
@@ -62,12 +65,7 @@ public class SyncRun {
         this.errorMessage = errorMessage;
     }
 
-    public UUID getId() { return id; }
-    public Instant getStartedAt() { return startedAt; }
-    public Instant getCompletedAt() { return completedAt; }
-    public SyncStatus getStatus() { return status; }
-    public Integer getCollectionsSynced() { return collectionsSynced; }
-    public Integer getRecipesSynced() { return recipesSynced; }
-    public String getErrorMessage() { return errorMessage; }
-    public boolean isRunning() { return status == SyncStatus.RUNNING; }
+    public boolean isRunning() {
+        return status == SyncStatus.RUNNING;
+    }
 }

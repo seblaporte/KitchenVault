@@ -1,11 +1,18 @@
 package fr.seblaporte.mycookidoo.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
 @Table(name = "nutrition")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Nutrition {
 
     @Id
@@ -26,21 +33,10 @@ public class Nutrition {
     @Column(name = "unit_type", nullable = false)
     private String unitType;
 
-    protected Nutrition() {}
-
     public Nutrition(NutritionGroup nutritionGroup, String type, BigDecimal number, String unitType) {
         this.nutritionGroup = nutritionGroup;
         this.type = type;
         this.number = number;
         this.unitType = unitType;
     }
-
-    public UUID getId() { return id; }
-    public NutritionGroup getNutritionGroup() { return nutritionGroup; }
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
-    public BigDecimal getNumber() { return number; }
-    public void setNumber(BigDecimal number) { this.number = number; }
-    public String getUnitType() { return unitType; }
-    public void setUnitType(String unitType) { this.unitType = unitType; }
 }

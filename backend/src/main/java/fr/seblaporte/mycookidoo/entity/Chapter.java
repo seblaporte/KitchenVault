@@ -1,12 +1,19 @@
 package fr.seblaporte.mycookidoo.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "chapter")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Chapter {
 
     @Id
@@ -33,20 +40,9 @@ public class Chapter {
     @OrderColumn(name = "sort_order")
     private List<Recipe> recipes = new ArrayList<>();
 
-    protected Chapter() {}
-
     public Chapter(Collection collection, String name, int sortOrder) {
         this.collection = collection;
         this.name = name;
         this.sortOrder = sortOrder;
     }
-
-    public UUID getId() { return id; }
-    public Collection getCollection() { return collection; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public int getSortOrder() { return sortOrder; }
-    public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
-    public List<Recipe> getRecipes() { return recipes; }
-    public void setRecipes(List<Recipe> recipes) { this.recipes = recipes; }
 }

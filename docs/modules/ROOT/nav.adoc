@@ -1,0 +1,7 @@
+* xref:index.adoc[Accueil]
+* xref:architecture.adoc[Architecture]
+* xref:getting-started.adoc[Démarrage rapide]
+* xref:data-model.adoc[Modèle de données]
+* xref:api.adoc[API REST]
+* xref:sync.adoc[Synchronisation Cookidoo]
+* xref:frontend.adoc[Interface Angular]

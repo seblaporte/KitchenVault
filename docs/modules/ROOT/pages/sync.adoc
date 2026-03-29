@@ -1,0 +1,109 @@
+= Synchronisation Cookidoo
+:description: Fonctionnement du mécanisme de synchronisation
+
+== Vue d'ensemble
+
+La synchronisation récupère les données Cookidoo via le microservice Python et les stocke en base PostgreSQL.
+
+== Déclenchement
+
+=== Manuel
+
+[source,bash]
+----
+curl -X POST http://localhost:8080/api/v1/sync
+----
+
+Retourne immédiatement un `SyncRun` avec le statut `RUNNING`. La sync s'exécute en tâche de fond (virtual thread).
+
+=== Automatique (scheduler)
+
+Configuré via `application.yml` :
+
+[source,yaml]
+----
+cookidoo:
+  sync:
+    cron: "0 0 3 * * *"  # Tous les jours à 3h du matin
+----
+
+Pour désactiver le scheduler : `cron: "-"` (utilisé dans les tests).
+
+== Algorithme
+
+[kroki,plantuml,svg]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+
+start
+
+:Créer SyncRun (RUNNING);
+
+:GET /collections sur cookidoo-service;
+
+fork
+  :Collecter tous les IDs de recettes\ndepuis les chapitres des collections;
+fork again
+  note right: Pas de duplication\n(Set<String>)
+end fork
+
+while (Pour chaque recette ID) is (recettes restantes)
+  if (Présente en base ?) then (non)
+    :GET /recipes/{id};
+    :Upsert en base;
+    :recipesSynced++;
+  else if (last_synced_at > seuil ?) then (oui = périmée)
+    :GET /recipes/{id};
+    :Update en base;
+    :recipesSynced++;
+  else (non = fraîche)
+    :Skip;
+  endif
+endwhile (terminé)
+
+:Upsert collections + chapitres;
+:collectionsSynced++;
+
+:SyncRun → SUCCESS;
+
+end
+....
+
+== Configuration
+
+[source,yaml]
+----
+cookidoo:
+  service:
+    url: http://localhost:8001       # URL du microservice Python
+  sync:
+    cron: "0 0 3 * * *"              # Expression cron Spring
+    resync-after-hours: 24           # Re-synchroniser les recettes > N heures
+----
+
+== Statuts d'un SyncRun
+
+[cols="1,3"]
+|===
+|Statut |Description
+
+|`RUNNING`
+|Synchronisation en cours. Un seul SyncRun peut être en état RUNNING simultanément.
+
+|`SUCCESS`
+|Synchronisation terminée avec succès.
+
+|`PARTIAL`
+|Synchronisation partiellement réussie (certaines recettes ont échoué mais la sync a continué).
+
+|`FAILED`
+|Synchronisation échouée (erreur critique, ex. service Python indisponible).
+|===
+
+== Comportement en cas d'erreur
+
+* Si le `cookidoo-service` est indisponible → le SyncRun passe en `FAILED` avec le message d'erreur.
+* Si une recette individuelle échoue → l'erreur est loguée, la sync continue, le SyncRun reste `SUCCESS`.
+* Si une sync est déjà en cours → `POST /api/v1/sync` retourne `409 Conflict`.

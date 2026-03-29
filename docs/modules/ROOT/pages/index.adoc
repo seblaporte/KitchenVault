@@ -1,0 +1,38 @@
+= My Cookidoo
+:description: Documentation de l'application personnelle de gestion des recettes Cookidoo
+
+My Cookidoo est une application personnelle permettant de récupérer, stocker et consulter les recettes Cookidoo via une interface plus ergonomique que l'application officielle.
+
+== Vue d'ensemble
+
+L'application est composée de trois parties :
+
+[cols="1,2,2"]
+|===
+|Composant |Rôle |Technologie
+
+|`cookidoo-service`
+|Wrapper autour de l'API Cookidoo non-officielle
+|Python 3.12 · FastAPI · cookidoo-api
+
+|`backend`
+|API REST, persistance, synchronisation planifiée
+|Java 25 · Spring Boot 3.4 · PostgreSQL 17
+
+|`frontend`
+|Interface utilisateur
+|Angular 21 · TailwindCSS 4
+|===
+
+== Fonctionnalités Phase 1
+
+* Synchronisation manuelle et automatique (cron) des recettes et collections Cookidoo
+* Stockage persistant en base PostgreSQL
+* Interface d'administration : statut des syncs, statistiques, déclenchement manuel
+* API REST contract-first (OpenAPI Generator)
+
+== Liens rapides
+
+* xref:getting-started.adoc[Démarrage rapide]
+* xref:architecture.adoc[Architecture]
+* xref:api.adoc[Référence API]

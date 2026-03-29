@@ -1,0 +1,90 @@
+= Modèle de données
+:description: Schéma de la base de données PostgreSQL
+
+== Diagramme entité-relation
+
+[kroki,erd,svg]
+....
+[Recipe]
+*id {label: "varchar PK"}
+name {label: "varchar"}
+difficulty {label: "varchar"}
+thumbnail_url {label: "varchar"}
+image_url {label: "varchar"}
+url {label: "varchar"}
+serving_size {label: "int"}
+active_time_minutes {label: "int"}
+total_time_minutes {label: "int"}
+last_synced_at {label: "timestamptz"}
+
+[IngredientGroup]
+*id {label: "uuid PK"}
+name {label: "varchar"}
+sort_order {label: "int"}
+
+[Ingredient]
+*id {label: "varchar PK"}
+name {label: "varchar"}
+description {label: "varchar"}
+sort_order {label: "int"}
+
+[Category]
+*id {label: "varchar PK"}
+name {label: "varchar"}
+
+[NutritionGroup]
+*id {label: "uuid PK"}
+name {label: "varchar"}
+quantity {label: "int"}
+unit_notation {label: "varchar"}
+
+[Nutrition]
+*id {label: "uuid PK"}
+type {label: "varchar"}
+number {label: "decimal"}
+unit_type {label: "varchar"}
+
+[Collection]
+*id {label: "varchar PK"}
+name {label: "varchar"}
+description {label: "varchar"}
+type {label: "CUSTOM|MANAGED"}
+last_synced_at {label: "timestamptz"}
+
+[Chapter]
+*id {label: "uuid PK"}
+name {label: "varchar"}
+sort_order {label: "int"}
+
+[SyncRun]
+*id {label: "uuid PK"}
+started_at {label: "timestamptz"}
+completed_at {label: "timestamptz"}
+status {label: "RUNNING|SUCCESS|PARTIAL|FAILED"}
+collections_synced {label: "int"}
+recipes_synced {label: "int"}
+error_message {label: "text"}
+
+Recipe 1--* IngredientGroup
+IngredientGroup 1--* Ingredient
+Recipe *--* Category
+Recipe 1--* NutritionGroup
+NutritionGroup 1--* Nutrition
+Collection 1--* Chapter
+Chapter *--* Recipe
+....
+
+== Tables de jointure
+
+* `recipe_category` : liaison Recipe ↔ Category (many-to-many)
+* `chapter_recipe` : liaison Chapter ↔ Recipe avec `sort_order` (many-to-many ordonné)
+* `recipe_note` : collection de notes texte par recette
+* `recipe_utensil` : collection d'ustensiles par recette
+
+== Stratégie d'upsert
+
+Les identifiants Cookidoo (`id`) sont utilisés comme clés primaires pour permettre un upsert natif via `save()` JPA :
+
+* Si la recette est absente → INSERT
+* Si la recette est présente et son `last_synced_at` est plus ancien que le seuil configuré (`cookidoo.sync.resync-after-hours`) → UPDATE complet
+* Si la recette est fraîche → pas de requête vers Cookidoo

@@ -1,0 +1,120 @@
+= Architecture
+:description: Architecture globale de my-cookidoo
+
+== Vue d'ensemble
+
+my-cookidoo est une application multi-couches composée de trois services distincts.
+
+[kroki,plantuml,svg]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam componentStyle rectangle
+
+actor Utilisateur
+
+package "Navigateur" {
+  component "[Angular 21]" as Angular
+}
+
+package "Backend (JVM)" {
+  component "[Spring Boot 3.4]" as SpringBoot
+  database "PostgreSQL 17" as PG
+}
+
+package "cookidoo-service (Python)" {
+  component "[FastAPI]" as FastAPI
+}
+
+cloud "Cookidoo API" as CookidooAPI
+
+Utilisateur --> Angular : HTTP
+Angular --> SpringBoot : HTTP (client OpenAPI généré)
+SpringBoot --> PG : JDBC / JPA
+SpringBoot --> FastAPI : HTTP (@HttpExchange)
+FastAPI --> CookidooAPI : HTTPS (aiohttp)
+
+@enduml
+....
+
+== Flux de synchronisation
+
+[kroki,plantuml,svg]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+
+actor Admin
+participant "Angular\nAdminComponent" as UI
+participant "Spring Boot\nSyncService" as Sync
+participant "cookidoo-service\nFastAPI" as Python
+participant "Cookidoo API" as External
+database "PostgreSQL" as DB
+
+Admin -> UI : Clic "Synchroniser"
+UI -> Sync : POST /api/v1/sync
+Sync -> DB : INSERT sync_run (RUNNING)
+Sync --> UI : 202 Accepted (SyncRun)
+note right of Sync : Exécution asynchrone\n(virtual thread)
+Sync -> Python : GET /collections
+Python -> External : API Cookidoo (auth + collections)
+External --> Python : JSON collections
+Python --> Sync : CollectionResponse[]
+
+loop Pour chaque recette (si absente ou périmée)
+  Sync -> Python : GET /recipes/{id}
+  Python -> External : API Cookidoo (recipe details)
+  External --> Python : JSON recette
+  Python --> Sync : RecipeDetailsResponse
+  Sync -> DB : UPSERT recipe
+end
+
+Sync -> DB : UPSERT collections + chapters
+Sync -> DB : UPDATE sync_run (SUCCESS)
+
+UI -> Sync : GET /api/v1/sync/latest (polling 5s)
+Sync --> UI : SyncRun (SUCCESS)
+UI -> Admin : Affiche résultat
+
+@enduml
+....
+
+== Principe contract-first
+
+[kroki,plantuml,svg]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+
+file "api.yaml\n(contrat OpenAPI)" as Contract
+
+package "contracts (Maven module)" {
+  component "openapi-generator\n(spring generator)" as Gen
+  component "API interfaces\n+ DTOs\n(code généré)" as JavaGenerated
+}
+
+package "backend" {
+  component "Delegate\nimplémentations" as Delegates
+  component "Services\nmétier" as Services
+}
+
+package "frontend" {
+  component "openapi-generator\n(typescript-angular)" as GenTS
+  component "Angular services\n+ models\n(code généré)" as TSGenerated
+  component "AdminComponent\nRecipesComponent" as Components
+}
+
+Contract --> Gen : mvn generate-sources
+Gen --> JavaGenerated
+JavaGenerated --> Delegates : implémente les interfaces
+Delegates --> Services : délègue
+
+Contract --> GenTS : npm run generate:api
+GenTS --> TSGenerated
+TSGenerated --> Components : injection DI
+
+@enduml
+....

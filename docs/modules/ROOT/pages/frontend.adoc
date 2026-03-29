@@ -1,0 +1,92 @@
+= Interface Angular
+:description: Documentation du frontend Angular 21
+
+== Structure
+
+L'application est un Angular workspace avec deux projets :
+
+* `projects/api-client` — Library contenant le client généré par OpenAPI Generator (non versionné)
+* `projects/app` — Application principale
+
+== Génération du client API
+
+Le client Angular est généré automatiquement depuis le contrat `api.yaml` :
+
+[source,bash]
+----
+cd frontend
+npm run generate:api
+----
+
+Le code généré est placé dans `projects/api-client/src/generated/` (exclu du dépôt Git).
+L'application l'importe via l'alias TypeScript `@my-cookidoo/api-client`.
+
+== Interface d'administration
+
+URL : http://localhost:4200/admin
+
+[kroki,plantuml,svg]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+
+title AdminComponent — flux de données
+
+component "AdminComponent" as Admin {
+  portin "ngOnInit" as Init
+  portout "triggerSync()" as Trigger
+}
+
+component "HttpClient" as Http
+
+database "Spring Boot API" as API
+
+Init --> Http : GET /api/v1/admin/stats\nGET /api/v1/sync/latest
+Http --> API
+API --> Http
+Http --> Admin : stats signal\nlatestSync signal
+
+note right of Admin
+  Polling toutes les 5s\n(interval + switchMap)
+  pendant qu'une sync\nest en cours
+end note
+
+Trigger --> Http : POST /api/v1/sync
+Http --> API
+API --> Http : SyncRun (RUNNING)
+Http --> Admin : isSyncing = true
+
+@enduml
+....
+
+=== Blocs fonctionnels
+
+. **Cartes statistiques** — Nombre de recettes, collections, date de la dernière sync réussie
+. **Bouton de synchronisation** — Désactivé (avec spinner) pendant une sync en cours
+. **Statut de la dernière sync** — Badge coloré, compteurs, durée, message d'erreur éventuel
+
+== TailwindCSS 4
+
+Intégration via `@tailwind/vite` (plugin Vite natif d'Angular 21) :
+
+[source,css]
+----
+/* styles.css */
+@import "tailwindcss";
+
+@theme {
+  --color-brand: theme(colors.indigo.600);
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+----
+
+=== Principes d'accessibilité appliqués
+
+* `aria-live="polite"` sur les zones mises à jour dynamiquement
+* `aria-label` sur tous les éléments interactifs
+* `aria-busy` sur le bouton pendant la synchronisation
+* `role="status"` sur le bloc de résultat de sync
+* Headings avec `sr-only` pour structurer les sections (screen readers)
+* `focus-visible` rings conformes WCAG AA
+* Contraste minimum 4.5:1 sur tous les textes

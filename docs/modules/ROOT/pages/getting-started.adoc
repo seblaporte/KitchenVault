@@ -1,0 +1,104 @@
+= Démarrage rapide
+:description: Comment lancer l'environnement de développement
+
+== Prérequis
+
+* Podman + podman-compose
+* Java 25
+* Maven 3.9+
+* Node.js 22+
+* Python 3.12+
+
+== 1. Variables d'environnement
+
+Copier le fichier template et renseigner les credentials Cookidoo :
+
+[source,bash]
+----
+cp .env.example .env
+# Éditer .env avec l'email et le mot de passe du compte Cookidoo
+----
+
+== 2. Démarrer l'infrastructure
+
+[source,bash]
+----
+podman compose up -d
+----
+
+Cela démarre :
+
+* PostgreSQL 17 sur le port `5432`
+* pgAdmin sur http://localhost:5050 (admin@mycookidoo.local / admin)
+* cookidoo-service (FastAPI) sur le port `8001`
+
+== 3. Démarrer le backend
+
+[source,bash]
+----
+cd backend
+../mvnw spring-boot:run
+----
+
+L'application démarre sur http://localhost:8080.
+Liquibase crée le schéma automatiquement au premier démarrage.
+
+Swagger UI : http://localhost:8080/swagger-ui.html
+
+== 4. Régénérer le client Angular (si le contrat a changé)
+
+[source,bash]
+----
+cd frontend
+npm run generate:api
+----
+
+== 5. Démarrer le frontend
+
+[source,bash]
+----
+cd frontend
+npm install
+npm start
+----
+
+Application disponible sur http://localhost:4200.
+
+== 6. Lancer une synchronisation
+
+Via curl :
+
+[source,bash]
+----
+curl -X POST http://localhost:8080/api/v1/sync
+----
+
+Ou via l'interface http://localhost:4200/admin.
+
+== Vérification de l'état
+
+[source,bash]
+----
+# Dernier SyncRun
+curl http://localhost:8080/api/v1/sync/latest
+
+# Statistiques
+curl http://localhost:8080/api/v1/admin/stats
+
+# Health du microservice Python
+curl http://localhost:8001/health
+----
+
+== Lancer les tests
+
+[source,bash]
+----
+# Backend (unitaires + intégration via Testcontainers)
+./mvnw test
+
+# Frontend
+cd frontend && ng test
+
+# Python
+cd cookidoo-service && python -m pytest
+----

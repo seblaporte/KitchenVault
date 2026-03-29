@@ -1,0 +1,22 @@
+site:
+  title: My Cookidoo Documentation
+  start_page: my-cookidoo::index.adoc
+
+content:
+  sources:
+    - url: .
+      branches: HEAD
+      start_path: docs
+
+ui:
+  bundle:
+    url: https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable
+    snapshot: true
+
+asciidoc:
+  extensions:
+    - asciidoctor-kroki
+  attributes:
+    kroki-server-url: https://kroki.io
+    kroki-fetch-diagram: true
+    source-highlighter: highlight.js

@@ -18,7 +18,7 @@ services:
   pgadmin:
     image: docker.io/dpage/pgadmin4:latest
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@mycookidoo.local
+      PGADMIN_DEFAULT_EMAIL: admin@gmail.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
       - "5050:80"

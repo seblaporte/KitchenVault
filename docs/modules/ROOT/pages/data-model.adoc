@@ -3,7 +3,7 @@
 
 == Diagramme entité-relation
 
-[kroki,erd,svg]
+[erd]
 ....
 [Recipe]
 *id {label: "varchar PK"}

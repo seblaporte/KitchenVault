@@ -25,7 +25,7 @@ L'application l'importe via l'alias TypeScript `@my-cookidoo/api-client`.
 
 URL : http://localhost:4200/admin
 
-[kroki,plantuml,svg]
+[plantuml]
 ....
 @startuml
 !theme plain

@@ -5,7 +5,7 @@
 
 my-cookidoo est une application multi-couches composée de trois services distincts.
 
-[kroki,plantuml,svg]
+[plantuml]
 ....
 @startuml
 !theme plain
@@ -40,7 +40,7 @@ FastAPI --> CookidooAPI : HTTPS (aiohttp)
 
 == Flux de synchronisation
 
-[kroki,plantuml,svg]
+[plantuml]
 ....
 @startuml
 !theme plain
@@ -83,7 +83,7 @@ UI -> Admin : Affiche résultat
 
 == Principe contract-first
 
-[kroki,plantuml,svg]
+[plantuml]
 ....
 @startuml
 !theme plain

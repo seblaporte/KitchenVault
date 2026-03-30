@@ -168,7 +168,6 @@ public class SyncService {
 
         // Ingredient groups (full replace)
         recipe.getIngredientGroups().clear();
-        List<IngredientGroup> ingredientGroups = new ArrayList<>();
         // The Python service returns a flat list of ingredients — we put them all in a single default group
         if (!details.ingredients().isEmpty()) {
             IngredientGroup group = new IngredientGroup(recipe, null, 0);
@@ -178,13 +177,11 @@ public class SyncService {
                 ingredients.add(new Ingredient(ci.id(), group, ci.name(), ci.description(), sortOrder++));
             }
             group.setIngredients(ingredients);
-            ingredientGroups.add(group);
+            recipe.getIngredientGroups().add(group);
         }
-        recipe.setIngredientGroups(ingredientGroups);
 
         // Nutrition groups (full replace)
         recipe.getNutritionGroups().clear();
-        List<NutritionGroup> nutritionGroups = new ArrayList<>();
         for (CookidooNutritionGroup cng : details.nutritionGroups()) {
             for (CookidooRecipeNutrition rn : cng.recipeNutritions()) {
                 NutritionGroup ng = new NutritionGroup(recipe, cng.name(), rn.quantity(), rn.unitNotation());
@@ -193,10 +190,9 @@ public class SyncService {
                     nutritions.add(new Nutrition(ng, cn.type(), BigDecimal.valueOf(cn.number()), cn.unitType()));
                 }
                 ng.setNutritions(nutritions);
-                nutritionGroups.add(ng);
+                recipe.getNutritionGroups().add(ng);
             }
         }
-        recipe.setNutritionGroups(nutritionGroups);
 
         recipeRepository.save(recipe);
     }
@@ -212,7 +208,6 @@ public class SyncService {
 
         // Chapters (full replace)
         collection.getChapters().clear();
-        List<Chapter> chapters = new ArrayList<>();
         int chapterOrder = 0;
         for (CookidooChapter cookidooChapter : cookidooCollection.chapters()) {
             Chapter chapter = new Chapter(collection, cookidooChapter.name(), chapterOrder++);
@@ -221,9 +216,8 @@ public class SyncService {
                 recipeRepository.findById(cr.id()).ifPresent(recipes::add);
             }
             chapter.setRecipes(recipes);
-            chapters.add(chapter);
+            collection.getChapters().add(chapter);
         }
-        collection.setChapters(chapters);
 
         collectionRepository.save(collection);
     }

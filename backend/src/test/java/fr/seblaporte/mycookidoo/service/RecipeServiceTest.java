@@ -8,6 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
 import java.util.List;
@@ -15,7 +16,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,43 +26,53 @@ class RecipeServiceTest {
     @InjectMocks RecipeService recipeService;
 
     @Test
-    void listRecipes_withoutSearch_callsFindAll() {
+    void listRecipes_noFilters_callsFindAllWithNullSpec() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Recipe> page = new PageImpl<>(List.of(makeRecipe("r-1")));
-        when(recipeRepository.findAll(pageable)).thenReturn(page);
+        when(recipeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<Recipe> result = recipeService.listRecipes(null, pageable);
+        Page<Recipe> result = recipeService.listRecipes(null, null, null, null, pageable);
 
         assertThat(result.getContent()).hasSize(1);
-        verify(recipeRepository).findAll(pageable);
+        verify(recipeRepository).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
-    void listRecipes_withSearch_callsFindByName() {
+    void listRecipes_withSearch_callsFindAllWithSpec() {
         Pageable pageable = PageRequest.of(0, 20);
         Page<Recipe> page = new PageImpl<>(List.of(makeRecipe("r-1")));
-        when(recipeRepository.findByNameContainingIgnoreCase(eq("tarte"), any())).thenReturn(page);
+        when(recipeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<Recipe> result = recipeService.listRecipes("tarte", pageable);
+        Page<Recipe> result = recipeService.listRecipes("tarte", null, null, null, pageable);
 
         assertThat(result.getContent()).hasSize(1);
-        verify(recipeRepository).findByNameContainingIgnoreCase("tarte", pageable);
+        verify(recipeRepository).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
-    void listRecipes_withBlankSearch_treatsAsNoSearch() {
+    void listRecipes_withBlankSearch_treatsAsNoFilter() {
         Pageable pageable = PageRequest.of(0, 20);
-        when(recipeRepository.findAll(pageable)).thenReturn(Page.empty());
+        when(recipeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
 
-        recipeService.listRecipes("   ", pageable);
+        recipeService.listRecipes("   ", null, null, null, pageable);
 
-        verify(recipeRepository).findAll(pageable);
+        verify(recipeRepository).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    void listRecipes_withCategoryAndDifficultyFilters_callsFindAllWithSpec() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(recipeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        recipeService.listRecipes(null, List.of("cat-1"), List.of("easy"), 30, pageable);
+
+        verify(recipeRepository).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test
     void getRecipeById_found_returnsRecipe() {
         Recipe recipe = makeRecipe("r-1");
-        when(recipeRepository.findByIdWithIngredients("r-1")).thenReturn(Optional.of(recipe));
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
 
         Optional<Recipe> result = recipeService.getRecipeById("r-1");
 
@@ -72,7 +82,7 @@ class RecipeServiceTest {
 
     @Test
     void getRecipeById_notFound_returnsEmpty() {
-        when(recipeRepository.findByIdWithIngredients("unknown")).thenReturn(Optional.empty());
+        when(recipeRepository.findById("unknown")).thenReturn(Optional.empty());
 
         Optional<Recipe> result = recipeService.getRecipeById("unknown");
 

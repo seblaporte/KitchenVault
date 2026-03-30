@@ -19,10 +19,10 @@ public class CollectionService {
     }
 
     public List<Collection> listCollections() {
-        return collectionRepository.findAllWithChaptersAndRecipes();
+        return collectionRepository.findAllWithChapters();
     }
 
     public Optional<Collection> getCollectionById(String id) {
-        return collectionRepository.findByIdWithChaptersAndRecipes(id);
+        return collectionRepository.findByIdWithChapters(id);
     }
 }

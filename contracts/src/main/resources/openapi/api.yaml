@@ -20,6 +20,8 @@ tags:
     description: Consultation des recettes
   - name: collections
     description: Consultation des collections
+  - name: categories
+    description: Consultation des catégories
 
 paths:
 
@@ -111,6 +113,29 @@ paths:
           required: false
           schema:
             type: string
+        - name: categoryIds
+          in: query
+          description: Filtre par catégories (OR) — répéter le paramètre pour plusieurs valeurs
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+        - name: difficulties
+          in: query
+          description: Filtre par niveau de difficulté (OR)
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+        - name: maxTotalTimeMinutes
+          in: query
+          description: Filtre par temps total maximum (en minutes)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
       responses:
         "200":
           description: Page de recettes
@@ -143,6 +168,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorDto"
+
+  # ─── Catégories ──────────────────────────────────────────────────────────────
+
+  /api/v1/categories:
+    get:
+      tags: [categories]
+      operationId: listCategories
+      summary: Liste de toutes les catégories
+      description: Retourne toutes les catégories triées alphabétiquement.
+      responses:
+        "200":
+          description: Liste des catégories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryDto"
 
   # ─── Collections ─────────────────────────────────────────────────────────────
 
@@ -441,6 +484,9 @@ components:
           type: string
         name:
           type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
         totalTimeMinutes:
           type: integer
           nullable: true

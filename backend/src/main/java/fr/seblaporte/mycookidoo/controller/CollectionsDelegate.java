@@ -6,6 +6,7 @@ import fr.seblaporte.mycookidoo.mapper.CollectionMapper;
 import fr.seblaporte.mycookidoo.service.CollectionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class CollectionsDelegate implements CollectionsApiDelegate {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ResponseEntity<List<CollectionDto>> listCollections() {
         List<CollectionDto> dtos = collectionService.listCollections().stream()
                 .map(collectionMapper::toDto)
@@ -29,6 +31,7 @@ public class CollectionsDelegate implements CollectionsApiDelegate {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ResponseEntity<CollectionDto> getCollectionById(String id) {
         return collectionService.getCollectionById(id)
                 .map(collectionMapper::toDto)

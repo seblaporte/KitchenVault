@@ -13,9 +13,9 @@ public interface CollectionRepository extends JpaRepository<Collection, String> 
 
     List<Collection> findByType(CollectionType type);
 
-    @Query("SELECT c FROM Collection c LEFT JOIN FETCH c.chapters ch LEFT JOIN FETCH ch.recipes WHERE c.id = :id")
-    Optional<Collection> findByIdWithChaptersAndRecipes(@Param("id") String id);
+    @Query("SELECT c FROM Collection c LEFT JOIN FETCH c.chapters WHERE c.id = :id")
+    Optional<Collection> findByIdWithChapters(@Param("id") String id);
 
-    @Query("SELECT c FROM Collection c LEFT JOIN FETCH c.chapters ch LEFT JOIN FETCH ch.recipes")
-    List<Collection> findAllWithChaptersAndRecipes();
+    @Query("SELECT c FROM Collection c LEFT JOIN FETCH c.chapters")
+    List<Collection> findAllWithChapters();
 }

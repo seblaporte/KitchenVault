@@ -76,6 +76,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- DevTools — hot reload (désactivé automatiquement en production) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- ── Test ────────────────────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

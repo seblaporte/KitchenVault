@@ -28,12 +28,12 @@ public class RecipesDelegate implements RecipesApiDelegate {
     @Override
     public ResponseEntity<RecipePageDto> listRecipes(Integer page, Integer size, String search,
                                                       List<String> categoryIds, List<String> difficulties,
-                                                      Integer maxTotalTimeMinutes) {
+                                                      Integer maxTotalTimeMinutes, List<String> collectionIds) {
         int pageNum = page != null ? page : 0;
         int pageSize = size != null ? size : 20;
 
         Page<fr.seblaporte.mycookidoo.entity.Recipe> resultPage =
-                recipeService.listRecipes(search, categoryIds, difficulties, maxTotalTimeMinutes,
+                recipeService.listRecipes(search, categoryIds, difficulties, maxTotalTimeMinutes, collectionIds,
                         PageRequest.of(pageNum, pageSize));
 
         List<RecipeSummaryDto> content = resultPage.getContent().stream()

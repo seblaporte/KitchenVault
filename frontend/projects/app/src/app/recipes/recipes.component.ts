@@ -92,6 +92,22 @@ const TIME_BUCKETS = [
         <!-- Filtres -->
         <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm space-y-3">
 
+          <!-- Collections -->
+          @if (collectionsWithRecipes().length > 0) {
+            <div>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Collections</p>
+              <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrer par collection">
+                @for (col of collectionsWithRecipes(); track col.id) {
+                  <button
+                    (click)="toggleCollection(col.id)"
+                    [class]="chipClass(selectedCollections.has(col.id))"
+                    [attr.aria-pressed]="selectedCollections.has(col.id)"
+                  >{{ col.name }}</button>
+                }
+              </div>
+            </div>
+          }
+
           <!-- Catégories -->
           @if (categories().length > 0) {
             <div>
@@ -300,6 +316,7 @@ export class RecipesComponent implements OnInit, OnDestroy {
   currentPage = signal(0);
 
   searchText = '';
+  selectedCollections = new Set<string>();
   selectedCategories = new Set<string>();
   selectedDifficulties = new Set<string>();
   selectedMaxTime: number | null = null;
@@ -324,15 +341,31 @@ export class RecipesComponent implements OnInit, OnDestroy {
   }
 
   isSearchMode(): boolean {
-    return !!(this.searchText.trim() || this.selectedCategories.size > 0
-      || this.selectedDifficulties.size > 0 || this.selectedMaxTime !== null);
+    return !!(this.searchText.trim() || this.selectedCollections.size > 0
+      || this.selectedCategories.size > 0 || this.selectedDifficulties.size > 0
+      || this.selectedMaxTime !== null);
   }
 
   get activeFilterCount(): number {
     return (this.searchText.trim() ? 1 : 0)
+      + this.selectedCollections.size
       + this.selectedCategories.size
       + this.selectedDifficulties.size
       + (this.selectedMaxTime !== null ? 1 : 0);
+  }
+
+  collectionsWithRecipes(): Collection[] {
+    return this.collections().filter(c => this.hasRecipes(c));
+  }
+
+  toggleCollection(id: string): void {
+    if (this.selectedCollections.has(id)) {
+      this.selectedCollections.delete(id);
+    } else {
+      this.selectedCollections.add(id);
+    }
+    this.currentPage.set(0);
+    this.searchTrigger$.next();
   }
 
   onSearchChange(_value: string): void {
@@ -374,6 +407,7 @@ export class RecipesComponent implements OnInit, OnDestroy {
 
   clearAllFilters(): void {
     this.searchText = '';
+    this.selectedCollections.clear();
     this.selectedCategories.clear();
     this.selectedDifficulties.clear();
     this.selectedMaxTime = null;
@@ -432,6 +466,9 @@ export class RecipesComponent implements OnInit, OnDestroy {
     if (this.searchText.trim()) {
       params = params.set('search', this.searchText.trim());
     }
+    this.selectedCollections.forEach(id => {
+      params = params.append('collectionIds', id);
+    });
     this.selectedCategories.forEach(id => {
       params = params.append('categoryIds', id);
     });

@@ -31,7 +31,7 @@ class RecipeServiceTest {
         Page<Recipe> page = new PageImpl<>(List.of(makeRecipe("r-1")));
         when(recipeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<Recipe> result = recipeService.listRecipes(null, null, null, null, pageable);
+        Page<Recipe> result = recipeService.listRecipes(null, null, null, null, null, pageable);
 
         assertThat(result.getContent()).hasSize(1);
         verify(recipeRepository).findAll(any(Specification.class), any(Pageable.class));
@@ -43,7 +43,7 @@ class RecipeServiceTest {
         Page<Recipe> page = new PageImpl<>(List.of(makeRecipe("r-1")));
         when(recipeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<Recipe> result = recipeService.listRecipes("tarte", null, null, null, pageable);
+        Page<Recipe> result = recipeService.listRecipes("tarte", null, null, null, null, pageable);
 
         assertThat(result.getContent()).hasSize(1);
         verify(recipeRepository).findAll(any(Specification.class), any(Pageable.class));
@@ -54,7 +54,7 @@ class RecipeServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
         when(recipeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
 
-        recipeService.listRecipes("   ", null, null, null, pageable);
+        recipeService.listRecipes("   ", null, null, null, null, pageable);
 
         verify(recipeRepository).findAll(any(Specification.class), any(Pageable.class));
     }
@@ -64,7 +64,7 @@ class RecipeServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
         when(recipeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
 
-        recipeService.listRecipes(null, List.of("cat-1"), List.of("easy"), 30, pageable);
+        recipeService.listRecipes(null, List.of("cat-1"), List.of("easy"), 30, List.of("col-1"), pageable);
 
         verify(recipeRepository).findAll(any(Specification.class), any(Pageable.class));
     }

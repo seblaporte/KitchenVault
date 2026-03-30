@@ -136,6 +136,14 @@ paths:
           schema:
             type: integer
             minimum: 1
+        - name: collectionIds
+          in: query
+          description: Filtre par collections (OR) — répéter le paramètre pour plusieurs valeurs
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: Page de recettes

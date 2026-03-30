@@ -23,7 +23,7 @@ public class RecipeService {
     }
 
     public Page<Recipe> listRecipes(String search, List<String> categoryIds, List<String> difficulties,
-                                     Integer maxTotalTimeMinutes, Pageable pageable) {
+                                     Integer maxTotalTimeMinutes, List<String> collectionIds, Pageable pageable) {
         Specification<Recipe> spec = Specification.where(null);
 
         if (search != null && !search.isBlank()) {
@@ -37,6 +37,9 @@ public class RecipeService {
         }
         if (maxTotalTimeMinutes != null) {
             spec = spec.and(RecipeSpecification.maxTotalTime(maxTotalTimeMinutes));
+        }
+        if (collectionIds != null && !collectionIds.isEmpty()) {
+            spec = spec.and(RecipeSpecification.inCollections(collectionIds));
         }
 
         return recipeRepository.findAll(spec, pageable);

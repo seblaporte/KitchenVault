@@ -6,8 +6,8 @@ class Settings(BaseSettings):
 
     email: str
     password: str
-    country_code: str = "ch"
-    language: str = "de-CH"
+    country_code: str = "fr"
+    language: str = "fr-FR"
 
 
 settings = Settings()

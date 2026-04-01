@@ -40,6 +40,7 @@ class CookidooSession:
                         localization=CookidooLocalizationConfig(
                             country_code=settings.country_code,
                             language=settings.language,
+                            url=f"https://cookidoo.{settings.country_code}/foundation/{settings.language}",
                         ),
                         email=settings.email,
                         password=settings.password,

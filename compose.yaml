@@ -33,8 +33,8 @@ services:
     environment:
       COOKIDOO_EMAIL: ${COOKIDOO_EMAIL}
       COOKIDOO_PASSWORD: ${COOKIDOO_PASSWORD}
-      COOKIDOO_COUNTRY_CODE: ${COOKIDOO_COUNTRY_CODE:-ch}
-      COOKIDOO_LANGUAGE: ${COOKIDOO_LANGUAGE:-de-CH}
+      COOKIDOO_COUNTRY_CODE: ${COOKIDOO_COUNTRY_CODE:-fr}
+      COOKIDOO_LANGUAGE: ${COOKIDOO_LANGUAGE:-fr-FR}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 10s

@@ -34,6 +34,7 @@ public interface RecipeMapper {
 
     default List<NutritionDto> flattenNutritions(NutritionGroup group) {
         return group.getNutritions().stream()
+                .filter(n -> !"kJ".equals(n.getType()))
                 .map(n -> {
                     NutritionDto dto = new NutritionDto();
                     dto.setType(n.getType());

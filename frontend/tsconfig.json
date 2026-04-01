@@ -20,7 +20,7 @@
     "useDefineForClassFields": false,
     "lib": ["ES2022", "dom"],
     "paths": {
-      "@my-cookidoo/api-client": ["projects/api-client/src/public-api.ts"]
+      "@KitchenVault/api-client": ["projects/api-client/src/public-api.ts"]
     }
   },
   "angularCompilerOptions": {

@@ -40,5 +40,5 @@ springdoc:
 
 logging:
   level:
-    fr.seblaporte.mycookidoo: INFO
+    fr.seblaporte.kitchenvault: INFO
     org.liquibase: INFO

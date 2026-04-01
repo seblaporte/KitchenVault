@@ -1,5 +1,5 @@
 = API REST
-:description: Référence interactive de l'API my-cookidoo
+:description: Référence interactive de l'API KitchenVault
 
 Le contrat source est dans `contracts/src/main/resources/openapi/api.yaml`.
 

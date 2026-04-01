@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="cookidoo-service",
-    description="FastAPI wrapper around cookidoo-api for my-cookidoo",
+    description="FastAPI wrapper around cookidoo-api for KitchenVault",
     version="1.0.0",
     lifespan=lifespan,
 )

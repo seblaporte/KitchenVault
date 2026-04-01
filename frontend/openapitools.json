@@ -10,7 +10,7 @@
   "additionalProperties": {
     "ngVersion": "21.0.0",
     "fileNaming": "kebab-case",
-    "apiModulePrefix": "MyCookidoo",
+    "apiModulePrefix": "KitchenVault",
     "modelFileSuffix": ".model",
     "withInterfaces": true,
     "supportsES6": true,

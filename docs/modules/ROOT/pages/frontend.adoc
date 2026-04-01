@@ -19,7 +19,7 @@ npm run generate:api
 ----
 
 Le code généré est placé dans `projects/api-client/src/generated/` (exclu du dépôt Git).
-L'application l'importe via l'alias TypeScript `@my-cookidoo/api-client`.
+L'application l'importe via l'alias TypeScript `@KitchenVault/api-client`.
 
 == Interface d'administration
 

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "cookidoo-service"
 version = "1.0.0"
-description = "FastAPI wrapper around cookidoo-api for my-cookidoo"
+description = "FastAPI wrapper around cookidoo-api for KitchenVault"
 requires-python = ">=3.12"
 dependencies = [
     "cookidoo-api>=0.16.0",

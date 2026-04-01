@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>fr.seblaporte.mycookidoo</groupId>
-        <artifactId>my-cookidoo-parent</artifactId>
+        <groupId>fr.seblaporte.kitchenvault</groupId>
+        <artifactId>kitchenvault-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
@@ -14,12 +14,12 @@
     <artifactId>backend</artifactId>
     <packaging>jar</packaging>
     <name>backend</name>
-    <description>Spring Boot application — my-cookidoo backend</description>
+    <description>Spring Boot application — KitchenVault backend</description>
 
     <dependencies>
         <!-- Generated API interfaces + DTOs -->
         <dependency>
-            <groupId>fr.seblaporte.mycookidoo</groupId>
+            <groupId>fr.seblaporte.kitchenvault</groupId>
             <artifactId>contracts</artifactId>
         </dependency>
 

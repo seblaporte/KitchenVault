@@ -56,7 +56,7 @@ podman compose stop cookidoo-service
 
 ```
 pom.xml (parent)
-├── contracts/   → api.yaml → generates Java interfaces + DTOs (fr.seblaporte.mycookidoo.generated.*)
+├── contracts/   → api.yaml → generates Java interfaces + DTOs (fr.seblaporte.kitchenvault.generated.*)
 └── backend/     → implements generated interfaces via delegate pattern
 ```
 
@@ -100,7 +100,7 @@ Changing this order breaks MapStruct's ability to see Lombok-generated accessors
 
 ### SyncMapper enum name clash
 
-`SyncStatus` exists in both `fr.seblaporte.mycookidoo.entity` and `fr.seblaporte.mycookidoo.generated.model`. The `mapStatus()` default method in `SyncMapper` uses fully qualified names for both to avoid ambiguity.
+`SyncStatus` exists in both `fr.seblaporte.kitchenvault.entity` and `fr.seblaporte.kitchenvault.generated.model`. The `mapStatus()` default method in `SyncMapper` uses fully qualified names for both to avoid ambiguity.
 
 ## Testing
 

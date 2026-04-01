@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: My Cookidoo API
   description: |
-    API REST de my-cookidoo — récupère et expose les recettes Cookidoo stockées en base.
+    API REST de KitchenVault — récupère et expose les recettes Cookidoo stockées en base.
   version: 1.0.0
   contact:
     name: Sebastien Laporte

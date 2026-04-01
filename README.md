@@ -41,11 +41,11 @@ cp .env.example .env
 podman compose up -d
 ```
 
-| Service          | URL                                            |
-|------------------|------------------------------------------------|
-| PostgreSQL       | `localhost:5432`                               |
-| pgAdmin          | http://localhost:5050 (admin@mycookidoo.local / admin) |
-| cookidoo-service | http://localhost:8001/health                   |
+| Service          | URL                                             |
+|------------------|-------------------------------------------------|
+| PostgreSQL       | `localhost:5432`                                |
+| pgAdmin          | http://localhost:5050 (admin@gmail.com / admin) |
+| cookidoo-service | http://localhost:8001/health                    |
 
 ### 3. Backend Spring Boot
 
@@ -106,7 +106,7 @@ Les diagrammes (architecture, flux, ERD) sont générés automatiquement en SVG 
 ## Structure du projet
 
 ```
-my-cookidoo/
+KitchenVault/
 ├── compose.yaml              # Infrastructure Podman
 ├── pom.xml                   # Parent Maven multi-module
 ├── contracts/                # Contrat OpenAPI (api.yaml) — source of truth

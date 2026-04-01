@@ -1,5 +1,5 @@
 {
-  "name": "my-cookidoo-frontend",
+  "name": "KitchenVault-frontend",
   "version": "1.0.0",
   "scripts": {
     "generate:api": "openapi-generator-cli generate",

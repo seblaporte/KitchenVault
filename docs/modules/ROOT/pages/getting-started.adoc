@@ -29,7 +29,7 @@ podman compose up -d
 Cela démarre :
 
 * PostgreSQL 17 sur le port `5432`
-* pgAdmin sur http://localhost:5050 (admin@mycookidoo.local / admin)
+* pgAdmin sur http://localhost:5050 (admin@kitchenvault.local / admin)
 * cookidoo-service (FastAPI) sur le port `8001`
 
 == 3. Démarrer le backend

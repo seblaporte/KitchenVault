@@ -1,9 +1,9 @@
 = Architecture
-:description: Architecture globale de my-cookidoo
+:description: Architecture globale de KitchenVault
 
 == Vue d'ensemble
 
-my-cookidoo est une application multi-couches composée de trois services distincts.
+KitchenVault est une application multi-couches composée de trois services distincts.
 
 [plantuml]
 ....

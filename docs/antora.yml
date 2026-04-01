@@ -1,4 +1,4 @@
-name: my-cookidoo
+name: KitchenVault
 title: My Cookidoo
 version: '1.0'
 start_page: ROOT:index.adoc

@@ -11,11 +11,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>fr.seblaporte.mycookidoo</groupId>
-    <artifactId>my-cookidoo-parent</artifactId>
+    <groupId>fr.seblaporte.kitchenvault</groupId>
+    <artifactId>kitchenvault-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>my-cookidoo</name>
+    <name>KitchenVault</name>
     <description>Personal Cookidoo recipe manager</description>
 
     <modules>
@@ -41,7 +41,7 @@
         <dependencies>
             <!-- Contracts module (generated API interfaces + DTOs) -->
             <dependency>
-                <groupId>fr.seblaporte.mycookidoo</groupId>
+                <groupId>fr.seblaporte.kitchenvault</groupId>
                 <artifactId>contracts</artifactId>
                 <version>${project.version}</version>
             </dependency>

@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>fr.seblaporte.mycookidoo</groupId>
-        <artifactId>my-cookidoo-parent</artifactId>
+        <groupId>fr.seblaporte.kitchenvault</groupId>
+        <artifactId>kitchenvault-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
@@ -50,8 +50,8 @@
                         <configuration>
                             <inputSpec>${project.basedir}/src/main/resources/openapi/api.yaml</inputSpec>
                             <generatorName>spring</generatorName>
-                            <apiPackage>fr.seblaporte.mycookidoo.generated.api</apiPackage>
-                            <modelPackage>fr.seblaporte.mycookidoo.generated.model</modelPackage>
+                            <apiPackage>fr.seblaporte.kitchenvault.generated.api</apiPackage>
+                            <modelPackage>fr.seblaporte.kitchenvault.generated.model</modelPackage>
                             <configOptions>
                                 <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>

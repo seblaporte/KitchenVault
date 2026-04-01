@@ -18,4 +18,4 @@ cookidoo:
 
 logging:
   level:
-    fr.seblaporte.mycookidoo: DEBUG
+    fr.seblaporte.kitchenvault: DEBUG

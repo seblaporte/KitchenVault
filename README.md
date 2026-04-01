@@ -1,15 +1,23 @@
 # My Cookidoo
 
-Application personnelle pour récupérer, stocker et consulter les recettes Cookidoo via une interface plus ergonomique que l'application officielle.
+> **Avertissement** : Cette application est un projet personnel indépendant et n'est affiliée, ni approuvée, ni sponsorisée par Vorwerk ou Thermomix. Cookidoo® est une marque déposée de Vorwerk. L'utilisation de cette application se fait à titre personnel, sans aucun lien officiel avec les produits ou services de Thermomix.
 
 > La documentation complète est disponible dans [Antora](#documentation-antora).
 
 ## Architecture
 
-```
-Angular (4200) ──HTTP──▶ Spring Boot (8080) ──@HttpExchange──▶ FastAPI Python (8001)
-                                │                                      │
-                           PostgreSQL (5432)                    API Cookidoo (externe)
+```mermaid
+graph LR
+    FE["Angular\n:4200"]
+    BE["Spring Boot\n:8080"]
+    PY["FastAPI Python\n:8001"]
+    DB[("PostgreSQL\n:5432")]
+    EXT[["API Cookidoo\n(externe)"]]
+
+    FE -->|HTTP| BE
+    BE -->|"@HttpExchange"| PY
+    BE --- DB
+    PY --- EXT
 ```
 
 | Composant           | Rôle                                              | Technologie                            |

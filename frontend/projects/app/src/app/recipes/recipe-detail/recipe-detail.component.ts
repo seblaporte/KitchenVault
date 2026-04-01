@@ -192,11 +192,11 @@ interface RecipeDetail {
                     }
                     <ul class="space-y-2" role="list">
                       @for (ingredient of group.ingredients; track ingredient.id) {
-                        <li class="flex flex-col">
-                          <span class="text-sm text-zinc-900">{{ ingredient.name }}</span>
+                        <li class="flex items-baseline gap-1.5">
                           @if (ingredient.description) {
-                            <span class="text-xs text-zinc-500">{{ ingredient.description }}</span>
+                            <span class="text-sm text-zinc-500">{{ ingredient.description }}</span>
                           }
+                          <span class="text-sm text-zinc-900">{{ ingredient.name }}</span>
                         </li>
                       }
                     </ul>
@@ -255,7 +255,7 @@ interface RecipeDetail {
                       <tbody class="divide-y divide-zinc-100">
                         @for (entry of group.nutritions; track $index) {
                           <tr>
-                            <td class="py-1.5 text-zinc-600">{{ entry.type }}</td>
+                            <td class="py-1.5 text-zinc-600">{{ getNutritionLabel(entry.type) }}</td>
                             <td class="py-1.5 text-right font-medium text-zinc-900">{{ entry.number }} {{ entry.unitType }}</td>
                           </tr>
                         }
@@ -277,6 +277,18 @@ export class RecipeDetailComponent implements OnInit {
   recipe = signal<RecipeDetail | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+
+  private readonly nutritionLabels: Record<string, string> = {
+    protein: 'Protéines',
+    fat: 'Lipides',
+    kcal: 'Calories',
+    dietaryFibre: 'Fibres',
+    carb2: 'Glucides',
+  };
+
+  getNutritionLabel(type: string): string {
+    return this.nutritionLabels[type] ?? type;
+  }
 
   constructor(
     private http: HttpClient,

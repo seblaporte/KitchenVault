@@ -8,19 +8,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Full build (parent + contracts + backend)
-./mvnw clean install
+mvn clean install
 
 # Run only backend
-./mvnw spring-boot:run -pl backend
+mvn spring-boot:run -pl backend
 
 # Run all backend tests
-./mvnw test -pl backend
+mvn test -pl backend
 
 # Run a single test class
-./mvnw test -pl backend -Dtest=SyncServiceTest
+mvn test -pl backend -Dtest=SyncServiceTest
 
 # Build contracts only (regenerates Java interfaces from api.yaml)
-./mvnw clean install -pl contracts
+mvn clean install -pl contracts
 ```
 
 ### Frontend (Angular)

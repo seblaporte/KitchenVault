@@ -144,6 +144,14 @@ paths:
             type: array
             items:
               type: string
+        - name: ingredientNames
+          in: query
+          description: Filtre par ingrédients (AND) — répéter le paramètre pour plusieurs valeurs
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: Page de recettes

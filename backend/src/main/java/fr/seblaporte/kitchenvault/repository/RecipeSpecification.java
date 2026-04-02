@@ -2,7 +2,9 @@ package fr.seblaporte.kitchenvault.repository;
 
 import fr.seblaporte.kitchenvault.entity.Category;
 import fr.seblaporte.kitchenvault.entity.Chapter;
+import fr.seblaporte.kitchenvault.entity.Ingredient;
 import fr.seblaporte.kitchenvault.entity.Recipe;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -43,6 +45,25 @@ public final class RecipeSpecification {
             sub.select(recipes.get("id"))
                .where(chapter.get("collection").get("id").in(collectionIds));
             return root.get("id").in(sub);
+        };
+    }
+
+    public static Specification<Recipe> containsIngredient(String name) {
+        return (root, query, cb) -> {
+            Subquery<Integer> sub = query.subquery(Integer.class);
+            Root<Ingredient> ingredient = sub.from(Ingredient.class);
+
+            Expression<String> normalizedCol = cb.function(
+                    "unaccent", String.class, cb.lower(ingredient.get("name")));
+            Expression<String> normalizedParam = cb.function(
+                    "unaccent", String.class, cb.literal("%" + name.toLowerCase() + "%"));
+
+            sub.select(cb.literal(1))
+               .where(cb.and(
+                       cb.equal(ingredient.get("ingredientGroup").get("recipe").get("id"), root.get("id")),
+                       cb.like(normalizedCol, normalizedParam)
+               ));
+            return cb.exists(sub);
         };
     }
 }

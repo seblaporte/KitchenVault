@@ -23,7 +23,8 @@ public class RecipeService {
     }
 
     public Page<Recipe> listRecipes(String search, List<String> categoryIds, List<String> difficulties,
-                                     Integer maxTotalTimeMinutes, List<String> collectionIds, Pageable pageable) {
+                                     Integer maxTotalTimeMinutes, List<String> collectionIds,
+                                     List<String> ingredientNames, Pageable pageable) {
         Specification<Recipe> spec = Specification.where(null);
 
         if (search != null && !search.isBlank()) {
@@ -40,6 +41,13 @@ public class RecipeService {
         }
         if (collectionIds != null && !collectionIds.isEmpty()) {
             spec = spec.and(RecipeSpecification.inCollections(collectionIds));
+        }
+        if (ingredientNames != null && !ingredientNames.isEmpty()) {
+            for (String ingredient : ingredientNames) {
+                if (ingredient != null && !ingredient.isBlank()) {
+                    spec = spec.and(RecipeSpecification.containsIngredient(ingredient.trim()));
+                }
+            }
         }
 
         return recipeRepository.findAll(spec, pageable);

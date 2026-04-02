@@ -154,6 +154,45 @@ const TIME_BUCKETS = [
             </div>
           </div>
 
+          <!-- Ingrédients -->
+          <div>
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Ingrédients</p>
+            <div class="flex gap-2 mb-2">
+              <input
+                type="text"
+                [(ngModel)]="ingredientInput"
+                (keydown.enter)="addIngredient()"
+                placeholder="Ex : poulet, farine…"
+                class="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                aria-label="Ajouter un ingrédient"
+              />
+              <button
+                (click)="addIngredient()"
+                [disabled]="!ingredientInput.trim()"
+                class="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Ajouter l'ingrédient"
+              >+</button>
+            </div>
+            @if (selectedIngredients.length > 0) {
+              <div class="flex flex-wrap gap-2" role="group" aria-label="Ingrédients sélectionnés">
+                @for (name of selectedIngredients; track name; let i = $index) {
+                  <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-indigo-600 text-white">
+                    {{ name }}
+                    <button
+                      (click)="removeIngredient(i)"
+                      class="ml-0.5 rounded-full hover:text-indigo-200 focus-visible:outline-none"
+                      [attr.aria-label]="'Retirer ' + name"
+                    >
+                      <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                }
+              </div>
+            }
+          </div>
+
           <!-- Indicateur filtres actifs -->
           @if (activeFilterCount > 0) {
             <div class="flex items-center justify-between border-t border-zinc-100 pt-3">
@@ -320,6 +359,8 @@ export class RecipesComponent implements OnInit, OnDestroy {
   selectedCategories = new Set<string>();
   selectedDifficulties = new Set<string>();
   selectedMaxTime: number | null = null;
+  ingredientInput = '';
+  selectedIngredients: string[] = [];
 
   private readonly searchTrigger$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
@@ -343,7 +384,7 @@ export class RecipesComponent implements OnInit, OnDestroy {
   isSearchMode(): boolean {
     return !!(this.searchText.trim() || this.selectedCollections.size > 0
       || this.selectedCategories.size > 0 || this.selectedDifficulties.size > 0
-      || this.selectedMaxTime !== null);
+      || this.selectedMaxTime !== null || this.selectedIngredients.length > 0);
   }
 
   get activeFilterCount(): number {
@@ -351,7 +392,8 @@ export class RecipesComponent implements OnInit, OnDestroy {
       + this.selectedCollections.size
       + this.selectedCategories.size
       + this.selectedDifficulties.size
-      + (this.selectedMaxTime !== null ? 1 : 0);
+      + (this.selectedMaxTime !== null ? 1 : 0)
+      + this.selectedIngredients.length;
   }
 
   collectionsWithRecipes(): Collection[] {
@@ -411,6 +453,23 @@ export class RecipesComponent implements OnInit, OnDestroy {
     this.selectedCategories.clear();
     this.selectedDifficulties.clear();
     this.selectedMaxTime = null;
+    this.selectedIngredients = [];
+    this.currentPage.set(0);
+    this.searchTrigger$.next();
+  }
+
+  addIngredient(): void {
+    const trimmed = this.ingredientInput.trim();
+    if (trimmed && !this.selectedIngredients.includes(trimmed.toLowerCase())) {
+      this.selectedIngredients.push(trimmed.toLowerCase());
+      this.ingredientInput = '';
+      this.currentPage.set(0);
+      this.searchTrigger$.next();
+    }
+  }
+
+  removeIngredient(index: number): void {
+    this.selectedIngredients.splice(index, 1);
     this.currentPage.set(0);
     this.searchTrigger$.next();
   }
@@ -478,6 +537,9 @@ export class RecipesComponent implements OnInit, OnDestroy {
     if (this.selectedMaxTime !== null && this.selectedMaxTime < 999) {
       params = params.set('maxTotalTimeMinutes', this.selectedMaxTime.toString());
     }
+    this.selectedIngredients.forEach(name => {
+      params = params.append('ingredientNames', name);
+    });
     return params;
   }
 

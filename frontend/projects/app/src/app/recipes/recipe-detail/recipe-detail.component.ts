@@ -284,6 +284,8 @@ export class RecipeDetailComponent implements OnInit {
     kcal: 'Calories',
     dietaryFibre: 'Fibres',
     carb2: 'Glucides',
+    saturatedFat: 'Graisses saturées',
+    sodium: 'Sodium',
   };
 
   getNutritionLabel(type: string): string {

@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -52,6 +52,7 @@
                             <generatorName>spring</generatorName>
                             <apiPackage>fr.seblaporte.kitchenvault.generated.api</apiPackage>
                             <modelPackage>fr.seblaporte.kitchenvault.generated.model</modelPackage>
+                            <ignoreFileOverride>${project.basedir}/.openapi-generator-ignore</ignoreFileOverride>
                             <configOptions>
                                 <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>

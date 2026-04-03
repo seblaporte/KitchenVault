@@ -1,0 +1,2 @@
+# Exclure le test de démarrage Spring Boot — le module contracts n'est pas une application exécutable
+**/OpenApiGeneratorApplicationTests.java

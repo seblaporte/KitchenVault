@@ -25,7 +25,7 @@ public class RecipeService {
     public Page<Recipe> listRecipes(String search, List<String> categoryIds, List<String> difficulties,
                                      Integer maxTotalTimeMinutes, List<String> collectionIds,
                                      List<String> ingredientNames, Pageable pageable) {
-        Specification<Recipe> spec = Specification.where(null);
+        Specification<Recipe> spec = Specification.unrestricted();
 
         if (search != null && !search.isBlank()) {
             spec = spec.and(RecipeSpecification.nameContains(search.trim()));

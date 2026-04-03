@@ -1,6 +1,5 @@
 package fr.seblaporte.kitchenvault.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.seblaporte.kitchenvault.entity.SyncRun;
 import fr.seblaporte.kitchenvault.generated.api.SyncApiController;
 import fr.seblaporte.kitchenvault.generated.model.SyncRunDto;
@@ -10,7 +9,7 @@ import fr.seblaporte.kitchenvault.service.SyncRunService;
 import fr.seblaporte.kitchenvault.service.SyncService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,7 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SyncControllerTest {
 
     @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
 
     @MockitoBean SyncService syncService;
     @MockitoBean SyncRunService syncRunService;

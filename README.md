@@ -57,8 +57,28 @@ podman compose up -d
 
 ### 3. Backend Spring Boot
 
+**Mode JVM (développement)**
+
 ```bash
-./mvnw spring-boot:run -pl backend
+mvn spring-boot:run -pl backend
+```
+
+**Mode natif GraalVM (production)**
+
+Prérequis : [GraalVM 25](https://www.graalvm.org/downloads/) avec `native-image` installé, ou Docker/Podman pour le build via Buildpacks.
+
+```bash
+# Compiler un binaire natif (GraalVM requis localement)
+mvn -Pnative native:compile -pl backend
+./backend/target/kitchen-vault   # démarrage < 200 ms
+
+# Construire une image OCI via Buildpacks (pas besoin de GraalVM local)
+mvn -Pnative spring-boot:build-image -pl backend
+podman run -p 8080:8080 backend:1.0.0-SNAPSHOT
+
+# Construire une image via Dockerfile multi-stage
+podman build -f backend/Dockerfile -t kitchen-vault:native .
+podman run -p 8080:8080 kitchen-vault:native
 ```
 
 - API : http://localhost:8080

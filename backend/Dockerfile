@@ -1,5 +1,5 @@
 # ── Stage 1 : compilation native ────────────────────────────────────────────
-FROM ghcr.io/graalvm/native-image:25 AS builder
+FROM ghcr.io/graalvm/native-image-community:25 AS builder
 WORKDIR /build
 
 # Copier les fichiers Maven en premier pour profiter du cache des dépendances

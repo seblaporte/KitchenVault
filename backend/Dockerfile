@@ -2,15 +2,16 @@
 FROM ghcr.io/graalvm/native-image-community:25 AS builder
 WORKDIR /build
 
+# Installer Maven (image Oracle Linux, pas de mvnw dans ce projet)
+RUN microdnf install -y maven && microdnf clean all
+
 # Copier les fichiers Maven en premier pour profiter du cache des dépendances
 COPY pom.xml ./
 COPY contracts/ contracts/
 COPY backend/ backend/
-COPY .mvn/ .mvn/
-COPY mvnw ./
 
 # Build natif (contracts + backend)
-RUN ./mvnw -Pnative native:compile -pl backend --no-transfer-progress -q
+RUN mvn -Pnative native:compile -pl backend --no-transfer-progress -q
 
 # ── Stage 2 : image minimale ─────────────────────────────────────────────────
 FROM ubuntu:24.04

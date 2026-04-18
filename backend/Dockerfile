@@ -11,7 +11,8 @@ COPY contracts/ contracts/
 COPY backend/ backend/
 
 # Build natif (contracts + backend)
-RUN mvn -Pnative native:compile -pl backend --no-transfer-progress -q
+RUN mvn install -pl contracts --no-transfer-progress -q \
+ && mvn -Pnative native:compile -pl backend --no-transfer-progress -q
 
 # ── Stage 2 : image minimale ─────────────────────────────────────────────────
 FROM ubuntu:24.04

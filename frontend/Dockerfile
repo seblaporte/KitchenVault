@@ -3,7 +3,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci
-COPY contracts/api.yaml ./contracts/api.yaml
+COPY contracts/src/main/resources/openapi/api.yaml /contracts/src/main/resources/openapi/api.yaml
 COPY frontend/ ./
 RUN npm run generate:api
 RUN npm run build

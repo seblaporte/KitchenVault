@@ -1,10 +1,10 @@
 # Stage 1: build Angular app
 FROM node:22-alpine AS builder
 RUN apk add --no-cache openjdk21-jre-headless
-WORKDIR /app
+WORKDIR /workspace/frontend
 COPY frontend/package*.json ./
 RUN npm ci
-COPY contracts/src/main/resources/openapi/api.yaml /contracts/src/main/resources/openapi/api.yaml
+COPY contracts/src/main/resources/openapi/api.yaml /workspace/contracts/src/main/resources/openapi/api.yaml
 COPY frontend/ ./
 RUN npm run generate:api
 RUN npm run build
@@ -19,5 +19,5 @@ RUN printf 'server {\n\
         try_files $uri $uri/ /index.html;\n\
     }\n\
 }\n' > /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist/app/browser /usr/share/nginx/html
+COPY --from=builder /workspace/frontend/dist/app/browser /usr/share/nginx/html
 EXPOSE 80

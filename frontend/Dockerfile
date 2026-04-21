@@ -1,5 +1,6 @@
 # Stage 1: build Angular app
 FROM node:22-alpine AS builder
+RUN apk add --no-cache openjdk21-jre-headless
 WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci

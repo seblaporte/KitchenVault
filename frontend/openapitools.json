@@ -2,18 +2,22 @@
   "$schema": "node_modules/@openapitools/openapi-generator-cli/config.schema.json",
   "spaces": 2,
   "generator-cli": {
-    "version": "7.12.0"
-  },
-  "generatorName": "typescript-angular",
-  "inputSpec": "../contracts/src/main/resources/openapi/api.yaml",
-  "outputDir": "projects/api-client/src/generated",
-  "additionalProperties": {
-    "ngVersion": "21.0.0",
-    "fileNaming": "kebab-case",
-    "apiModulePrefix": "KitchenVault",
-    "modelFileSuffix": ".model",
-    "withInterfaces": true,
-    "supportsES6": true,
-    "enumPropertyNaming": "UPPERCASE"
+    "version": "7.12.0",
+    "generators": {
+      "kitchenvault": {
+        "generatorName": "typescript-angular",
+        "inputSpec": "../contracts/src/main/resources/openapi/api.yaml",
+        "output": "projects/api-client/src/generated",
+        "additionalProperties": {
+          "ngVersion": "21.0.0",
+          "fileNaming": "kebab-case",
+          "apiModulePrefix": "KitchenVault",
+          "modelFileSuffix": ".model",
+          "withInterfaces": true,
+          "supportsES6": true,
+          "enumPropertyNaming": "UPPERCASE"
+        }
+      }
+    }
   }
 }

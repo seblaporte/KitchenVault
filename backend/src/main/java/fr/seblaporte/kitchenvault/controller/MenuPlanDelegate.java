@@ -3,7 +3,13 @@ package fr.seblaporte.kitchenvault.controller;
 import fr.seblaporte.kitchenvault.entity.MealPlanEntry;
 import fr.seblaporte.kitchenvault.entity.Recipe;
 import fr.seblaporte.kitchenvault.generated.api.MenuPlanApiDelegate;
-import fr.seblaporte.kitchenvault.generated.model.*;
+import fr.seblaporte.kitchenvault.generated.model.DayPlanDto;
+import fr.seblaporte.kitchenvault.generated.model.ErrorDto;
+import fr.seblaporte.kitchenvault.generated.model.MealPlanEntryDto;
+import fr.seblaporte.kitchenvault.generated.model.MealPlanUpsertDto;
+import fr.seblaporte.kitchenvault.generated.model.MealType;
+import fr.seblaporte.kitchenvault.generated.model.MenuPlanDto;
+import fr.seblaporte.kitchenvault.generated.model.RecipeHistoryDto;
 import fr.seblaporte.kitchenvault.mapper.MealPlanMapper;
 import fr.seblaporte.kitchenvault.service.MealPlanService;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +40,7 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
         if (weekStart.getDayOfWeek() != DayOfWeek.MONDAY) {
             ErrorDto error = new ErrorDto();
             error.setMessage("weekStart must be a Monday");
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(error);
         }
 
         List<MealPlanEntry> entries = mealPlanService.getWeekPlan(weekStart);
@@ -51,12 +57,10 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
                     byDateAndType.getOrDefault(date, Map.of());
 
             DayPlanDto day = new DayPlanDto(date);
-            day.setLunch(dayEntries.containsKey(fr.seblaporte.kitchenvault.entity.MealType.LUNCH)
-                    ? mealPlanMapper.toEntryDto(dayEntries.get(fr.seblaporte.kitchenvault.entity.MealType.LUNCH))
-                    : null);
-            day.setDinner(dayEntries.containsKey(fr.seblaporte.kitchenvault.entity.MealType.DINNER)
-                    ? mealPlanMapper.toEntryDto(dayEntries.get(fr.seblaporte.kitchenvault.entity.MealType.DINNER))
-                    : null);
+            MealPlanEntry lunchEntry = dayEntries.get(fr.seblaporte.kitchenvault.entity.MealType.LUNCH);
+            day.setLunch(lunchEntry != null ? mealPlanMapper.toEntryDto(lunchEntry) : null);
+            MealPlanEntry dinnerEntry = dayEntries.get(fr.seblaporte.kitchenvault.entity.MealType.DINNER);
+            day.setDinner(dinnerEntry != null ? mealPlanMapper.toEntryDto(dinnerEntry) : null);
             days.add(day);
         }
 

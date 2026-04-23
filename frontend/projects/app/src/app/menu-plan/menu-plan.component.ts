@@ -1,28 +1,9 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, of } from 'rxjs';
-import { environment } from '../../environments/environment';
 import { MenuDayComponent } from './menu-day/menu-day.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
-
-interface MealPlanEntry {
-  id?: number;
-  recipeId?: string;
-  recipeName: string;
-  recipeThumbnailUrl?: string;
-  recipeTotalTimeMinutes?: number;
-}
-
-interface DayPlan {
-  date: string;
-  lunch?: MealPlanEntry | null;
-  dinner?: MealPlanEntry | null;
-}
-
-interface MenuPlan {
-  days: DayPlan[];
-}
+import { MenuPlanService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
 
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
@@ -123,14 +104,14 @@ function toISODate(d: Date): string {
 })
 export class MenuPlanComponent implements OnInit {
   weekStart = signal<Date>(getMondayOf(new Date()));
-  weekPlan = signal<MenuPlan | null>(null);
+  weekPlan = signal<MenuPlanDto | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
   pickerOpen = signal(false);
   pickerDate = '';
   pickerMealType = '';
 
-  constructor(private http: HttpClient) {}
+  constructor(private menuPlanService: MenuPlanService) {}
 
   ngOnInit(): void {
     this.loadWeekPlan();
@@ -179,23 +160,22 @@ export class MenuPlanComponent implements OnInit {
   }
 
   handleAddRecipe(event: { date: string; mealType: string; recipeId: string }): void {
-    this.http.put(
-      `${environment.apiUrl}/api/v1/menu-plan/entries/${event.date}/${event.mealType}`,
-      { recipeId: event.recipeId },
-    ).pipe(catchError(() => of(null))).subscribe(() => this.loadWeekPlan());
+    const dto: MealPlanUpsertDto = { recipeId: event.recipeId };
+    this.menuPlanService.upsertEntry(event.date, event.mealType as MealType, dto)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.loadWeekPlan());
   }
 
   handleRemove(event: { date: string; mealType: string }): void {
-    this.http.delete(
-      `${environment.apiUrl}/api/v1/menu-plan/entries/${event.date}/${event.mealType}`,
-    ).pipe(catchError(() => of(null))).subscribe(() => this.loadWeekPlan());
+    this.menuPlanService.removeEntry(event.date, event.mealType as MealType)
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.loadWeekPlan());
   }
 
   private loadWeekPlan(): void {
     this.loading.set(true);
     this.error.set(null);
-    const params = new HttpParams().set('weekStart', toISODate(this.weekStart()));
-    this.http.get<MenuPlan>(`${environment.apiUrl}/api/v1/menu-plan`, { params })
+    this.menuPlanService.getWeekPlan(toISODate(this.weekStart()))
       .pipe(catchError(() => {
         this.error.set('Impossible de charger le plan de la semaine.');
         this.loading.set(false);

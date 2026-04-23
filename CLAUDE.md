@@ -7,6 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Backend (Java / Spring Boot)
 
 ```bash
+# Activate Java 25 (reads .sdkmanrc — required before Maven commands)
+sdk env
+
 # Full build (parent + contracts + backend)
 mvn clean install
 

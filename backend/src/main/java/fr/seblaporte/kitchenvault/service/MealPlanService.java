@@ -41,6 +41,7 @@ public class MealPlanService {
         entry.setMealType(mealType);
         entry.setRecipe(recipe);
         entry.setRecipeNameSnapshot(recipe.getName());
+        entry.setRecipeIdSnapshot(recipe.getId());
 
         return mealPlanEntryRepository.save(entry);
     }

@@ -1,24 +1,8 @@
-import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, debounceTime, distinctUntilChanged, of, Subject, switchMap, takeUntil } from 'rxjs';
-import { environment } from '../../../environments/environment';
-
-interface RecipeSummary {
-  id: string;
-  name: string;
-  thumbnailUrl?: string;
-  totalTimeMinutes?: number;
-}
-
-interface RecipePage {
-  content: RecipeSummary[];
-  totalElements: number;
-  totalPages: number;
-  page: number;
-  size: number;
-}
+import { RecipesService, RecipeSummaryDto } from '@KitchenVault/api-client';
 
 @Component({
   selector: 'app-recipe-picker-dialog',
@@ -120,36 +104,33 @@ interface RecipePage {
     </div>
   `,
 })
-export class RecipePickerDialogComponent implements OnChanges {
+export class RecipePickerDialogComponent implements OnChanges, OnDestroy {
   @Input({ required: true }) date!: string;
   @Input({ required: true }) mealType!: string;
 
   @Output() recipeSelected = new EventEmitter<string>();
   @Output() dismissed = new EventEmitter<void>();
 
-  recipes = signal<RecipeSummary[]>([]);
+  recipes = signal<RecipeSummaryDto[]>([]);
   loading = signal(false);
   searchText = '';
 
   private readonly searchTrigger$ = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private http: HttpClient) {
+  constructor(private recipesService: RecipesService) {
     this.searchTrigger$.pipe(
       debounceTime(300),
       distinctUntilChanged(),
       switchMap(search => {
         this.loading.set(true);
-        const params = new HttpParams()
-          .set('size', '20')
-          .set('search', search);
-        return this.http.get<RecipePage>(`${environment.apiUrl}/api/v1/recipes`, { params }).pipe(
-          catchError(() => of({ content: [], totalElements: 0, totalPages: 0, page: 0, size: 20 } as RecipePage)),
+        return this.recipesService.listRecipes(0, 20, search || undefined).pipe(
+          catchError(() => of({ content: [], totalElements: 0, totalPages: 0, page: 0, size: 20 })),
         );
       }),
       takeUntil(this.destroy$),
     ).subscribe(page => {
-      this.recipes.set(page.content);
+      this.recipes.set(page.content ?? []);
       this.loading.set(false);
     });
   }

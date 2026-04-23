@@ -31,6 +31,9 @@ public class MealPlanEntry {
     @JoinColumn(name = "recipe_id")
     private Recipe recipe;
 
-    @Column(name = "recipe_name_snapshot", nullable = false)
+    @Column(name = "recipe_name_snapshot", nullable = false, length = 255)
     private String recipeNameSnapshot;
+
+    @Column(name = "recipe_id_snapshot", nullable = false, length = 255)
+    private String recipeIdSnapshot;
 }

@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-add-recipe-id-snapshot
+      author: seblaporte
+      changes:
+        - addColumn:
+            tableName: meal_plan_entry
+            columns:
+              - column:
+                  name: recipe_id_snapshot
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                  defaultValue: ''
+        - sql:
+            sql: UPDATE meal_plan_entry SET recipe_id_snapshot = recipe_id WHERE recipe_id IS NOT NULL

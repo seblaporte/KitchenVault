@@ -18,7 +18,7 @@ public interface MealPlanEntryRepository extends JpaRepository<MealPlanEntry, Lo
 
     Optional<MealPlanEntry> findByEntryDateAndMealType(LocalDate date, MealType mealType);
 
-    @Query("SELECT e FROM MealPlanEntry e LEFT JOIN FETCH e.recipe WHERE e.recipe.id = :recipeId ORDER BY e.entryDate DESC")
+    @Query("SELECT e FROM MealPlanEntry e LEFT JOIN FETCH e.recipe WHERE e.recipeIdSnapshot = :recipeId ORDER BY e.entryDate DESC")
     List<MealPlanEntry> findByRecipeIdOrderByEntryDateDesc(@Param("recipeId") String recipeId, Pageable pageable);
 
     @Query("SELECT DISTINCT e.recipe.id FROM MealPlanEntry e WHERE e.entryDate BETWEEN :from AND :to AND e.recipe IS NOT NULL")

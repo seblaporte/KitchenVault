@@ -44,6 +44,7 @@ class MealPlanServiceTest {
 
         assertThat(result.getRecipe()).isEqualTo(recipe);
         assertThat(result.getRecipeNameSnapshot()).isEqualTo("Tarte aux pommes");
+        assertThat(result.getRecipeIdSnapshot()).isEqualTo("r-1");
         assertThat(result.getMealType()).isEqualTo(MealType.LUNCH);
         verify(mealPlanEntryRepository).save(any());
     }
@@ -130,6 +131,18 @@ class MealPlanServiceTest {
         mealPlanService.suggest(MONDAY, MealType.LUNCH, 30, 3);
 
         verify(recipeRepository).findRandomRecipes(eq(30), eq(3));
+    }
+
+    @Test
+    void suggest_withRecentRecipesAndMaxTime_passesFiltersToRepository() {
+        List<String> recentIds = List.of("r-old");
+        when(mealPlanEntryRepository.findRecentRecipeIds(any(), any())).thenReturn(recentIds);
+        when(recipeRepository.findRandomRecipesExcluding(recentIds, 45, 3)).thenReturn(List.of());
+
+        mealPlanService.suggest(MONDAY, MealType.DINNER, 45, 3);
+
+        verify(recipeRepository).findRandomRecipesExcluding(recentIds, 45, 3);
+        verify(recipeRepository, never()).findRandomRecipes(any(), anyInt());
     }
 
     private Recipe makeRecipe(String id, String name) {

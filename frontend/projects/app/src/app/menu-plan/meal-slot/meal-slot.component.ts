@@ -1,18 +1,9 @@
 import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
-import { environment } from '../../../environments/environment';
-
-interface MealPlanEntry {
-  id?: number;
-  recipeId?: string;
-  recipeName: string;
-  recipeThumbnailUrl?: string;
-  recipeTotalTimeMinutes?: number;
-}
+import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-client';
 
 @Component({
   selector: 'app-meal-slot',
@@ -138,7 +129,7 @@ interface MealPlanEntry {
   `,
 })
 export class MealSlotComponent implements OnChanges {
-  @Input() entry: MealPlanEntry | null | undefined;
+  @Input() entry: MealPlanEntryDto | null | undefined;
   @Input({ required: true }) date!: string;
   @Input({ required: true }) mealType!: string;
   @Input({ required: true }) label!: string;
@@ -147,12 +138,12 @@ export class MealSlotComponent implements OnChanges {
   @Output() removeRequested = new EventEmitter<{ date: string; mealType: string }>();
   @Output() addSuggestion = new EventEmitter<{ date: string; mealType: string; recipeId: string }>();
 
-  suggestions = signal<MealPlanEntry[]>([]);
+  suggestions = signal<MealPlanEntryDto[]>([]);
   suggestionsLoading = signal(false);
   suggestionsError = signal<string | null>(null);
   maxTimeInput = '';
 
-  constructor(private http: HttpClient) {}
+  constructor(private menuPlanService: MenuPlanService) {}
 
   ngOnChanges(): void {
     this.suggestions.set([]);
@@ -164,17 +155,10 @@ export class MealSlotComponent implements OnChanges {
     this.suggestionsError.set(null);
     this.suggestions.set([]);
 
-    let params = new HttpParams()
-      .set('date', this.date)
-      .set('mealType', this.mealType)
-      .set('count', '3');
-
     const maxTime = parseInt(this.maxTimeInput, 10);
-    if (!isNaN(maxTime) && maxTime > 0) {
-      params = params.set('maxTotalMinutes', maxTime.toString());
-    }
+    const maxTotalMinutes = !isNaN(maxTime) && maxTime > 0 ? maxTime : undefined;
 
-    this.http.get<MealPlanEntry[]>(`${environment.apiUrl}/api/v1/menu-plan/suggestions`, { params })
+    this.menuPlanService.getSuggestions(this.date, this.mealType as MealType, maxTotalMinutes, 3)
       .pipe(catchError(() => {
         this.suggestionsError.set('Impossible de charger les suggestions.');
         return of([]);

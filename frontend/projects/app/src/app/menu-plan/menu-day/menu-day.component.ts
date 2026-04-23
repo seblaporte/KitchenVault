@@ -1,20 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MealSlotComponent } from '../meal-slot/meal-slot.component';
-
-interface MealPlanEntry {
-  id?: number;
-  recipeId?: string;
-  recipeName: string;
-  recipeThumbnailUrl?: string;
-  recipeTotalTimeMinutes?: number;
-}
-
-interface DayPlan {
-  date: string;
-  lunch?: MealPlanEntry | null;
-  dinner?: MealPlanEntry | null;
-}
+import { DayPlanDto } from '@KitchenVault/api-client';
 
 @Component({
   selector: 'app-menu-day',
@@ -47,7 +34,7 @@ interface DayPlan {
   `,
 })
 export class MenuDayComponent {
-  @Input({ required: true }) dayPlan!: DayPlan;
+  @Input({ required: true }) dayPlan!: DayPlanDto;
 
   @Output() addRequested = new EventEmitter<{ date: string; mealType: string }>();
   @Output() removeRequested = new EventEmitter<{ date: string; mealType: string }>();

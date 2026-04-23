@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Propagation;
@@ -19,7 +20,6 @@ import javax.sql.DataSource;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -54,7 +54,8 @@ class MealPlanEntryRepositoryIT {
                     .value("entry_date").isEqualTo(LocalDate.of(2024, 4, 1).toString())
                     .value("meal_type").isEqualTo("LUNCH")
                     .value("recipe_id").isEqualTo("r-1")
-                    .value("recipe_name_snapshot").isEqualTo("Tarte aux pommes");
+                    .value("recipe_name_snapshot").isEqualTo("Tarte aux pommes")
+                    .value("recipe_id_snapshot").isEqualTo("r-1");
     }
 
     @Test
@@ -65,7 +66,7 @@ class MealPlanEntryRepositoryIT {
 
         mealPlanEntryRepository.save(e1);
         assertThatThrownBy(() -> mealPlanEntryRepository.saveAndFlush(e2))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
@@ -80,7 +81,8 @@ class MealPlanEntryRepositoryIT {
                 .hasNumberOfRows(1)
                 .row(0)
                     .value("recipe_id").isNull()
-                    .value("recipe_name_snapshot").isEqualTo("Recipe to delete");
+                    .value("recipe_name_snapshot").isEqualTo("Recipe to delete")
+                    .value("recipe_id_snapshot").isEqualTo("r-del");
     }
 
     @Test
@@ -139,6 +141,7 @@ class MealPlanEntryRepositoryIT {
         entry.setMealType(mealType);
         entry.setRecipe(recipe);
         entry.setRecipeNameSnapshot(recipe.getName());
+        entry.setRecipeIdSnapshot(recipe.getId());
         return entry;
     }
 }

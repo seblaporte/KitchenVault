@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -47,7 +48,8 @@ class MenuPlanDelegateTest {
     @Test
     void getWeekPlan_withNonMonday_returnsBadRequest() throws Exception {
         mockMvc.perform(get("/api/v1/menu-plan").param("weekStart", "2024-04-02"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("weekStart must be a Monday"));
     }
 
     @Test
@@ -71,6 +73,17 @@ class MenuPlanDelegateTest {
                         .content("{\"recipeId\":\"r-1\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recipeName").value("Tarte"));
+    }
+
+    @Test
+    void upsertEntry_recipeNotFound_returns404() throws Exception {
+        when(mealPlanService.upsertEntry(any(), any(), any()))
+                .thenThrow(new NoSuchElementException());
+
+        mockMvc.perform(put("/api/v1/menu-plan/entries/2024-04-01/LUNCH")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recipeId\":\"unknown\"}"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -103,15 +116,12 @@ class MenuPlanDelegateTest {
         MealPlanEntry entry = new MealPlanEntry();
         entry.setEntryDate(LocalDate.of(2024, 3, 15));
 
-        RecipeHistoryDto dto = new RecipeHistoryDto();
-        dto.setRecipeId("r-1");
-        dto.setDates(List.of(LocalDate.of(2024, 3, 15)));
-
         when(mealPlanService.getRecipeHistory("r-1", 52)).thenReturn(List.of(entry));
 
         mockMvc.perform(get("/api/v1/menu-plan/history").param("recipeId", "r-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recipeId").value("r-1"))
-                .andExpect(jsonPath("$.dates").isArray());
+                .andExpect(jsonPath("$.dates").isArray())
+                .andExpect(jsonPath("$.dates[0]").value("2024-03-15"));
     }
 }

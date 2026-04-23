@@ -14,6 +14,13 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorDto> handleIllegalArgument(IllegalArgumentException ex) {
+        ErrorDto error = new ErrorDto();
+        error.setMessage(ex.getMessage());
+        return ResponseEntity.badRequest().body(error);
+    }
+
     @ExceptionHandler(RestClientException.class)
     public ResponseEntity<ErrorDto> handleCookidooServiceUnavailable(RestClientException ex) {
         log.error("Cookidoo service unavailable: {}", ex.getMessage());

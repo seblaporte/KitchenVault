@@ -4,7 +4,6 @@ import fr.seblaporte.kitchenvault.entity.MealPlanEntry;
 import fr.seblaporte.kitchenvault.entity.Recipe;
 import fr.seblaporte.kitchenvault.generated.api.MenuPlanApiDelegate;
 import fr.seblaporte.kitchenvault.generated.model.DayPlanDto;
-import fr.seblaporte.kitchenvault.generated.model.ErrorDto;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanEntryDto;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanUpsertDto;
 import fr.seblaporte.kitchenvault.generated.model.MealType;
@@ -38,9 +37,7 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
     @Override
     public ResponseEntity<MenuPlanDto> getWeekPlan(LocalDate weekStart) {
         if (weekStart.getDayOfWeek() != DayOfWeek.MONDAY) {
-            ErrorDto error = new ErrorDto();
-            error.setMessage("weekStart must be a Monday");
-            return ResponseEntity.badRequest().body(error);
+            throw new IllegalArgumentException("weekStart must be a Monday");
         }
 
         List<MealPlanEntry> entries = mealPlanService.getWeekPlan(weekStart);

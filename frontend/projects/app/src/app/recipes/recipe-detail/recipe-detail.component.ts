@@ -1,6 +1,6 @@
 import { Component, input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -238,6 +238,26 @@ interface RecipeDetail {
             </section>
           }
 
+          <!-- Historique des menus -->
+          @if (historyDates().length > 0) {
+            <section class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm" aria-labelledby="history-title">
+              <h2 id="history-title" class="mb-4 text-base font-semibold text-zinc-900">Historique des menus</h2>
+              <p class="mb-3 text-sm text-zinc-500">
+                Dernière fois : {{ formatHistoryDate(historyDates()[0]) }}
+              </p>
+              @if (historyDates().length > 1) {
+                <ul class="space-y-1" role="list">
+                  @for (date of historyDates(); track date) {
+                    <li class="flex items-center gap-2 text-sm text-zinc-600">
+                      <span class="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-400" aria-hidden="true"></span>
+                      {{ formatHistoryDate(date) }}
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
+          }
+
           <!-- Valeurs nutritionnelles -->
           @if (r.nutritionGroups.length > 0) {
             <section class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm" aria-labelledby="nutrition-title">
@@ -277,6 +297,7 @@ export class RecipeDetailComponent implements OnInit {
   recipe = signal<RecipeDetail | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+  historyDates = signal<string[]>([]);
 
   private readonly nutritionLabels: Record<string, string> = {
     protein: 'Protéines',
@@ -315,6 +336,27 @@ export class RecipeDetailComponent implements OnInit {
         this.recipe.set(recipe);
         this.loading.set(false);
       });
+
+    this.http
+      .get<{ recipeId: string; dates: string[] }>(
+        `${environment.apiUrl}/api/v1/menu-plan/history`,
+        { params: new HttpParams().set('recipeId', this.id()) },
+      )
+      .pipe(catchError(() => of(null)))
+      .subscribe(history => {
+        if (history) {
+          this.historyDates.set(history.dates);
+        }
+      });
+  }
+
+  formatHistoryDate(date: string): string {
+    return new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   }
 
   goBack(): void {

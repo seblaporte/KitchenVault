@@ -1,0 +1,72 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-meal-plan-entry
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: meal_plan_entry
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: entry_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: meal_type
+                  type: varchar(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: recipe_id
+                  type: varchar(255)
+              - column:
+                  name: recipe_name_snapshot
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 004-meal-plan-entry-check-meal-type
+      author: seblaporte
+      changes:
+        - sql:
+            sql: "ALTER TABLE meal_plan_entry ADD CONSTRAINT chk_meal_plan_entry_meal_type CHECK (meal_type IN ('LUNCH', 'DINNER'))"
+
+  - changeSet:
+      id: 004-meal-plan-entry-fk-recipe
+      author: seblaporte
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: recipe_id
+            baseTableName: meal_plan_entry
+            constraintName: fk_meal_plan_entry_recipe
+            onDelete: SET NULL
+            referencedColumnNames: id
+            referencedTableName: recipe
+
+  - changeSet:
+      id: 004-meal-plan-entry-unique-date-type
+      author: seblaporte
+      changes:
+        - addUniqueConstraint:
+            tableName: meal_plan_entry
+            columnNames: entry_date, meal_type
+            constraintName: uq_meal_plan_entry_date_type
+
+  - changeSet:
+      id: 004-meal-plan-entry-idx-date
+      author: seblaporte
+      changes:
+        - createIndex:
+            tableName: meal_plan_entry
+            indexName: idx_meal_plan_entry_date
+            columns:
+              - column:
+                  name: entry_date

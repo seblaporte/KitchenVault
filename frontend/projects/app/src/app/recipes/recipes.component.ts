@@ -58,14 +58,14 @@ const TIME_BUCKETS = [
   imports: [CommonModule, FormsModule],
   template: `
     <div class="space-y-6">
-      <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Recettes</h1>
+      <h1 class="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">Recettes</h1>
 
       <!-- Barre de recherche + filtres -->
       <div class="space-y-3">
 
         <!-- Champ de recherche -->
         <div class="relative">
-          <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
           </svg>
           <input
@@ -73,13 +73,13 @@ const TIME_BUCKETS = [
             [(ngModel)]="searchText"
             (ngModelChange)="onSearchChange($event)"
             placeholder="Rechercher une recette…"
-            class="w-full rounded-xl border border-zinc-200 bg-white py-2.5 pl-10 pr-10 text-sm text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            class="w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 py-2.5 pl-10 pr-10 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 shadow-sm focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200"
             aria-label="Rechercher une recette"
           />
           @if (searchText) {
             <button
               (click)="clearSearch()"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 focus-visible:outline-none"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 focus-visible:outline-none"
               aria-label="Effacer la recherche"
             >
               <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -90,12 +90,12 @@ const TIME_BUCKETS = [
         </div>
 
         <!-- Filtres -->
-        <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm space-y-3">
+        <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-4 shadow-sm space-y-3">
 
           <!-- Collections -->
           @if (collectionsWithRecipes().length > 0) {
             <div>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Collections</p>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">Collections</p>
               <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrer par collection">
                 @for (col of collectionsWithRecipes(); track col.id) {
                   <button
@@ -111,7 +111,7 @@ const TIME_BUCKETS = [
           <!-- Catégories -->
           @if (categories().length > 0) {
             <div>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Catégories</p>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">Catégories</p>
               <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrer par catégorie">
                 @for (cat of categories(); track cat.id) {
                   <button
@@ -127,7 +127,7 @@ const TIME_BUCKETS = [
           <!-- Difficulté -->
           @if (difficulties().length > 0) {
             <div>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Difficulté</p>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">Difficulté</p>
               <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrer par difficulté">
                 @for (d of difficulties(); track d) {
                   <button
@@ -142,7 +142,7 @@ const TIME_BUCKETS = [
 
           <!-- Temps total -->
           <div>
-            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Temps total</p>
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">Temps total</p>
             <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrer par temps total">
               @for (bucket of timeBuckets; track bucket.value) {
                 <button
@@ -156,31 +156,31 @@ const TIME_BUCKETS = [
 
           <!-- Ingrédients -->
           <div>
-            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Ingrédients</p>
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">Ingrédients</p>
             <div class="flex gap-2 mb-2">
               <input
                 type="text"
                 [(ngModel)]="ingredientInput"
                 (keydown.enter)="addIngredient()"
                 placeholder="Ex : poulet, farine…"
-                class="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                class="flex-1 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 shadow-sm focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200"
                 aria-label="Ajouter un ingrédient"
               />
               <button
                 (click)="addIngredient()"
                 [disabled]="!ingredientInput.trim()"
-                class="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                class="rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-sm font-medium text-stone-700 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 aria-label="Ajouter l'ingrédient"
               >+</button>
             </div>
             @if (selectedIngredients.length > 0) {
               <div class="flex flex-wrap gap-2" role="group" aria-label="Ingrédients sélectionnés">
                 @for (name of selectedIngredients; track name; let i = $index) {
-                  <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-indigo-600 text-white">
+                  <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-forest-600 text-white">
                     {{ name }}
                     <button
                       (click)="removeIngredient(i)"
-                      class="ml-0.5 rounded-full hover:text-indigo-200 focus-visible:outline-none"
+                      class="ml-0.5 rounded-full hover:text-forest-200 focus-visible:outline-none"
                       [attr.aria-label]="'Retirer ' + name"
                     >
                       <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -195,11 +195,11 @@ const TIME_BUCKETS = [
 
           <!-- Indicateur filtres actifs -->
           @if (activeFilterCount > 0) {
-            <div class="flex items-center justify-between border-t border-zinc-100 pt-3">
-              <span class="text-xs text-zinc-500">{{ activeFilterCount }} filtre{{ activeFilterCount > 1 ? 's' : '' }} actif{{ activeFilterCount > 1 ? 's' : '' }}</span>
+            <div class="flex items-center justify-between border-t border-stone-100 dark:border-stone-800 pt-3">
+              <span class="text-xs text-stone-500 dark:text-stone-400">{{ activeFilterCount }} filtre{{ activeFilterCount > 1 ? 's' : '' }} actif{{ activeFilterCount > 1 ? 's' : '' }}</span>
               <button
                 (click)="clearAllFilters()"
-                class="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors focus-visible:outline-none"
+                class="text-xs font-medium text-forest-600 dark:text-forest-400 hover:text-forest-800 dark:hover:text-forest-300 transition-colors focus-visible:outline-none"
               >Tout effacer</button>
             </div>
           }
@@ -211,7 +211,7 @@ const TIME_BUCKETS = [
 
         @if (collectionsLoading()) {
           <div class="flex items-center justify-center py-20">
-            <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-label="Chargement">
+            <svg class="animate-spin h-8 w-8 text-forest-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-label="Chargement">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
@@ -223,7 +223,7 @@ const TIME_BUCKETS = [
         }
 
         @if (!collectionsLoading() && !collectionsError() && collections().length === 0) {
-          <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center text-sm text-zinc-500">
+          <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-12 text-center text-sm text-stone-500 dark:text-stone-400">
             Aucune recette disponible. Lancez une synchronisation depuis l'Administration.
           </div>
         }
@@ -231,17 +231,17 @@ const TIME_BUCKETS = [
         @for (collection of collections(); track collection.id) {
           @if (hasRecipes(collection)) {
             <section [attr.aria-labelledby]="'collection-' + collection.id">
-              <h2 [id]="'collection-' + collection.id" class="mb-4 text-lg font-semibold text-zinc-800">{{ collection.name }}</h2>
+              <h2 [id]="'collection-' + collection.id" class="mb-4 text-lg font-semibold text-stone-800 dark:text-stone-200">{{ collection.name }}</h2>
               @for (chapter of collection.chapters; track chapter.name) {
                 <div class="mb-6">
                   @if (collection.chapters.length > 1) {
-                    <h3 class="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">{{ chapter.name }}</h3>
+                    <h3 class="mb-3 text-sm font-medium uppercase tracking-wide text-stone-500 dark:text-stone-400">{{ chapter.name }}</h3>
                   }
                   <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     @for (recipe of chapter.recipes; track recipe.id) {
                       <button (click)="openRecipe(recipe.id)" [class]="recipeTileClass" [attr.aria-label]="recipe.name">
                         <ng-container *ngTemplateOutlet="recipeThumbnail; context: { recipe: recipe }"></ng-container>
-                        <div class="p-3"><p class="line-clamp-2 text-sm font-medium text-zinc-900 leading-snug">{{ recipe.name }}</p></div>
+                        <div class="p-3"><p class="line-clamp-2 text-sm font-medium text-stone-900 dark:text-stone-100 leading-snug">{{ recipe.name }}</p></div>
                       </button>
                     }
                   </div>
@@ -257,7 +257,7 @@ const TIME_BUCKETS = [
 
         @if (searchLoading()) {
           <div class="flex items-center justify-center py-20">
-            <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-label="Chargement">
+            <svg class="animate-spin h-8 w-8 text-forest-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-label="Chargement">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
@@ -266,13 +266,13 @@ const TIME_BUCKETS = [
 
         @if (!searchLoading()) {
           <!-- Compteur de résultats -->
-          <p class="text-sm text-zinc-500">
+          <p class="text-sm text-stone-500 dark:text-stone-400">
             {{ searchResult().totalElements }} recette{{ searchResult().totalElements !== 1 ? 's' : '' }} trouvée{{ searchResult().totalElements !== 1 ? 's' : '' }}
           </p>
 
           <!-- Grille résultats -->
           @if (searchResult().content.length === 0) {
-            <div class="rounded-xl border border-zinc-200 bg-white p-12 text-center text-sm text-zinc-500">
+            <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-12 text-center text-sm text-stone-500 dark:text-stone-400">
               Aucune recette ne correspond à vos critères.
             </div>
           }
@@ -283,9 +283,9 @@ const TIME_BUCKETS = [
                 <button (click)="openRecipe(recipe.id)" [class]="recipeTileClass" [attr.aria-label]="recipe.name">
                   <ng-container *ngTemplateOutlet="recipeThumbnail; context: { recipe: recipe }"></ng-container>
                   <div class="p-3">
-                    <p class="line-clamp-2 text-sm font-medium text-zinc-900 leading-snug">{{ recipe.name }}</p>
+                    <p class="line-clamp-2 text-sm font-medium text-stone-900 dark:text-stone-100 leading-snug">{{ recipe.name }}</p>
                     @if (recipe.totalTimeMinutes) {
-                      <p class="mt-1 text-xs text-zinc-400">{{ recipe.totalTimeMinutes }} min</p>
+                      <p class="mt-1 text-xs text-stone-400 dark:text-stone-500">{{ recipe.totalTimeMinutes }} min</p>
                     }
                   </div>
                 </button>
@@ -298,18 +298,18 @@ const TIME_BUCKETS = [
                 <button
                   (click)="goToPage(currentPage() - 1)"
                   [disabled]="currentPage() === 0"
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
                 >
                   <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                   </svg>
                   Précédent
                 </button>
-                <span class="text-sm text-zinc-500">Page {{ currentPage() + 1 }} / {{ searchResult().totalPages }}</span>
+                <span class="text-sm text-stone-500 dark:text-stone-400">Page {{ currentPage() + 1 }} / {{ searchResult().totalPages }}</span>
                 <button
                   (click)="goToPage(currentPage() + 1)"
                   [disabled]="currentPage() >= searchResult().totalPages - 1"
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
                 >
                   Suivant
                   <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -325,12 +325,12 @@ const TIME_BUCKETS = [
 
     <!-- Template tuile recette -->
     <ng-template #recipeThumbnail let-recipe="recipe">
-      <div class="aspect-square w-full overflow-hidden bg-zinc-100">
+      <div class="aspect-square w-full overflow-hidden bg-stone-100 dark:bg-stone-800">
         @if (recipe.thumbnailUrl) {
           <img [src]="recipe.thumbnailUrl" [alt]="recipe.name" class="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
         } @else {
           <div class="flex h-full w-full items-center justify-center">
-            <svg class="h-10 w-10 text-zinc-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <svg class="h-10 w-10 text-stone-300 dark:text-stone-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
@@ -341,7 +341,7 @@ const TIME_BUCKETS = [
 })
 export class RecipesComponent implements OnInit, OnDestroy {
   readonly timeBuckets = TIME_BUCKETS;
-  readonly recipeTileClass = 'group flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-indigo-500';
+  readonly recipeTileClass = 'group flex flex-col overflow-hidden rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-forest-500';
 
   collections = signal<Collection[]>([]);
   collectionsLoading = signal(true);
@@ -489,8 +489,8 @@ export class RecipesComponent implements OnInit, OnDestroy {
 
   chipClass(active: boolean): string {
     return active
-      ? 'rounded-full px-3 py-1 text-xs font-medium bg-indigo-600 text-white transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500'
-      : 'rounded-full px-3 py-1 text-xs font-medium bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500';
+      ? 'rounded-full px-3 py-1 text-xs font-medium bg-forest-600 text-white transition-colors focus-visible:outline-2 focus-visible:outline-forest-500'
+      : 'rounded-full px-3 py-1 text-xs font-medium bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500';
   }
 
   private setupSearch(): void {

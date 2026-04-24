@@ -1,0 +1,14 @@
+[
+  {
+    "id": 10,
+    "recipeId": "recipe-1",
+    "recipeName": "Poulet rôti",
+    "recipeTotalTimeMinutes": 60
+  },
+  {
+    "id": 11,
+    "recipeId": "recipe-3",
+    "recipeName": "Tarte aux pommes",
+    "recipeTotalTimeMinutes": 45
+  }
+]

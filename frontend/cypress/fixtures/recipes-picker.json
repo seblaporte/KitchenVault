@@ -1,0 +1,10 @@
+{
+  "content": [
+    { "id": "recipe-1", "name": "Poulet rôti", "totalTimeMinutes": 60 },
+    { "id": "recipe-2", "name": "Boeuf bourguignon", "totalTimeMinutes": 120 }
+  ],
+  "totalElements": 2,
+  "totalPages": 1,
+  "page": 0,
+  "size": 20
+}

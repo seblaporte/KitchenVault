@@ -1,0 +1,27 @@
+[
+  {
+    "id": "col-1",
+    "name": "Plats du quotidien",
+    "chapters": [
+      {
+        "name": "Viandes",
+        "recipes": [
+          { "id": "recipe-1", "name": "Poulet rôti", "totalTimeMinutes": 60 },
+          { "id": "recipe-2", "name": "Boeuf bourguignon", "totalTimeMinutes": 120 }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "col-2",
+    "name": "Desserts & Pâtisseries",
+    "chapters": [
+      {
+        "name": "Gâteaux",
+        "recipes": [
+          { "id": "recipe-3", "name": "Tarte aux pommes", "totalTimeMinutes": 45 }
+        ]
+      }
+    ]
+  }
+]

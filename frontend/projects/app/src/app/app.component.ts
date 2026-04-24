@@ -10,9 +10,9 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       <!-- Navigation -->
       <nav class="border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900" aria-label="Navigation principale">
         <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div class="flex h-16 items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-lg font-semibold tracking-tight">KitchenVault</span>
+          <div class="flex h-32 items-center justify-between">
+            <div class="flex items-center">
+              <img src="/logo.png" alt="KitchenVault" class="h-[120px] w-auto" />
             </div>
             <ul class="flex gap-6" role="list">
               <li>

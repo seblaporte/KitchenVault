@@ -35,6 +35,9 @@ npm start              # ng serve — dev server on :4200
 npm run build          # Production build
 npm test               # Karma tests with coverage
 npm run lint           # ESLint
+npm run e2e            # Cypress E2E headless (nécessite npm start dans un autre terminal)
+npm run e2e:open       # Cypress interactif (GUI)
+npm run e2e:ci         # Cypress headless Electron (CI)
 ```
 
 ### Python microservice

@@ -12,7 +12,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div class="flex h-16 items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="text-lg font-semibold tracking-tight">My Cookidoo</span>
+              <span class="text-lg font-semibold tracking-tight">KitchenVault</span>
             </div>
             <ul class="flex gap-6" role="list">
               <li>

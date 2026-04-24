@@ -1,4 +1,4 @@
-# My Cookidoo
+# KitchenVault
 
 > **Avertissement** : Cette application est un projet personnel indépendant et n'est affiliée, ni approuvée, ni sponsorisée par Vorwerk ou Thermomix. Cookidoo® est une marque déposée de Vorwerk. L'utilisation de cette application se fait à titre personnel, sans aucun lien officiel avec les produits ou services de Thermomix.
 

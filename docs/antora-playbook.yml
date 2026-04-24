@@ -1,5 +1,5 @@
 site:
-  title: My Cookidoo Documentation
+  title: KitchenVault Documentation
   start_page: KitchenVault::index.adoc
 
 content:

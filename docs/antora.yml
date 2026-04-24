@@ -1,5 +1,5 @@
 name: KitchenVault
-title: My Cookidoo
+title: KitchenVault
 version: '1.0'
 start_page: ROOT:index.adoc
 nav:

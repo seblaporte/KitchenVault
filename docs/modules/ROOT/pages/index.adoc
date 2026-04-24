@@ -1,7 +1,7 @@
-= My Cookidoo
+= KitchenVault
 :description: Documentation de l'application personnelle de gestion des recettes Cookidoo
 
-My Cookidoo est une application personnelle permettant de récupérer, stocker et consulter les recettes Cookidoo via une interface plus ergonomique que l'application officielle.
+KitchenVault est une application personnelle permettant de récupérer, stocker et consulter les recettes Cookidoo via une interface plus ergonomique que l'application officielle.
 
 == Vue d'ensemble
 

@@ -148,6 +148,7 @@ export class MealSlotComponent implements OnChanges {
   ngOnChanges(): void {
     this.suggestions.set([]);
     this.suggestionsError.set(null);
+    this.maxTimeInput = '';
   }
 
   loadSuggestions(): void {

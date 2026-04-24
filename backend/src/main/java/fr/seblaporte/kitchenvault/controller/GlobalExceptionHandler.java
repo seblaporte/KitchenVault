@@ -1,5 +1,6 @@
 package fr.seblaporte.kitchenvault.controller;
 
+import fr.seblaporte.kitchenvault.exception.InvalidWeekStartException;
 import fr.seblaporte.kitchenvault.generated.model.ErrorDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,8 +15,9 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorDto> handleIllegalArgument(IllegalArgumentException ex) {
+    @ExceptionHandler(InvalidWeekStartException.class)
+    public ResponseEntity<ErrorDto> handleInvalidWeekStart(InvalidWeekStartException ex) {
+        log.warn("Invalid weekStart: {}", ex.getMessage());
         ErrorDto error = new ErrorDto();
         error.setMessage(ex.getMessage());
         return ResponseEntity.badRequest().body(error);

@@ -1,9 +1,10 @@
 import { Component, input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { MenuPlanService } from '@KitchenVault/api-client';
 
 interface Ingredient {
   id: string;
@@ -316,6 +317,7 @@ export class RecipeDetailComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private router: Router,
+    private menuPlanService: MenuPlanService,
   ) {}
 
   ngOnInit(): void {
@@ -337,11 +339,7 @@ export class RecipeDetailComponent implements OnInit {
         this.loading.set(false);
       });
 
-    this.http
-      .get<{ recipeId: string; dates: string[] }>(
-        `${environment.apiUrl}/api/v1/menu-plan/history`,
-        { params: new HttpParams().set('recipeId', this.id()) },
-      )
+    this.menuPlanService.getRecipeHistory(this.id(), 52)
       .pipe(catchError(() => of(null)))
       .subscribe(history => {
         if (history) {

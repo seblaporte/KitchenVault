@@ -2,6 +2,7 @@ package fr.seblaporte.kitchenvault.controller;
 
 import fr.seblaporte.kitchenvault.entity.MealPlanEntry;
 import fr.seblaporte.kitchenvault.entity.Recipe;
+import fr.seblaporte.kitchenvault.exception.InvalidWeekStartException;
 import fr.seblaporte.kitchenvault.generated.api.MenuPlanApiDelegate;
 import fr.seblaporte.kitchenvault.generated.model.DayPlanDto;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanEntryDto;
@@ -37,7 +38,7 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
     @Override
     public ResponseEntity<MenuPlanDto> getWeekPlan(LocalDate weekStart) {
         if (weekStart.getDayOfWeek() != DayOfWeek.MONDAY) {
-            throw new IllegalArgumentException("weekStart must be a Monday");
+            throw new InvalidWeekStartException("weekStart must be a Monday");
         }
 
         List<MealPlanEntry> entries = mealPlanService.getWeekPlan(weekStart);
@@ -54,10 +55,14 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
                     byDateAndType.getOrDefault(date, Map.of());
 
             DayPlanDto day = new DayPlanDto(date);
-            MealPlanEntry lunchEntry = dayEntries.get(fr.seblaporte.kitchenvault.entity.MealType.LUNCH);
-            day.setLunch(lunchEntry != null ? mealPlanMapper.toEntryDto(lunchEntry) : null);
-            MealPlanEntry dinnerEntry = dayEntries.get(fr.seblaporte.kitchenvault.entity.MealType.DINNER);
-            day.setDinner(dinnerEntry != null ? mealPlanMapper.toEntryDto(dinnerEntry) : null);
+            for (fr.seblaporte.kitchenvault.entity.MealType mt : fr.seblaporte.kitchenvault.entity.MealType.values()) {
+                MealPlanEntry entry = dayEntries.get(mt);
+                MealPlanEntryDto dto = entry != null ? mealPlanMapper.toEntryDto(entry) : null;
+                switch (mt) {
+                    case LUNCH -> day.setLunch(dto);
+                    case DINNER -> day.setDinner(dto);
+                }
+            }
             days.add(day);
         }
 
@@ -67,10 +72,8 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
 
     @Override
     public ResponseEntity<MealPlanEntryDto> upsertEntry(LocalDate date, MealType mealType, MealPlanUpsertDto mealPlanUpsertDto) {
-        fr.seblaporte.kitchenvault.entity.MealType entityMealType =
-                fr.seblaporte.kitchenvault.entity.MealType.valueOf(mealType.getValue());
         try {
-            MealPlanEntry entry = mealPlanService.upsertEntry(date, entityMealType, mealPlanUpsertDto.getRecipeId());
+            MealPlanEntry entry = mealPlanService.upsertEntry(date, toEntityMealType(mealType), mealPlanUpsertDto.getRecipeId());
             return ResponseEntity.ok(mealPlanMapper.toEntryDto(entry));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
@@ -79,18 +82,14 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
 
     @Override
     public ResponseEntity<Void> removeEntry(LocalDate date, MealType mealType) {
-        fr.seblaporte.kitchenvault.entity.MealType entityMealType =
-                fr.seblaporte.kitchenvault.entity.MealType.valueOf(mealType.getValue());
-        mealPlanService.removeEntry(date, entityMealType);
+        mealPlanService.removeEntry(date, toEntityMealType(mealType));
         return ResponseEntity.noContent().build();
     }
 
     @Override
     public ResponseEntity<List<MealPlanEntryDto>> getSuggestions(LocalDate date, MealType mealType, Integer maxTotalMinutes, Integer count) {
-        fr.seblaporte.kitchenvault.entity.MealType entityMealType =
-                fr.seblaporte.kitchenvault.entity.MealType.valueOf(mealType.getValue());
         int effectiveCount = count != null ? count : 3;
-        List<Recipe> recipes = mealPlanService.suggest(date, entityMealType, maxTotalMinutes, effectiveCount);
+        List<Recipe> recipes = mealPlanService.suggest(date, toEntityMealType(mealType), maxTotalMinutes, effectiveCount);
         List<MealPlanEntryDto> dtos = recipes.stream().map(mealPlanMapper::toEntryDtoFromRecipe).toList();
         return ResponseEntity.ok(dtos);
     }
@@ -104,5 +103,9 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
         dto.setRecipeId(recipeId);
         dto.setDates(entries.stream().map(MealPlanEntry::getEntryDate).toList());
         return ResponseEntity.ok(dto);
+    }
+
+    private fr.seblaporte.kitchenvault.entity.MealType toEntityMealType(MealType mealType) {
+        return fr.seblaporte.kitchenvault.entity.MealType.valueOf(mealType.getValue());
     }
 }

@@ -102,6 +102,16 @@ public class SyncDelegate implements SyncApiDelegate {
 
 `SyncService.triggerSync()` is transactional: it checks no sync is RUNNING, saves a `SyncRun` (status=RUNNING), fires `executeSyncAsync()` (`@Async`), and **returns immediately** with the RUNNING run. The actual sync runs in a virtual thread. The scheduled sync (`@Scheduled`) is synchronous and reuses `executeSync()`.
 
+### MapStruct + Lombok annotation processor order
+
+The `maven-compiler-plugin` in `backend/pom.xml` must keep this order in `annotationProcessorPaths`:
+1. `lombok`
+2. `lombok-mapstruct-binding`
+3. `mapstruct-processor`
+4. `spring-boot-configuration-processor`
+
+Changing this order breaks MapStruct's ability to see Lombok-generated accessors.
+
 ### SyncMapper enum name clash
 
 `SyncStatus` exists in both `fr.seblaporte.kitchenvault.entity` and `fr.seblaporte.kitchenvault.generated.model`. The `mapStatus()` default method in `SyncMapper` uses fully qualified names for both to avoid ambiguity.

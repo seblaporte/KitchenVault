@@ -9,6 +9,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface MealPlanMapper {
 
+    // recipeName vient du snapshot (survit à la suppression) ; thumbnail/durée viennent de l'entité live (null si recette supprimée)
     @Mapping(target = "recipeId", expression = "java(entry.getRecipe() != null ? entry.getRecipe().getId() : null)")
     @Mapping(target = "recipeName", source = "recipeNameSnapshot")
     @Mapping(target = "recipeThumbnailUrl", expression = "java(entry.getRecipe() != null ? entry.getRecipe().getThumbnailUrl() : null)")

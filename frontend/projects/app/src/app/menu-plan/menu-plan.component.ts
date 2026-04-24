@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, forkJoin, of, switchMap } from 'rxjs';
+import { catchError, EMPTY, forkJoin, of, switchMap } from 'rxjs';
 import { MenuDayComponent } from './menu-day/menu-day.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
 import { MenuPlanService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
@@ -192,13 +192,19 @@ export class MenuPlanComponent implements OnInit {
   handleAddRecipe(event: { date: string; mealType: string; recipeId: string }): void {
     const dto: MealPlanUpsertDto = { recipeId: event.recipeId };
     this.menuPlanService.upsertEntry(event.date, event.mealType as MealType, dto)
-      .pipe(catchError(() => of(null)))
+      .pipe(catchError(() => {
+        this.error.set('Impossible de modifier le créneau.');
+        return EMPTY;
+      }))
       .subscribe(() => this.loadWeekPlan());
   }
 
   handleRemove(event: { date: string; mealType: string }): void {
     this.menuPlanService.removeEntry(event.date, event.mealType as MealType)
-      .pipe(catchError(() => of(null)))
+      .pipe(catchError(() => {
+        this.error.set('Impossible de modifier le créneau.');
+        return EMPTY;
+      }))
       .subscribe(() => this.loadWeekPlan());
   }
 
@@ -238,7 +244,10 @@ export class MenuPlanComponent implements OnInit {
 
         return upsertRequests.length > 0 ? forkJoin(upsertRequests) : of(null);
       }),
-      catchError(() => of(null))
+      catchError(() => {
+        this.error.set('Certaines suggestions n\'ont pas pu être appliquées.');
+        return of(null);
+      })
     ).subscribe(() => {
       this.suggestingWeek.set(false);
       this.loadWeekPlan();

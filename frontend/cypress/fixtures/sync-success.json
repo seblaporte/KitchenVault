@@ -1,0 +1,8 @@
+{
+  "id": "sync-1",
+  "startedAt": "2026-04-21T03:00:00Z",
+  "completedAt": "2026-04-21T03:02:30Z",
+  "status": "SUCCESS",
+  "collectionsSynced": 5,
+  "recipesSynced": 142
+}

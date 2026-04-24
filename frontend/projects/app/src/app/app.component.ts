@@ -35,6 +35,16 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
                   Recettes
                 </a>
               </li>
+              <li>
+                <a
+                  routerLink="/menu"
+                  routerLinkActive="text-indigo-600 font-medium"
+                  class="text-sm text-zinc-500 hover:text-zinc-900 transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500 rounded"
+                  aria-label="Menu"
+                >
+                  Menu
+                </a>
+              </li>
             </ul>
           </div>
         </div>

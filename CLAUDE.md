@@ -7,6 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Backend (Java / Spring Boot)
 
 ```bash
+# Activate Java 25 (reads .sdkmanrc — required before Maven commands)
+sdk env
+
 # Full build (parent + contracts + backend)
 mvn clean install
 
@@ -32,6 +35,9 @@ npm start              # ng serve — dev server on :4200
 npm run build          # Production build
 npm test               # Karma tests with coverage
 npm run lint           # ESLint
+npm run e2e            # Cypress E2E headless (nécessite npm start dans un autre terminal)
+npm run e2e:open       # Cypress interactif (GUI)
+npm run e2e:ci         # Cypress headless Electron (CI)
 ```
 
 ### Python microservice
@@ -83,6 +89,17 @@ public class SyncDelegate implements SyncApiDelegate {
 ### `@HttpExchange` client (Spring → Python)
 
 `CookidooServiceClient` is a declarative HTTP client configured in `CookidooClientConfig` using `RestClient` + `HttpServiceProxyFactory`. The base URL comes from `cookidoo.service.url` in `application.yml`.
+
+## Interaction Style
+
+- Prefer direct, concise answers over extensive autonomous exploration
+- When investigating, state the hypothesis early and confirm before deep file-walking
+- For debugging, propose a concrete fix within 2-3 tool calls when possible
+
+## Git & PR Workflow
+- After implementing changes, run the relevant build/tests before offering to commit
+- Use conventional commit messages; group related file changes into single commits
+- For PR reviews, read files manually if diff-based approaches return empty
 
 ### Async sync flow
 

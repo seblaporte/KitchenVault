@@ -1,0 +1,11 @@
+{
+  "content": [
+    { "id": "recipe-1", "name": "Poulet rôti", "totalTimeMinutes": 60, "difficulty": "Facile" },
+    { "id": "recipe-2", "name": "Boeuf bourguignon", "totalTimeMinutes": 120, "difficulty": "Intermédiaire" },
+    { "id": "recipe-3", "name": "Tarte aux pommes", "totalTimeMinutes": 45, "difficulty": "Facile" }
+  ],
+  "totalElements": 3,
+  "totalPages": 1,
+  "page": 0,
+  "size": 20
+}

@@ -22,6 +22,8 @@ tags:
     description: Consultation des collections
   - name: categories
     description: Consultation des catégories
+  - name: menu-plan
+    description: Planification du menu
 
 paths:
 
@@ -244,6 +246,156 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorDto"
+
+  # ─── Menu Plan ──────────────────────────────────────────────────────────────
+
+  /api/v1/menu-plan:
+    get:
+      tags: [menu-plan]
+      operationId: getWeekPlan
+      summary: Plan de la semaine
+      parameters:
+        - name: weekStart
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Plan de la semaine
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MenuPlanDto"
+        "400":
+          description: weekStart n'est pas un lundi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/menu-plan/entries/{date}/{mealType}:
+    put:
+      tags: [menu-plan]
+      operationId: upsertEntry
+      summary: Ajouter ou remplacer une recette dans un créneau
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: mealType
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/MealType"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanUpsertDto"
+      responses:
+        "200":
+          description: Entrée créée ou mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntryDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+    delete:
+      tags: [menu-plan]
+      operationId: removeEntry
+      summary: Supprimer un créneau (idempotent)
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: mealType
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/MealType"
+      responses:
+        "204":
+          description: Créneau supprimé (ou inexistant)
+
+  /api/v1/menu-plan/suggestions:
+    get:
+      tags: [menu-plan]
+      operationId: getSuggestions
+      summary: Suggérer des recettes pour un créneau
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: mealType
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/MealType"
+        - name: maxTotalMinutes
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 3
+      responses:
+        "200":
+          description: Suggestions de recettes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MealPlanEntryDto"
+
+  /api/v1/menu-plan/history:
+    get:
+      tags: [menu-plan]
+      operationId: getRecipeHistory
+      summary: Historique d'une recette dans les menus
+      parameters:
+        - name: recipeId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 52
+      responses:
+        "200":
+          description: Historique de la recette
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeHistoryDto"
 
 # ─── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -533,6 +685,76 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ChapterDto"
+
+    # ── Menu Plan ─────────────────────────────────────────────────────────────
+
+    MealType:
+      type: string
+      enum: [LUNCH, DINNER]
+
+    MenuPlanDto:
+      type: object
+      required: [days]
+      properties:
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayPlanDto"
+
+    DayPlanDto:
+      type: object
+      required: [date]
+      properties:
+        date:
+          type: string
+          format: date
+        lunch:
+          allOf:
+            - $ref: "#/components/schemas/MealPlanEntryDto"
+          nullable: true
+        dinner:
+          allOf:
+            - $ref: "#/components/schemas/MealPlanEntryDto"
+          nullable: true
+
+    MealPlanEntryDto:
+      type: object
+      required: [recipeName]
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        recipeId:
+          type: string
+          nullable: true
+        recipeName:
+          type: string
+        recipeThumbnailUrl:
+          type: string
+          nullable: true
+        recipeTotalTimeMinutes:
+          type: integer
+          nullable: true
+
+    MealPlanUpsertDto:
+      type: object
+      required: [recipeId]
+      properties:
+        recipeId:
+          type: string
+
+    RecipeHistoryDto:
+      type: object
+      required: [recipeId, dates]
+      properties:
+        recipeId:
+          type: string
+        dates:
+          type: array
+          items:
+            type: string
+            format: date
 
     # ── Erreurs ────────────────────────────────────────────────────────────────
 

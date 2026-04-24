@@ -1,6 +1,8 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withFetch } from '@angular/common/http';
+import { BASE_PATH } from '@KitchenVault/api-client';
+import { environment } from '../environments/environment';
 
 import { routes } from './app.routes';
 
@@ -9,5 +11,6 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withFetch()),
+    { provide: BASE_PATH, useValue: environment.apiUrl },
   ],
 };

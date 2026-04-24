@@ -1,0 +1,20 @@
+{
+  "days": [
+    {
+      "date": "2026-04-21",
+      "lunch": {
+        "id": 1,
+        "recipeId": "recipe-1",
+        "recipeName": "Poulet rôti",
+        "recipeTotalTimeMinutes": 60
+      },
+      "dinner": null
+    },
+    { "date": "2026-04-22", "lunch": null, "dinner": null },
+    { "date": "2026-04-23", "lunch": null, "dinner": null },
+    { "date": "2026-04-24", "lunch": null, "dinner": null },
+    { "date": "2026-04-25", "lunch": null, "dinner": null },
+    { "date": "2026-04-26", "lunch": null, "dinner": null },
+    { "date": "2026-04-27", "lunch": null, "dinner": null }
+  ]
+}

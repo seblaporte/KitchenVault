@@ -34,6 +34,10 @@ frontend/projects/api-client/src/generated/
 frontend/dist/
 frontend/.angular/
 
+# Cypress E2E artifacts
+frontend/cypress/screenshots/
+frontend/cypress/videos/
+
 # Node modules
 frontend/node_modules/
 node_modules/

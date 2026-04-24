@@ -5,3 +5,7 @@ databaseChangeLog:
       file: db/changelog/changes/002-ingredient-uuid-id.yaml
   - include:
       file: db/changelog/changes/003-unaccent-extension.yaml
+  - include:
+      file: db/changelog/changes/004-meal-plan.yaml
+  - include:
+      file: db/changelog/changes/005-recipe-id-snapshot.yaml

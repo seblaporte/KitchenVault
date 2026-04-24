@@ -1,5 +1,6 @@
 package fr.seblaporte.kitchenvault.controller;
 
+import fr.seblaporte.kitchenvault.exception.InvalidWeekStartException;
 import fr.seblaporte.kitchenvault.generated.model.ErrorDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,14 @@ import org.springframework.web.client.RestClientException;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(InvalidWeekStartException.class)
+    public ResponseEntity<ErrorDto> handleInvalidWeekStart(InvalidWeekStartException ex) {
+        log.warn("Invalid weekStart: {}", ex.getMessage());
+        ErrorDto error = new ErrorDto();
+        error.setMessage(ex.getMessage());
+        return ResponseEntity.badRequest().body(error);
+    }
 
     @ExceptionHandler(RestClientException.class)
     public ResponseEntity<ErrorDto> handleCookidooServiceUnavailable(RestClientException ex) {

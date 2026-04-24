@@ -17,4 +17,10 @@ public interface RecipeRepository extends JpaRepository<Recipe, String>, JpaSpec
 
     @Query("SELECT r FROM Recipe r WHERE r.lastSyncedAt < :threshold")
     List<Recipe> findOutdatedRecipes(@Param("threshold") Instant threshold);
+
+    @Query(value = "SELECT * FROM recipe r WHERE (:maxTime IS NULL OR r.total_time_minutes <= :maxTime) ORDER BY RANDOM() LIMIT :count", nativeQuery = true)
+    List<Recipe> findRandomRecipes(@Param("maxTime") Integer maxTime, @Param("count") int count);
+
+    @Query(value = "SELECT * FROM recipe r WHERE r.id NOT IN :excludedIds AND (:maxTime IS NULL OR r.total_time_minutes <= :maxTime) ORDER BY RANDOM() LIMIT :count", nativeQuery = true)
+    List<Recipe> findRandomRecipesExcluding(@Param("excludedIds") List<String> excludedIds, @Param("maxTime") Integer maxTime, @Param("count") int count);
 }

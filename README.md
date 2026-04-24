@@ -112,8 +112,12 @@ curl http://localhost:8080/api/v1/sync/latest
 # Backend (JUnit 5 + Testcontainers + AssertJ-DB)
 ./mvnw test
 
-# Frontend
+# Frontend (unitaires)
 cd frontend && ng test
+
+# Frontend E2E (Cypress — nécessite `npm start` dans un autre terminal)
+cd frontend && npm run e2e          # headless
+cd frontend && npm run e2e:open     # mode interactif (GUI)
 
 # Python
 cd cookidoo-service && python -m pytest

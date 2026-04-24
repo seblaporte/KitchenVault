@@ -1,0 +1,23 @@
+{
+  "id": "recipe-1",
+  "name": "Poulet rôti",
+  "difficulty": "Facile",
+  "servingSize": 4,
+  "totalTimeMinutes": 60,
+  "activeTimeMinutes": 20,
+  "notes": [],
+  "utensils": ["Four", "Plat à rôtir"],
+  "ingredientGroups": [
+    {
+      "name": null,
+      "ingredients": [
+        { "id": "ing-1", "name": "Poulet entier", "description": "1,5 kg" },
+        { "id": "ing-2", "name": "Beurre", "description": "50 g" }
+      ]
+    }
+  ],
+  "categories": [
+    { "id": "cat-2", "name": "Rapide" }
+  ],
+  "nutritionGroups": []
+}

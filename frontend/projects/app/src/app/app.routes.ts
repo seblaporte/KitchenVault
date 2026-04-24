@@ -23,4 +23,9 @@ export const routes: Routes = [
         m => m.RecipeDetailComponent,
       ),
   },
+  {
+    path: 'menu',
+    loadComponent: () =>
+      import('./menu-plan/menu-plan.component').then(m => m.MenuPlanComponent),
+  },
 ];

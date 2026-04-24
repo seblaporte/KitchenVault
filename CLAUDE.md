@@ -87,19 +87,20 @@ public class SyncDelegate implements SyncApiDelegate {
 
 `CookidooServiceClient` is a declarative HTTP client configured in `CookidooClientConfig` using `RestClient` + `HttpServiceProxyFactory`. The base URL comes from `cookidoo.service.url` in `application.yml`.
 
+## Interaction Style
+
+- Prefer direct, concise answers over extensive autonomous exploration
+- When investigating, state the hypothesis early and confirm before deep file-walking
+- For debugging, propose a concrete fix within 2-3 tool calls when possible
+
+## Git & PR Workflow
+- After implementing changes, run the relevant build/tests before offering to commit
+- Use conventional commit messages; group related file changes into single commits
+- For PR reviews, read files manually if diff-based approaches return empty
+
 ### Async sync flow
 
 `SyncService.triggerSync()` is transactional: it checks no sync is RUNNING, saves a `SyncRun` (status=RUNNING), fires `executeSyncAsync()` (`@Async`), and **returns immediately** with the RUNNING run. The actual sync runs in a virtual thread. The scheduled sync (`@Scheduled`) is synchronous and reuses `executeSync()`.
-
-### MapStruct + Lombok annotation processor order
-
-The `maven-compiler-plugin` in `backend/pom.xml` must keep this order in `annotationProcessorPaths`:
-1. `lombok`
-2. `lombok-mapstruct-binding`
-3. `mapstruct-processor`
-4. `spring-boot-configuration-processor`
-
-Changing this order breaks MapStruct's ability to see Lombok-generated accessors.
 
 ### SyncMapper enum name clash
 

@@ -44,7 +44,7 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
       <div class="flex items-center gap-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 shadow-sm">
         <button
           (click)="prevWeek()"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
           aria-label="Semaine précédente"
         >
           <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -55,14 +55,14 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
         <span class="flex-1 text-center text-sm font-medium text-stone-700 dark:text-stone-300">{{ weekLabel() }}</span>
         <button
           (click)="goToToday()"
-          class="rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+          class="rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
           aria-label="Revenir à la semaine courante"
         >
           Aujourd'hui
         </button>
         <button
           (click)="nextWeek()"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
           aria-label="Semaine suivante"
         >
           Suivant
@@ -73,7 +73,7 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
         <button
           (click)="suggestWeek()"
           [disabled]="loading() || suggestingWeek()"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-600"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-600"
           aria-label="Suggérer des recettes pour tous les créneaux vides de la semaine"
         >
           @if (suggestingWeek()) {

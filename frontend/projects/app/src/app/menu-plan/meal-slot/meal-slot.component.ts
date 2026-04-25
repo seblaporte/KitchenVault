@@ -41,7 +41,7 @@ import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-c
           </div>
           <button
             (click)="onRemove()"
-            class="flex-shrink-0 rounded-lg p-1.5 text-stone-400 dark:text-stone-500 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-500 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+            class="flex-shrink-0 rounded-lg p-1.5 text-stone-400 dark:text-stone-500 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-500 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
             aria-label="Supprimer ce repas"
           >
             <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -55,7 +55,7 @@ import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-c
         <div class="space-y-2">
           <button
             (click)="onAdd()"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm text-stone-500 dark:text-stone-400 hover:border-forest-400 hover:text-forest-600 dark:hover:text-forest-400 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm text-stone-500 dark:text-stone-400 hover:border-forest-400 hover:text-forest-600 dark:hover:text-forest-400 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
             aria-label="Ajouter une recette"
           >
             <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -69,7 +69,7 @@ import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-c
             <button
               (click)="loadSuggestions()"
               [disabled]="suggestionsLoading()"
-              class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-50 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
               aria-label="Suggérer des recettes"
             >
               @if (suggestionsLoading()) {
@@ -110,7 +110,7 @@ import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-c
                   </div>
                   <button
                     (click)="onAddSuggestion(s.recipeId!)"
-                    class="flex-shrink-0 rounded-lg bg-forest-600 px-2 py-1 text-xs font-medium text-white hover:bg-forest-700 transition-colors focus-visible:outline-2 focus-visible:outline-forest-600"
+                    class="flex-shrink-0 rounded-lg bg-forest-600 px-2 py-1 text-xs font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-600"
                     aria-label="Ajouter cette suggestion"
                   >
                     Ajouter

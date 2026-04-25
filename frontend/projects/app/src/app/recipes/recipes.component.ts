@@ -79,7 +79,7 @@ const TIME_BUCKETS = [
           @if (searchText) {
             <button
               (click)="clearSearch()"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 focus-visible:outline-none"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 cursor-pointer focus-visible:outline-none"
               aria-label="Effacer la recherche"
             >
               <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -169,7 +169,7 @@ const TIME_BUCKETS = [
               <button
                 (click)="addIngredient()"
                 [disabled]="!ingredientInput.trim()"
-                class="rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-sm font-medium text-stone-700 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                class="rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-sm font-medium text-stone-700 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 aria-label="Ajouter l'ingrédient"
               >+</button>
             </div>
@@ -180,7 +180,7 @@ const TIME_BUCKETS = [
                     {{ name }}
                     <button
                       (click)="removeIngredient(i)"
-                      class="ml-0.5 rounded-full hover:text-forest-200 focus-visible:outline-none"
+                      class="ml-0.5 rounded-full hover:text-forest-200 cursor-pointer focus-visible:outline-none"
                       [attr.aria-label]="'Retirer ' + name"
                     >
                       <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -199,7 +199,7 @@ const TIME_BUCKETS = [
               <span class="text-xs text-stone-500 dark:text-stone-400">{{ activeFilterCount }} filtre{{ activeFilterCount > 1 ? 's' : '' }} actif{{ activeFilterCount > 1 ? 's' : '' }}</span>
               <button
                 (click)="clearAllFilters()"
-                class="text-xs font-medium text-forest-600 dark:text-forest-400 hover:text-forest-800 dark:hover:text-forest-300 transition-colors focus-visible:outline-none"
+                class="text-xs font-medium text-forest-600 dark:text-forest-400 hover:text-forest-800 dark:hover:text-forest-300 transition-colors cursor-pointer focus-visible:outline-none"
               >Tout effacer</button>
             </div>
           }
@@ -298,7 +298,7 @@ const TIME_BUCKETS = [
                 <button
                   (click)="goToPage(currentPage() - 1)"
                   [disabled]="currentPage() === 0"
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
                 >
                   <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -309,7 +309,7 @@ const TIME_BUCKETS = [
                 <button
                   (click)="goToPage(currentPage() + 1)"
                   [disabled]="currentPage() >= searchResult().totalPages - 1"
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
                 >
                   Suivant
                   <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -341,7 +341,7 @@ const TIME_BUCKETS = [
 })
 export class RecipesComponent implements OnInit, OnDestroy {
   readonly timeBuckets = TIME_BUCKETS;
-  readonly recipeTileClass = 'group flex flex-col overflow-hidden rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-forest-500';
+  readonly recipeTileClass = 'group flex flex-col overflow-hidden rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500';
 
   collections = signal<Collection[]>([]);
   collectionsLoading = signal(true);
@@ -489,8 +489,8 @@ export class RecipesComponent implements OnInit, OnDestroy {
 
   chipClass(active: boolean): string {
     return active
-      ? 'rounded-full px-3 py-1 text-xs font-medium bg-forest-600 text-white transition-colors focus-visible:outline-2 focus-visible:outline-forest-500'
-      : 'rounded-full px-3 py-1 text-xs font-medium bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500';
+      ? 'rounded-full px-3 py-1 text-xs font-medium bg-forest-600 text-white transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500'
+      : 'rounded-full px-3 py-1 text-xs font-medium bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500';
   }
 
   private setupSearch(): void {

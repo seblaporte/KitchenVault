@@ -8,8 +8,8 @@ import { DayPlanDto } from '@KitchenVault/api-client';
   standalone: true,
   imports: [CommonModule, MealSlotComponent],
   template: `
-    <div class="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm">
-      <h2 class="mb-4 text-sm font-semibold capitalize text-zinc-700">{{ dayLabel }}</h2>
+    <div class="rounded-2xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 p-4 shadow-sm">
+      <h2 class="mb-4 text-sm font-semibold capitalize text-stone-700 dark:text-stone-300">{{ dayLabel }}</h2>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <app-meal-slot
           [entry]="dayPlan.lunch"

@@ -38,13 +38,13 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
   imports: [CommonModule, MenuDayComponent, RecipePickerDialogComponent],
   template: `
     <div class="space-y-6">
-      <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Menu de la semaine</h1>
+      <h1 class="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">Menu de la semaine</h1>
 
       <!-- Navigation semaine -->
-      <div class="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
+      <div class="flex items-center gap-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 shadow-sm">
         <button
           (click)="prevWeek()"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
           aria-label="Semaine précédente"
         >
           <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -52,17 +52,17 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
           </svg>
           Précédent
         </button>
-        <span class="flex-1 text-center text-sm font-medium text-zinc-700">{{ weekLabel() }}</span>
+        <span class="flex-1 text-center text-sm font-medium text-stone-700 dark:text-stone-300">{{ weekLabel() }}</span>
         <button
           (click)="goToToday()"
-          class="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500"
+          class="rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
           aria-label="Revenir à la semaine courante"
         >
           Aujourd'hui
         </button>
         <button
           (click)="nextWeek()"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
           aria-label="Semaine suivante"
         >
           Suivant
@@ -73,7 +73,7 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
         <button
           (click)="suggestWeek()"
           [disabled]="loading() || suggestingWeek()"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-indigo-500"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-600"
           aria-label="Suggérer des recettes pour tous les créneaux vides de la semaine"
         >
           @if (suggestingWeek()) {
@@ -93,7 +93,7 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
       <!-- Chargement -->
       @if (loading()) {
         <div class="flex items-center justify-center py-16">
-          <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-label="Chargement">
+          <svg class="animate-spin h-8 w-8 text-forest-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-label="Chargement">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>
@@ -107,7 +107,7 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
 
       <!-- Plan de la semaine -->
       @if (!loading() && weekPlan()) {
-        <div class="space-y-4">
+        <div class="flex flex-col gap-4">
           @for (day of weekPlan()!.days; track day.date) {
             <app-menu-day
               [dayPlan]="day"

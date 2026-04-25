@@ -26,27 +26,27 @@ interface AdminStats {
   imports: [CommonModule],
   template: `
     <div class="space-y-8">
-      <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Administration</h1>
+      <h1 class="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">Administration</h1>
 
       <!-- Stats cards -->
       <section aria-labelledby="stats-heading">
         <h2 id="stats-heading" class="sr-only">Statistiques de la base de données</h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div class="rounded-xl border border-zinc-200 bg-white p-6">
-            <p class="text-sm font-medium text-zinc-500">Recettes en base</p>
-            <p class="mt-2 text-3xl font-semibold text-zinc-900" aria-live="polite">
+          <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6">
+            <p class="text-sm font-medium text-stone-500 dark:text-stone-400">Recettes en base</p>
+            <p class="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100" aria-live="polite">
               {{ stats()?.recipeCount ?? '—' }}
             </p>
           </div>
-          <div class="rounded-xl border border-zinc-200 bg-white p-6">
-            <p class="text-sm font-medium text-zinc-500">Collections</p>
-            <p class="mt-2 text-3xl font-semibold text-zinc-900" aria-live="polite">
+          <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6">
+            <p class="text-sm font-medium text-stone-500 dark:text-stone-400">Collections</p>
+            <p class="mt-2 text-3xl font-semibold text-stone-900 dark:text-stone-100" aria-live="polite">
               {{ stats()?.collectionCount ?? '—' }}
             </p>
           </div>
-          <div class="rounded-xl border border-zinc-200 bg-white p-6">
-            <p class="text-sm font-medium text-zinc-500">Dernière sync réussie</p>
-            <p class="mt-2 text-sm font-medium text-zinc-900" aria-live="polite">
+          <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6">
+            <p class="text-sm font-medium text-stone-500 dark:text-stone-400">Dernière sync réussie</p>
+            <p class="mt-2 text-sm font-medium text-stone-900 dark:text-stone-100" aria-live="polite">
               {{ formatDate(stats()?.lastSuccessfulSyncAt) }}
             </p>
           </div>
@@ -55,15 +55,15 @@ interface AdminStats {
 
       <!-- Sync control -->
       <section
-        class="rounded-xl border border-zinc-200 bg-white p-6"
+        class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6"
         aria-labelledby="sync-heading"
       >
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 id="sync-heading" class="text-base font-semibold text-zinc-900">
+            <h2 id="sync-heading" class="text-base font-semibold text-stone-900 dark:text-stone-100">
               Synchronisation Cookidoo
             </h2>
-            <p class="mt-1 text-sm text-zinc-500">
+            <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">
               Déclenche la récupération des recettes et collections depuis Cookidoo.
             </p>
           </div>
@@ -71,10 +71,10 @@ interface AdminStats {
             type="button"
             (click)="triggerSync()"
             [disabled]="isSyncing()"
-            class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm
-                   font-medium text-white hover:bg-indigo-700 disabled:opacity-50
+            class="inline-flex items-center gap-2 rounded-lg bg-forest-600 px-4 py-2 text-sm
+                   font-medium text-white hover:bg-forest-700 cursor-pointer disabled:opacity-50
                    disabled:cursor-not-allowed transition-colors
-                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-600"
             [attr.aria-busy]="isSyncing()"
             aria-label="Lancer une synchronisation manuelle"
           >
@@ -93,7 +93,7 @@ interface AdminStats {
 
         <!-- Latest sync status -->
         @if (latestSync()) {
-          <div class="mt-6 rounded-lg bg-zinc-50 p-4" role="status" aria-live="polite">
+          <div class="mt-6 rounded-lg bg-stone-50 dark:bg-stone-800 p-4" role="status" aria-live="polite">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <span
@@ -103,19 +103,19 @@ interface AdminStats {
                 >
                   {{ latestSync()!.status }}
                 </span>
-                <span class="text-sm text-zinc-700">
+                <span class="text-sm text-stone-700 dark:text-stone-300">
                   Démarrée {{ formatDate(latestSync()!.startedAt) }}
                 </span>
               </div>
               @if (latestSync()!.completedAt) {
-                <span class="text-sm text-zinc-500">
+                <span class="text-sm text-stone-500 dark:text-stone-400">
                   Durée : {{ duration(latestSync()!.startedAt, latestSync()!.completedAt!) }}
                 </span>
               }
             </div>
 
             @if (latestSync()!.status !== 'RUNNING' && latestSync()!.recipesSynced != null) {
-              <div class="mt-3 flex gap-6 text-sm text-zinc-600">
+              <div class="mt-3 flex gap-6 text-sm text-stone-600 dark:text-stone-400">
                 <span>{{ latestSync()!.collectionsSynced }} collections</span>
                 <span>{{ latestSync()!.recipesSynced }} recettes</span>
               </div>

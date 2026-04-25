@@ -1,14 +1,16 @@
 import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroSparkles, heroArrowPath } from '@ng-icons/heroicons/outline';
 import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-client';
 
 @Component({
   selector: 'app-meal-slot',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, RouterLink, NgIconComponent],
+  providers: [provideIcons({ heroSparkles, heroArrowPath })],
   template: `
     <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-4 shadow-sm min-h-[100px]">
       <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">{{ label }}</p>
@@ -16,7 +18,7 @@ import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-c
       @if (entry) {
         <!-- Recette planifiée -->
         <div class="flex items-start gap-3">
-          <div class="flex-shrink-0 w-14 h-14 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-800">
+          <div class="shrink-0 w-14 h-14 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-800">
             @if (entry.recipeThumbnailUrl) {
               <img [src]="entry.recipeThumbnailUrl" [alt]="entry.recipeName" class="h-full w-full object-cover" loading="lazy" />
             } @else {
@@ -53,19 +55,18 @@ import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-c
       } @else {
         <!-- Créneau vide -->
         <div class="space-y-2">
-          <button
-            (click)="onAdd()"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm text-stone-500 dark:text-stone-400 hover:border-forest-400 hover:text-forest-600 dark:hover:text-forest-400 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
-            aria-label="Ajouter une recette"
-          >
-            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Ajouter
-          </button>
-
-          <!-- Suggérer -->
+          <!-- 2 boutons côte à côte -->
           <div class="flex items-center gap-2">
+            <button
+              (click)="onAdd()"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm text-stone-500 dark:text-stone-400 hover:border-forest-400 hover:text-forest-600 dark:hover:text-forest-400 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
+              aria-label="Ajouter une recette"
+            >
+              <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Ajouter
+            </button>
             <button
               (click)="loadSuggestions()"
               [disabled]="suggestionsLoading()"
@@ -73,21 +74,12 @@ import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-c
               aria-label="Suggérer des recettes"
             >
               @if (suggestionsLoading()) {
-                <svg class="animate-spin h-3.5 w-3.5 text-forest-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                </svg>
+                <ng-icon name="heroArrowPath" class="animate-spin h-3.5 w-3.5 text-forest-600" aria-hidden="true" />
+              } @else {
+                <ng-icon name="heroSparkles" class="h-3.5 w-3.5" aria-hidden="true" />
               }
               Suggérer
             </button>
-            <input
-              type="number"
-              [(ngModel)]="maxTimeInput"
-              placeholder="Temps max (min)"
-              min="1"
-              class="w-36 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2 py-1.5 text-xs text-stone-700 dark:text-stone-300 placeholder-stone-400 focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200 dark:focus:ring-forest-700"
-              aria-label="Temps de préparation maximum en minutes"
-            />
           </div>
 
           <!-- Suggestions -->
@@ -141,14 +133,12 @@ export class MealSlotComponent implements OnChanges {
   suggestions = signal<MealPlanEntryDto[]>([]);
   suggestionsLoading = signal(false);
   suggestionsError = signal<string | null>(null);
-  maxTimeInput = '';
 
   constructor(private menuPlanService: MenuPlanService) {}
 
   ngOnChanges(): void {
     this.suggestions.set([]);
     this.suggestionsError.set(null);
-    this.maxTimeInput = '';
   }
 
   loadSuggestions(): void {
@@ -156,10 +146,7 @@ export class MealSlotComponent implements OnChanges {
     this.suggestionsError.set(null);
     this.suggestions.set([]);
 
-    const maxTime = parseInt(this.maxTimeInput, 10);
-    const maxTotalMinutes = !isNaN(maxTime) && maxTime > 0 ? maxTime : undefined;
-
-    this.menuPlanService.getSuggestions(this.date, this.mealType as MealType, maxTotalMinutes, 3)
+    this.menuPlanService.getSuggestions(this.date, this.mealType as MealType, undefined, 3)
       .pipe(catchError(() => {
         this.suggestionsError.set('Impossible de charger les suggestions.');
         return of([]);

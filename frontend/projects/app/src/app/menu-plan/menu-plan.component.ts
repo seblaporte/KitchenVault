@@ -73,7 +73,7 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
         <button
           (click)="suggestWeek()"
           [disabled]="loading() || suggestingWeek()"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-amber-600"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-600"
           aria-label="Suggérer des recettes pour tous les créneaux vides de la semaine"
         >
           @if (suggestingWeek()) {

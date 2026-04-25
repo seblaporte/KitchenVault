@@ -44,7 +44,7 @@ import { RecipesService, RecipeSummaryDto } from '@KitchenVault/api-client';
               [(ngModel)]="searchText"
               (ngModelChange)="onSearchChange($event)"
               placeholder="Rechercher une recette…"
-              class="w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 py-2 pl-10 pr-4 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:border-forest-400 focus:bg-white dark:focus:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-forest-200"
+              class="w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 py-2 pl-10 pr-4 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:border-forest-400 focus:bg-white dark:focus:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-forest-200 dark:focus:ring-forest-700"
               aria-label="Rechercher une recette"
             />
           </div>

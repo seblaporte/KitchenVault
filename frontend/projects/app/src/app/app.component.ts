@@ -81,7 +81,9 @@ export class AppComponent implements OnInit {
   darkMode = signal(false);
 
   ngOnInit(): void {
-    if (localStorage.getItem('theme') === 'dark') {
+    const stored = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
       this.darkMode.set(true);
       document.documentElement.classList.add('dark');
     }

@@ -73,7 +73,7 @@ const TIME_BUCKETS = [
             [(ngModel)]="searchText"
             (ngModelChange)="onSearchChange($event)"
             placeholder="Rechercher une recette…"
-            class="w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 py-2.5 pl-10 pr-10 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 shadow-sm focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200"
+            class="w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 py-2.5 pl-10 pr-10 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 shadow-sm focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200 dark:focus:ring-forest-700"
             aria-label="Rechercher une recette"
           />
           @if (searchText) {
@@ -163,7 +163,7 @@ const TIME_BUCKETS = [
                 [(ngModel)]="ingredientInput"
                 (keydown.enter)="addIngredient()"
                 placeholder="Ex : poulet, farine…"
-                class="flex-1 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 shadow-sm focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200"
+                class="flex-1 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 shadow-sm focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200 dark:focus:ring-forest-700"
                 aria-label="Ajouter un ingrédient"
               />
               <button

@@ -85,7 +85,7 @@ import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-c
               [(ngModel)]="maxTimeInput"
               placeholder="Temps max (min)"
               min="1"
-              class="w-36 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2 py-1.5 text-xs text-stone-700 dark:text-stone-300 placeholder-stone-400 focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200"
+              class="w-36 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2 py-1.5 text-xs text-stone-700 dark:text-stone-300 placeholder-stone-400 focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200 dark:focus:ring-forest-700"
               aria-label="Temps de préparation maximum en minutes"
             />
           </div>
@@ -110,7 +110,7 @@ import { MenuPlanService, MealPlanEntryDto, MealType } from '@KitchenVault/api-c
                   </div>
                   <button
                     (click)="onAddSuggestion(s.recipeId!)"
-                    class="flex-shrink-0 rounded-lg bg-amber-600 px-2 py-1 text-xs font-medium text-white hover:bg-amber-700 transition-colors focus-visible:outline-2 focus-visible:outline-amber-600"
+                    class="flex-shrink-0 rounded-lg bg-forest-600 px-2 py-1 text-xs font-medium text-white hover:bg-forest-700 transition-colors focus-visible:outline-2 focus-visible:outline-forest-600"
                     aria-label="Ajouter cette suggestion"
                   >
                     Ajouter

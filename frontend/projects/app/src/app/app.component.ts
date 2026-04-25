@@ -1,48 +1,56 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon } from '@ng-icons/heroicons/outline';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIconComponent],
+  providers: [provideIcons({ heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon })],
   template: `
     <div class="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
       <!-- Navigation -->
       <nav class="border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900" aria-label="Navigation principale">
         <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div class="flex h-32 items-center justify-between">
+          <div class="flex h-16 items-center justify-between">
             <div class="flex items-center">
-              <img src="/logo.png" alt="KitchenVault" class="h-[120px] w-auto" />
+              <span class="text-3xl font-bold tracking-tight select-none">
+                <span class="text-stone-800 dark:text-stone-100">Kitchen</span><span class="text-orange-500">Vault</span>
+              </span>
             </div>
-            <ul class="flex gap-6" role="list">
-              <li>
-                <a
-                  routerLink="/admin"
-                  routerLinkActive="text-forest-600 dark:text-forest-400 font-medium"
-                  class="text-sm text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
-                  aria-label="Administration"
-                >
-                  Administration
-                </a>
-              </li>
+            <ul class="flex gap-2" role="list">
               <li>
                 <a
                   routerLink="/recipes"
-                  routerLinkActive="text-forest-600 dark:text-forest-400 font-medium"
-                  class="text-sm text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
+                  routerLinkActive="bg-stone-100 dark:bg-stone-800 text-forest-600 dark:text-forest-400"
+                  class="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
                   aria-label="Recettes"
                 >
+                  <ng-icon name="heroBookOpen" class="h-5 w-5" aria-hidden="true" />
                   Recettes
                 </a>
               </li>
               <li>
                 <a
                   routerLink="/menu"
-                  routerLinkActive="text-forest-600 dark:text-forest-400 font-medium"
-                  class="text-sm text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
+                  routerLinkActive="bg-stone-100 dark:bg-stone-800 text-forest-600 dark:text-forest-400"
+                  class="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
                   aria-label="Menu"
                 >
+                  <ng-icon name="heroCalendarDays" class="h-5 w-5" aria-hidden="true" />
                   Menu
+                </a>
+              </li>
+              <li>
+                <a
+                  routerLink="/admin"
+                  routerLinkActive="bg-stone-100 dark:bg-stone-800 text-forest-600 dark:text-forest-400"
+                  class="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+                  aria-label="Administration"
+                >
+                  <ng-icon name="heroCog6Tooth" class="h-5 w-5" aria-hidden="true" />
+                  Administration
                 </a>
               </li>
             </ul>
@@ -53,13 +61,9 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
               [attr.aria-label]="darkMode() ? 'Activer le mode clair' : 'Activer le mode sombre'"
             >
               @if (darkMode()) {
-                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+                <ng-icon name="heroSun" class="h-5 w-5" aria-hidden="true" />
               } @else {
-                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
+                <ng-icon name="heroMoon" class="h-5 w-5" aria-hidden="true" />
               }
             </button>
           </div>

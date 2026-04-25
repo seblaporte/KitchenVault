@@ -1,0 +1,30 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 009-fix-embedding-dimension
+      author: seblaporte
+      changes:
+        - dropTable:
+            tableName: recipe_embedding_store
+        - createTable:
+            tableName: recipe_embedding_store
+            columns:
+              - column:
+                  name: embedding_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: embedding
+                  type: "vector(768)"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: text
+                  type: text
+              - column:
+                  name: metadata
+                  type: jsonb
+        - sql:
+            sql: CREATE INDEX ON recipe_embedding_store USING hnsw (embedding vector_cosine_ops);

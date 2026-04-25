@@ -1,0 +1,49 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 007-create-seasonal-vegetable
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: seasonal_vegetable
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: months
+                  type: "integer[]"
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 007-insert-seasonal-vegetables
+      author: seblaporte
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO seasonal_vegetable (name, months) VALUES
+              ('Asperge',          '{4,5,6}'),
+              ('Artichaut',        '{5,6,7,8,9,10}'),
+              ('Courgette',        '{6,7,8,9}'),
+              ('Tomate',           '{7,8,9}'),
+              ('Poivron',          '{7,8,9}'),
+              ('Aubergine',        '{7,8,9}'),
+              ('Haricot vert',     '{6,7,8,9}'),
+              ('Potiron',          '{9,10,11,12}'),
+              ('Courge butternut', '{9,10,11}'),
+              ('Poireau',          '{10,11,12,1,2,3}'),
+              ('Chou-fleur',       '{10,11,12,1,2,3}'),
+              ('Brocoli',          '{9,10,11}'),
+              ('Carotte',          '{1,2,3,4,5,6,7,8,9,10,11,12}'),
+              ('Epinard',          '{3,4,5,9,10,11}'),
+              ('Betterave',        '{6,7,8,9,10,11}');

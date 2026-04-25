@@ -1,5 +1,6 @@
 package fr.seblaporte.kitchenvault.service;
 
+import fr.seblaporte.kitchenvault.ai.service.RecipeEmbeddingService;
 import fr.seblaporte.kitchenvault.config.CookidooProperties;
 import fr.seblaporte.kitchenvault.cookidoo.CookidooServiceClient;
 import fr.seblaporte.kitchenvault.cookidoo.model.*;
@@ -31,6 +32,7 @@ public class SyncService {
     private final CategoryRepository categoryRepository;
     private final SyncRunRepository syncRunRepository;
     private final CookidooProperties properties;
+    private final RecipeEmbeddingService recipeEmbeddingService;
 
     public SyncService(
             CookidooServiceClient cookidooServiceClient,
@@ -38,7 +40,8 @@ public class SyncService {
             CollectionRepository collectionRepository,
             CategoryRepository categoryRepository,
             SyncRunRepository syncRunRepository,
-            CookidooProperties properties
+            CookidooProperties properties,
+            RecipeEmbeddingService recipeEmbeddingService
     ) {
         this.cookidooServiceClient = cookidooServiceClient;
         this.recipeRepository = recipeRepository;
@@ -46,6 +49,7 @@ public class SyncService {
         this.categoryRepository = categoryRepository;
         this.syncRunRepository = syncRunRepository;
         this.properties = properties;
+        this.recipeEmbeddingService = recipeEmbeddingService;
     }
 
     /**
@@ -66,6 +70,7 @@ public class SyncService {
     @Async
     public void executeSyncAsync(SyncRun run) {
         executeSync(run);
+        recipeEmbeddingService.indexAllRecipes();
     }
 
     @Scheduled(cron = "${cookidoo.sync.cron:0 0 3 * * *}")
@@ -78,6 +83,7 @@ public class SyncService {
         SyncRun run = SyncRun.start();
         syncRunRepository.save(run);
         executeSync(run);
+        recipeEmbeddingService.indexAllRecipes();
     }
 
     @Transactional

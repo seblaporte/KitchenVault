@@ -23,6 +23,32 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
+ai:
+  groq:
+    api-key: ${GROQ_API_KEY:}
+    model-name: llama-3.3-70b-versatile
+  nomic:
+    api-key: ${NOMIC_API_KEY:}
+    model-name: nomic-embed-text-v1.5
+  shopping-list:
+    basic-necessities:
+      - eau
+      - sel
+      - poivre
+      - huile
+      - "huile d'olive"
+      - sucre
+      - farine
+      - beurre
+      - vinaigre
+      - moutarde
+      - levure chimique
+      - bicarbonate
+      - laurier
+      - thym
+      - paprika
+      - cumin
+
 cookidoo:
   service:
     url: http://localhost:8001
@@ -42,3 +68,4 @@ logging:
   level:
     fr.seblaporte.kitchenvault: INFO
     org.liquibase: INFO
+    dev.langchain4j: DEBUG

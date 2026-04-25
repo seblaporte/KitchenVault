@@ -107,7 +107,7 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
 
       <!-- Plan de la semaine -->
       @if (!loading() && weekPlan()) {
-        <div class="space-y-4">
+        <div class="flex flex-col gap-4">
           @for (day of weekPlan()!.days; track day.date) {
             <app-menu-day
               [dayPlan]="day"

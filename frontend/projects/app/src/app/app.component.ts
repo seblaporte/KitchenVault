@@ -16,7 +16,7 @@ import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon } from
           <div class="flex h-16 items-center justify-between">
             <div class="flex items-center">
               <span class="text-3xl font-bold tracking-tight select-none">
-                <span class="text-stone-800 dark:text-stone-100">Kitchen</span><span class="text-orange-500">Vault</span>
+                <span class="text-stone-800 dark:text-stone-100">Kitchen</span><span class="text-forest-600">Vault</span>
               </span>
             </div>
             <ul class="flex gap-2" role="list">

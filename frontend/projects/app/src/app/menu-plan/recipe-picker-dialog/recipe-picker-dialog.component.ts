@@ -71,7 +71,7 @@ import { RecipesService, RecipeSummaryDto } from '@KitchenVault/api-client';
                 <li>
                   <button
                     (click)="selectRecipe(recipe.id)"
-                    class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-forest-50 dark:hover:bg-forest-950 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+                    class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-forest-50 dark:hover:bg-forest-950 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
                     [attr.aria-label]="'Sélectionner ' + recipe.name"
                   >
                     <div class="flex-shrink-0 w-10 h-10 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-800">

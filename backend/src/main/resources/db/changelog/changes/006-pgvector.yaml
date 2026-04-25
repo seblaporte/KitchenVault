@@ -1,0 +1,80 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 006-create-vector-extension
+      author: seblaporte
+      changes:
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXISTS vector;
+
+  - changeSet:
+      id: 006-create-recipe-embedding-store
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: recipe_embedding_store
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: recipe_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: embedding
+                  type: "vector(384)"
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            constraintName: fk_recipe_embedding_recipe
+            baseTableName: recipe_embedding_store
+            baseColumnNames: recipe_id
+            referencedTableName: recipe
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - sql:
+            sql: CREATE INDEX ON recipe_embedding_store USING hnsw (embedding vector_cosine_ops);
+
+  - changeSet:
+      id: 006-create-chat-message
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: chat_message
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: session_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: CREATE INDEX ON chat_message (session_id, created_at);

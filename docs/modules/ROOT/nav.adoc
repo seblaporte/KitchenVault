@@ -4,4 +4,5 @@
 * xref:data-model.adoc[Modèle de données]
 * xref:api.adoc[API REST]
 * xref:sync.adoc[Synchronisation Cookidoo]
+* xref:ai.adoc[Assistant IA culinaire]
 * xref:frontend.adoc[Interface Angular]

@@ -18,7 +18,7 @@ import { DayPlanDto } from '@KitchenVault/api-client';
           label="Déjeuner"
           (addRequested)="addRequested.emit($event)"
           (removeRequested)="removeRequested.emit($event)"
-          (addSuggestion)="addSuggestion.emit($event)"
+          (chatRequested)="chatRequested.emit($event)"
         />
         <app-meal-slot
           [entry]="dayPlan.dinner"
@@ -27,7 +27,7 @@ import { DayPlanDto } from '@KitchenVault/api-client';
           label="Dîner"
           (addRequested)="addRequested.emit($event)"
           (removeRequested)="removeRequested.emit($event)"
-          (addSuggestion)="addSuggestion.emit($event)"
+          (chatRequested)="chatRequested.emit($event)"
         />
       </div>
     </div>
@@ -38,7 +38,7 @@ export class MenuDayComponent {
 
   @Output() addRequested = new EventEmitter<{ date: string; mealType: string }>();
   @Output() removeRequested = new EventEmitter<{ date: string; mealType: string }>();
-  @Output() addSuggestion = new EventEmitter<{ date: string; mealType: string; recipeId: string }>();
+  @Output() chatRequested = new EventEmitter<{ date: string; mealType: string; label: string }>();
 
   get dayLabel(): string {
     return new Date(this.dayPlan.date + 'T00:00:00').toLocaleDateString('fr-FR', {

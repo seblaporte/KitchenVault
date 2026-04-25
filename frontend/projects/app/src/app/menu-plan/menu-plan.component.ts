@@ -1,9 +1,10 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, EMPTY, forkJoin, of, switchMap } from 'rxjs';
+import { catchError, EMPTY, of } from 'rxjs';
 import { MenuDayComponent } from './menu-day/menu-day.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
+import { ChatModalComponent } from './chat-modal/chat-modal.component';
 import { MenuPlanService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
 
 function getMondayOf(date: Date): Date {
@@ -32,10 +33,18 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
   return { days };
 }
 
+interface ChatContext {
+  context: 'week' | 'slot';
+  weekStart: string;
+  date?: string;
+  mealType?: string;
+  slotLabel?: string;
+}
+
 @Component({
   selector: 'app-menu-plan',
   standalone: true,
-  imports: [CommonModule, MenuDayComponent, RecipePickerDialogComponent],
+  imports: [CommonModule, MenuDayComponent, RecipePickerDialogComponent, ChatModalComponent],
   template: `
     <div class="space-y-6">
       <h1 class="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">Menu de la semaine</h1>
@@ -71,21 +80,14 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
           </svg>
         </button>
         <button
-          (click)="suggestWeek()"
-          [disabled]="loading() || suggestingWeek()"
+          (click)="openChatForWeek()"
+          [disabled]="loading()"
           class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-600"
-          aria-label="Suggérer des recettes pour tous les créneaux vides de la semaine"
+          aria-label="Suggérer des recettes pour la semaine via l'assistant IA"
         >
-          @if (suggestingWeek()) {
-            <svg class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-          } @else {
-            <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z" />
-            </svg>
-          }
+          <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z" />
+          </svg>
           Suggérer la semaine
         </button>
       </div>
@@ -113,7 +115,7 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
               [dayPlan]="day"
               (addRequested)="openPicker($event)"
               (removeRequested)="handleRemove($event)"
-              (addSuggestion)="handleAddRecipe($event)"
+              (chatRequested)="openChatForSlot($event)"
             />
           }
         </div>
@@ -129,6 +131,18 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
         (dismissed)="closePicker()"
       />
     }
+
+    <!-- Modale de chat IA -->
+    @if (chatContext()) {
+      <app-chat-modal
+        [context]="chatContext()!.context"
+        [weekStart]="chatContext()!.weekStart"
+        [date]="chatContext()!.date"
+        [mealType]="chatContext()!.mealType"
+        [slotLabel]="chatContext()!.slotLabel"
+        (dismissed)="onChatDismissed($event)"
+      />
+    }
   `,
 })
 export class MenuPlanComponent implements OnInit {
@@ -137,7 +151,7 @@ export class MenuPlanComponent implements OnInit {
   loading = signal(false);
   error = signal<string | null>(null);
   pickerOpen = signal(false);
-  suggestingWeek = signal(false);
+  chatContext = signal<ChatContext | null>(null);
   pickerDate = '';
   pickerMealType = '';
 
@@ -208,50 +222,28 @@ export class MenuPlanComponent implements OnInit {
       .subscribe(() => this.loadWeekPlan());
   }
 
-  suggestWeek(): void {
-    const plan = this.weekPlan();
-    if (!plan) return;
-
-    const emptySlots: Array<{ date: string; mealType: MealType }> = [];
-    for (const day of plan.days) {
-      if (!day.lunch)  emptySlots.push({ date: day.date, mealType: 'LUNCH' as MealType });
-      if (!day.dinner) emptySlots.push({ date: day.date, mealType: 'DINNER' as MealType });
-    }
-
-    if (emptySlots.length === 0) return;
-
-    this.suggestingWeek.set(true);
-    this.error.set(null);
-
-    const suggestionRequests = emptySlots.map(slot =>
-      this.menuPlanService.getSuggestions(slot.date, slot.mealType, undefined, 1).pipe(
-        catchError(() => of([]))
-      )
-    );
-
-    forkJoin(suggestionRequests).pipe(
-      switchMap(results => {
-        const upsertRequests = results
-          .map((suggestions, i) => ({ suggestion: suggestions[0], slot: emptySlots[i] }))
-          .filter(({ suggestion }) => suggestion?.recipeId)
-          .map(({ suggestion, slot }) =>
-            this.menuPlanService.upsertEntry(
-              slot.date,
-              slot.mealType,
-              { recipeId: suggestion!.recipeId! }
-            ).pipe(catchError(() => of(null)))
-          );
-
-        return upsertRequests.length > 0 ? forkJoin(upsertRequests) : of(null);
-      }),
-      catchError(() => {
-        this.error.set('Certaines suggestions n\'ont pas pu être appliquées.');
-        return of(null);
-      })
-    ).subscribe(() => {
-      this.suggestingWeek.set(false);
-      this.loadWeekPlan();
+  openChatForWeek(): void {
+    this.chatContext.set({
+      context: 'week',
+      weekStart: toISODate(this.weekStart()),
     });
+  }
+
+  openChatForSlot(event: { date: string; mealType: string; label: string }): void {
+    this.chatContext.set({
+      context: 'slot',
+      weekStart: toISODate(this.weekStart()),
+      date: event.date,
+      mealType: event.mealType,
+      slotLabel: event.label,
+    });
+  }
+
+  onChatDismissed(planModified: boolean): void {
+    this.chatContext.set(null);
+    if (planModified) {
+      this.loadWeekPlan();
+    }
   }
 
   private loadWeekPlan(): void {

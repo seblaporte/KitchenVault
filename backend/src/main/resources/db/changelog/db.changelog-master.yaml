@@ -9,3 +9,11 @@ databaseChangeLog:
       file: db/changelog/changes/004-meal-plan.yaml
   - include:
       file: db/changelog/changes/005-recipe-id-snapshot.yaml
+  - include:
+      file: db/changelog/changes/006-pgvector.yaml
+  - include:
+      file: db/changelog/changes/007-seasonal-vegetables.yaml
+  - include:
+      file: db/changelog/changes/008-fix-recipe-embedding-store.yaml
+  - include:
+      file: db/changelog/changes/009-fix-embedding-dimension.yaml

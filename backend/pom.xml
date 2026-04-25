@@ -83,6 +83,29 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- ── LangChain4J ────────────────────────────────────────────────────── -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+        </dependency>
+        <!-- Groq uses OpenAI-compatible API -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-nomic</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-pgvector</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.pgvector</groupId>
+            <artifactId>pgvector</artifactId>
+        </dependency>
+
         <!-- ── Test ────────────────────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

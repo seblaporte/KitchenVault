@@ -24,6 +24,8 @@ tags:
     description: Consultation des catégories
   - name: menu-plan
     description: Planification du menu
+  - name: chat
+    description: Chat IA avec suggestions de recettes et planification
 
 paths:
 
@@ -242,6 +244,37 @@ paths:
                 $ref: "#/components/schemas/CollectionDto"
         "404":
           description: Collection introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  # ─── Chat IA ─────────────────────────────────────────────────────────────────
+
+  /api/v1/chat:
+    post:
+      tags: [chat]
+      operationId: sendMessage
+      summary: Envoie un message au chat IA
+      description: |
+        Envoie un message à l'assistant IA KitchenVault.
+        L'assistant peut suggérer des recettes, identifier les légumes de saison,
+        planifier des menus et générer des listes de courses.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageDto"
+      responses:
+        "200":
+          description: Réponse de l'assistant IA
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponseDto"
+        "503":
+          description: Service IA indisponible (timeout Groq, rate limit, erreur réseau)
           content:
             application/json:
               schema:
@@ -755,6 +788,27 @@ components:
           items:
             type: string
             format: date
+
+    # ── Chat IA ────────────────────────────────────────────────────────────────
+
+    ChatMessageDto:
+      type: object
+      required: [sessionId, message]
+      properties:
+        sessionId:
+          type: string
+          description: Identifiant de session pour la mémoire conversationnelle
+        message:
+          type: string
+          description: Message de l'utilisateur
+
+    ChatResponseDto:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string
+          description: Réponse de l'assistant IA
 
     # ── Erreurs ────────────────────────────────────────────────────────────────
 

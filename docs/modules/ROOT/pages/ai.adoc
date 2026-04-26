@@ -488,3 +488,16 @@ SyncService.executeSync()
 
 NOTE: L'index est entièrement recalculé à chaque sync (pas de mise à jour incrémentale).
 Avec un catalogue de plusieurs centaines de recettes, la durée d'indexation est typiquement de quelques secondes.
+
+=== Déclenchement manuel de l'indexation
+
+Un endpoint dédié permet de réindexer les embeddings indépendamment d'une synchronisation Cookidoo — utile après un changement de modèle d'embedding ou une migration de schéma.
+
+[source]
+----
+POST /api/v1/embeddings/index
+
+→ 202 Accepted  (indexation démarrée en arrière-plan)
+----
+
+L'endpoint délègue directement à `RecipeEmbeddingService.indexAllRecipes()` sans déclencher de synchronisation des recettes depuis Cookidoo.

@@ -7,18 +7,16 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import fr.seblaporte.kitchenvault.entity.Ingredient;
-import fr.seblaporte.kitchenvault.entity.IngredientGroup;
+import fr.seblaporte.kitchenvault.entity.NutritionGroup;
 import fr.seblaporte.kitchenvault.entity.Recipe;
 import fr.seblaporte.kitchenvault.repository.RecipeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,13 +73,31 @@ public class RecipeEmbeddingService {
                 .map(Ingredient::getName)
                 .collect(Collectors.joining(", "));
 
-        String text = String.format("Recette: %s. Difficulté: %s. Temps total: %d min. Ingrédients: %s. Ustensiles: %s.",
-                recipe.getName(),
-                recipe.getDifficulty() != null ? recipe.getDifficulty() : "inconnue",
-                recipe.getTotalTimeMinutes() != null ? recipe.getTotalTimeMinutes() : 0,
-                ingredients,
-                String.join(", ", recipe.getUtensils()));
+        StringBuilder text = new StringBuilder(
+                String.format("Recette: %s. Difficulté: %s. Temps total: %d min. Ingrédients: %s. Ustensiles: %s.",
+                        recipe.getName(),
+                        recipe.getDifficulty() != null ? recipe.getDifficulty() : "inconnue",
+                        recipe.getTotalTimeMinutes() != null ? recipe.getTotalTimeMinutes() : 0,
+                        ingredients,
+                        String.join(", ", recipe.getUtensils())));
 
-        return TextSegment.from(text, dev.langchain4j.data.document.Metadata.from("recipeId", recipe.getId()));
+        if (!recipe.getNutritionGroups().isEmpty()) {
+            text.append(" Valeurs nutritionnelles:");
+            for (NutritionGroup group : recipe.getNutritionGroups()) {
+                String label = group.getQuantity() != null
+                        ? String.format(" Pour %d %s", group.getQuantity(), group.getUnitNotation())
+                        : " " + group.getName();
+                String nutritionValues = group.getNutritions().stream()
+                        .map(n -> String.format("%s: %s %s",
+                                n.getType(),
+                                n.getNumber().stripTrailingZeros().toPlainString(),
+                                n.getUnitType()))
+                        .collect(Collectors.joining(", "));
+                text.append(String.format("%s (%s) –", label, group.getName()));
+                text.append(" ").append(nutritionValues).append(".");
+            }
+        }
+
+        return TextSegment.from(text.toString(), dev.langchain4j.data.document.Metadata.from("recipeId", recipe.getId()));
     }
 }

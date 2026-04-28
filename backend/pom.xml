@@ -88,14 +88,15 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
         </dependency>
-        <!-- Groq uses OpenAI-compatible API -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-agentic</artifactId>
+            <version>1.13.1-beta23</version>
+        </dependency>
+        <!-- OVH AI Endpoints use OpenAI-compatible API -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-nomic</artifactId>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>

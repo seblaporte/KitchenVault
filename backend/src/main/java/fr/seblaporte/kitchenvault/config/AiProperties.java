@@ -11,19 +11,22 @@ import java.util.List;
 @ConfigurationProperties(prefix = "ai")
 @Validated
 public record AiProperties(
-        @Valid @NotNull GroqProperties groq,
-        @Valid @NotNull NomicProperties nomic,
+        @Valid @NotNull OvhProperties ovh,
+        @Valid @NotNull OvhEmbeddingProperties ovhEmbedding,
         @Valid @NotNull ShoppingListProperties shoppingList
 ) {
 
-    public record GroqProperties(
+    public record OvhProperties(
             String apiKey,
-            @NotBlank String modelName
+            @NotBlank String modelName,
+            @NotBlank String baseUrl
     ) {}
 
-    public record NomicProperties(
+    public record OvhEmbeddingProperties(
             String apiKey,
-            @NotBlank String modelName
+            @NotBlank String modelName,
+            @NotBlank String baseUrl,
+            int dimension
     ) {}
 
     public record ShoppingListProperties(

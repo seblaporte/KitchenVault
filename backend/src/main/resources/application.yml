@@ -24,12 +24,14 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
 ai:
-  groq:
-    api-key: ${GROQ_API_KEY:}
-    model-name: llama-3.3-70b-versatile
-  nomic:
-    api-key: ${NOMIC_API_KEY:}
-    model-name: nomic-embed-text-v1.5
+  ovh:
+    api-key: ${OVH_AI_ENDPOINTS_ACCESS_TOKEN:}
+    model-name: gpt-oss-120b
+    base-url: https://oai.endpoints.kepler.ai.cloud.ovh.net/v1
+  ovh-embedding:
+    api-key: ${OVH_AI_ENDPOINTS_ACCESS_TOKEN:}
+    model-name: bge-m3
+    base-url: https://oai.endpoints.kepler.ai.cloud.ovh.net/v1
   shopping-list:
     basic-necessities:
       - eau

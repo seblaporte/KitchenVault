@@ -186,7 +186,7 @@ export class ChatModalComponent implements OnInit {
     this.loading.set(true);
     this.scrollToBottom();
 
-    this.chatService.sendMessage({ sessionId: this.sessionId, message: text })
+    this.callChatEndpoint(text)
       .pipe(catchError(() => {
         this.error.set('Impossible de contacter l\'assistant IA. Veuillez réessayer.');
         return of(null);
@@ -219,7 +219,7 @@ export class ChatModalComponent implements OnInit {
     this.loading.set(true);
     this.scrollToBottom();
 
-    this.chatService.sendMessage({ sessionId: this.sessionId, message: text })
+    this.callChatEndpoint(text)
       .pipe(catchError(() => {
         this.error.set('Impossible de contacter l\'assistant IA. Veuillez réessayer.');
         return of(null);
@@ -236,6 +236,11 @@ export class ChatModalComponent implements OnInit {
           this.scrollToBottom();
         }
       });
+  }
+
+  private callChatEndpoint(message: string) {
+    const dto = { sessionId: this.sessionId, message };
+    return this.chatService.chatRecipe(dto);
   }
 
   private buildInitialText(): string {

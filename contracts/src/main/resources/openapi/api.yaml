@@ -267,15 +267,14 @@ paths:
 
   # ─── Chat IA ─────────────────────────────────────────────────────────────────
 
-  /api/v1/chat:
+  /api/v1/chat/recipe:
     post:
       tags: [chat]
-      operationId: sendMessage
-      summary: Envoie un message au chat IA
+      operationId: chatRecipe
+      summary: Suggestions de recettes
       description: |
-        Envoie un message à l'assistant IA KitchenVault.
-        L'assistant peut suggérer des recettes, identifier les légumes de saison,
-        planifier des menus et générer des listes de courses.
+        Workflow spécialisé pour la recherche et suggestion de recettes.
+        Chaîne les agents : SeasonalContextAgent → RecipeSuggestionAgent (RAG).
       requestBody:
         required: true
         content:
@@ -284,13 +283,13 @@ paths:
               $ref: "#/components/schemas/ChatMessageDto"
       responses:
         "200":
-          description: Réponse de l'assistant IA
+          description: Suggestions de recettes de l'assistant IA
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ChatResponseDto"
         "503":
-          description: Service IA indisponible (timeout Groq, rate limit, erreur réseau)
+          description: Service IA indisponible
           content:
             application/json:
               schema:

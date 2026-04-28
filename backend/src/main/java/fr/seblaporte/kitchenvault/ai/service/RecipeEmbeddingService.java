@@ -16,6 +16,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class RecipeEmbeddingService {
 
     private static final Logger log = LoggerFactory.getLogger(RecipeEmbeddingService.class);
+    private static final int EMBEDDING_BATCH_SIZE = 25;
 
     private final RecipeRepository recipeRepository;
     private final EmbeddingModel embeddingModel;
@@ -48,7 +50,11 @@ public class RecipeEmbeddingService {
                     .map(this::toTextSegment)
                     .toList();
 
-            List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
+            List<Embedding> embeddings = new ArrayList<>();
+            for (int i = 0; i < segments.size(); i += EMBEDDING_BATCH_SIZE) {
+                List<TextSegment> chunk = segments.subList(i, Math.min(i + EMBEDDING_BATCH_SIZE, segments.size()));
+                embeddings.addAll(embeddingModel.embedAll(chunk).content());
+            }
 
             embeddingStore.removeAll();
             embeddingStore.addAll(embeddings, segments);

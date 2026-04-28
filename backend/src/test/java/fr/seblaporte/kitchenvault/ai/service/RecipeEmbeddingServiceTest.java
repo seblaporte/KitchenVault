@@ -32,7 +32,6 @@ class RecipeEmbeddingServiceTest {
     @Test
     void indexAllRecipes_emptyRepository_doesNotCallEmbeddingModel() {
         when(recipeRepository.findAll()).thenReturn(List.of());
-        when(embeddingModel.embedAll(List.of())).thenReturn(Response.from(List.of()));
 
         service.indexAllRecipes();
 

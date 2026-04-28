@@ -17,3 +17,5 @@ databaseChangeLog:
       file: db/changelog/changes/008-fix-recipe-embedding-store.yaml
   - include:
       file: db/changelog/changes/009-fix-embedding-dimension.yaml
+  - include:
+      file: db/changelog/changes/010-fix-embedding-dimension-1024.yaml

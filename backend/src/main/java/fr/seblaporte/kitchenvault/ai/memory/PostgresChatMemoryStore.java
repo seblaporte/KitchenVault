@@ -70,6 +70,10 @@ public class PostgresChatMemoryStore implements ChatMemoryStore {
         jdbc.update("DELETE FROM chat_message WHERE session_id = ?", memoryId.toString());
     }
 
+    public void deleteAllMessages() {
+        jdbc.update("DELETE FROM chat_message");
+    }
+
     private String roleOf(ChatMessage message) {
         if (message instanceof UserMessage) return "USER";
         if (message instanceof AiMessage) return "AI";

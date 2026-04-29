@@ -80,7 +80,8 @@ public class RecipeEmbeddingService {
                 .collect(Collectors.joining(", "));
 
         StringBuilder text = new StringBuilder(
-                String.format("Recette: %s. Difficulté: %s. Temps total: %d min. Ingrédients: %s. Ustensiles: %s.",
+                String.format("ID: %s. Recette: %s. Difficulté: %s. Temps total: %d min. Ingrédients: %s. Ustensiles: %s.",
+                        recipe.getId(),
                         recipe.getName(),
                         recipe.getDifficulty() != null ? recipe.getDifficulty() : "inconnue",
                         recipe.getTotalTimeMinutes() != null ? recipe.getTotalTimeMinutes() : 0,

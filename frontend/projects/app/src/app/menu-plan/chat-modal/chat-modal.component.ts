@@ -2,19 +2,24 @@ import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
-import { ChatService } from '@KitchenVault/api-client';
+import { ChatService, MealType, MenuPlanService, RecipeSummaryDto } from '@KitchenVault/api-client';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { MarkdownComponent } from 'ngx-markdown';
+import { heroPhoto } from '@ng-icons/heroicons/outline';
 
 interface ChatMessage {
   role: 'user' | 'ai';
   content: string;
   isApplyable: boolean;
   applyUsed: boolean;
+  suggestions?: RecipeSummaryDto[];
 }
 
 @Component({
   selector: 'app-chat-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgIconComponent, MarkdownComponent],
+  viewProviders: [provideIcons({ heroPhoto })],
   template: `
     <div
       class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -63,8 +68,35 @@ interface ChatMessage {
                 ? 'max-w-[80%] rounded-2xl rounded-tr-sm bg-forest-600 px-4 py-2.5 text-sm text-white'
                 : 'max-w-[80%] space-y-2'">
                 @if (msg.role === 'ai') {
-                  <div class="rounded-2xl rounded-tl-sm bg-stone-100 dark:bg-stone-800 px-4 py-2.5 text-sm text-stone-800 dark:text-stone-200 whitespace-pre-wrap">{{ msg.content }}</div>
-                  @if (msg.isApplyable && !msg.applyUsed) {
+                  <markdown [data]="msg.content" class="block rounded-2xl rounded-tl-sm bg-stone-100 dark:bg-stone-800 px-4 py-2.5 text-sm text-stone-800 dark:text-stone-200 prose prose-sm dark:prose-invert max-w-none"></markdown>
+                  @if (msg.suggestions && msg.suggestions.length > 0) {
+                    <div class="flex flex-col gap-2">
+                      @for (recipe of msg.suggestions; track recipe.id) {
+                        <div class="flex items-center gap-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2">
+                          <div class="shrink-0 w-12 h-12 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-700 flex items-center justify-center">
+                            @if (recipe.thumbnailUrl) {
+                              <img [src]="recipe.thumbnailUrl" [alt]="recipe.name" class="h-full w-full object-cover" loading="lazy" />
+                            } @else {
+                              <ng-icon name="heroPhoto" class="h-6 w-6 text-stone-300 dark:text-stone-600" aria-hidden="true" />
+                            }
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">{{ recipe.name }}</p>
+                            <div class="flex items-center gap-2 mt-0.5 text-xs text-stone-500 dark:text-stone-400">
+                              @if (recipe.totalTimeMinutes) {
+                                <span>{{ recipe.totalTimeMinutes }} min</span>
+                              }
+                              @if (recipe.difficulty) {
+                                @if (recipe.totalTimeMinutes) { <span aria-hidden="true">·</span> }
+                                <span>{{ recipe.difficulty }}</span>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @if (context === 'slot' && msg.isApplyable && !msg.applyUsed) {
                     <button
                       (click)="applyPlan(msg)"
                       class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-600"
@@ -72,7 +104,7 @@ interface ChatMessage {
                       <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                       </svg>
-                      Appliquer ces suggestions
+                      Appliquer la suggestion
                     </button>
                   }
                 } @else {
@@ -150,7 +182,7 @@ export class ChatModalComponent implements OnInit {
   private sessionId = crypto.randomUUID();
   private planModified = false;
 
-  constructor(private chatService: ChatService) {}
+  constructor(private chatService: ChatService, private menuPlanService: MenuPlanService) {}
 
   ngOnInit(): void {
     this.inputText = this.buildInitialText();
@@ -199,6 +231,7 @@ export class ChatModalComponent implements OnInit {
             content: response.reply,
             isApplyable: true,
             applyUsed: false,
+            suggestions: response.suggestions ?? [],
           }]);
           this.scrollToBottom();
         }
@@ -206,35 +239,22 @@ export class ChatModalComponent implements OnInit {
   }
 
   applyPlan(msg: ChatMessage): void {
+    const recipeId = msg.suggestions?.[0]?.id;
+    if (!recipeId || !this.date || !this.mealType) return;
+
     msg.applyUsed = true;
     this.planModified = true;
-    this.inputText = '';
-    this.sendApplyMessage();
-  }
-
-  private sendApplyMessage(): void {
-    const text = 'Oui, applique ces suggestions au menu.';
-    this.error.set(null);
-    this.messages.update(msgs => [...msgs, { role: 'user', content: text, isApplyable: false, applyUsed: false }]);
     this.loading.set(true);
-    this.scrollToBottom();
 
-    this.callChatEndpoint(text)
+    this.menuPlanService
+      .upsertEntry(this.date, this.mealType as MealType, { recipeId })
       .pipe(catchError(() => {
-        this.error.set('Impossible de contacter l\'assistant IA. Veuillez réessayer.');
+        this.error.set('Impossible de planifier la recette. Veuillez réessayer.');
         return of(null);
       }))
-      .subscribe(response => {
+      .subscribe(() => {
         this.loading.set(false);
-        if (response?.reply) {
-          this.messages.update(msgs => [...msgs, {
-            role: 'ai',
-            content: response.reply,
-            isApplyable: false,
-            applyUsed: false,
-          }]);
-          this.scrollToBottom();
-        }
+        this.close();
       });
   }
 

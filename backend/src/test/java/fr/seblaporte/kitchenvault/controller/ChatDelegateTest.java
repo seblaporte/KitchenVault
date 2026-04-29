@@ -1,8 +1,11 @@
 package fr.seblaporte.kitchenvault.controller;
 
 import fr.seblaporte.kitchenvault.ai.agent.RecipeSuggestionAgent;
+import fr.seblaporte.kitchenvault.ai.agent.RecipeSuggestionResult;
 import fr.seblaporte.kitchenvault.ai.memory.PostgresChatMemoryStore;
 import fr.seblaporte.kitchenvault.generated.api.ChatApiController;
+import fr.seblaporte.kitchenvault.mapper.RecipeMapper;
+import fr.seblaporte.kitchenvault.service.RecipeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -10,6 +13,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
 
 import org.springframework.test.annotation.DirtiesContext;
 
@@ -26,11 +31,13 @@ class ChatDelegateTest {
 
     @MockitoBean RecipeSuggestionAgent recipeSuggestionAgent;
     @MockitoBean PostgresChatMemoryStore chatMemoryStore;
+    @MockitoBean RecipeService recipeService;
+    @MockitoBean RecipeMapper recipeMapper;
 
     @Test
     void chatRecipe_validRequest_returns200WithReply() throws Exception {
         when(recipeSuggestionAgent.suggestRecipes("session-1", "Quelles recettes de saison ?"))
-                .thenReturn("Voici quelques recettes de saison…");
+                .thenReturn(new RecipeSuggestionResult("Voici quelques recettes de saison…", List.of()));
 
         mockMvc.perform(post("/api/v1/chat/recipe")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -57,7 +64,7 @@ class ChatDelegateTest {
     @Test
     @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
     void chatRecipe_newSession_clearsMemory() throws Exception {
-        when(recipeSuggestionAgent.suggestRecipes(anyString(), anyString())).thenReturn("ok");
+        when(recipeSuggestionAgent.suggestRecipes(anyString(), anyString())).thenReturn(new RecipeSuggestionResult("ok", List.of()));
 
         mockMvc.perform(post("/api/v1/chat/recipe")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -80,7 +87,7 @@ class ChatDelegateTest {
     @Test
     @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
     void chatRecipe_sameSession_doesNotClearMemory() throws Exception {
-        when(recipeSuggestionAgent.suggestRecipes(anyString(), anyString())).thenReturn("ok");
+        when(recipeSuggestionAgent.suggestRecipes(anyString(), anyString())).thenReturn(new RecipeSuggestionResult("ok", List.of()));
 
         mockMvc.perform(post("/api/v1/chat/recipe")
                         .contentType(MediaType.APPLICATION_JSON)

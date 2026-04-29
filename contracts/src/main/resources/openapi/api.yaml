@@ -824,6 +824,12 @@ components:
         reply:
           type: string
           description: Réponse de l'assistant IA
+        suggestions:
+          type: array
+          nullable: true
+          description: Recettes suggérées par l'IA
+          items:
+            $ref: "#/components/schemas/RecipeSummaryDto"
 
     # ── Erreurs ────────────────────────────────────────────────────────────────
 

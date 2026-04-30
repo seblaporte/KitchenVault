@@ -6,6 +6,7 @@ import fr.seblaporte.kitchenvault.ai.memory.PostgresChatMemoryStore;
 import fr.seblaporte.kitchenvault.generated.api.ChatApiController;
 import fr.seblaporte.kitchenvault.mapper.RecipeMapper;
 import fr.seblaporte.kitchenvault.service.RecipeService;
+import fr.seblaporte.kitchenvault.service.WeeklyMealPlanService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -33,6 +34,7 @@ class ChatDelegateTest {
     @MockitoBean PostgresChatMemoryStore chatMemoryStore;
     @MockitoBean RecipeService recipeService;
     @MockitoBean RecipeMapper recipeMapper;
+    @MockitoBean WeeklyMealPlanService weeklyMealPlanService;
 
     @Test
     void chatRecipe_validRequest_returns200WithReply() throws Exception {

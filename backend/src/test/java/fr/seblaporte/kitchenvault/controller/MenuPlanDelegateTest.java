@@ -112,6 +112,42 @@ class MenuPlanDelegateTest {
     }
 
     @Test
+    void upsertBulkEntries_validRequest_returnsOk() throws Exception {
+        Recipe recipe = new Recipe("r-1");
+        recipe.setName("Salade");
+        MealPlanEntry entry = new MealPlanEntry();
+        entry.setEntryDate(LocalDate.of(2026, 5, 5));
+        entry.setMealType(MealType.DINNER);
+        entry.setRecipe(recipe);
+        entry.setRecipeNameSnapshot("Salade");
+        entry.setRecipeIdSnapshot("r-1");
+
+        MealPlanEntryDto dto = new MealPlanEntryDto("Salade");
+        when(mealPlanService.upsertBulk(any())).thenReturn(List.of(entry));
+        when(mealPlanMapper.toEntryDto(entry)).thenReturn(dto);
+
+        mockMvc.perform(post("/api/v1/menu-plan/entries/bulk")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"entries":[{"date":"2026-05-05","mealType":"DINNER","recipeId":"r-1"}]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].recipeName").value("Salade"));
+    }
+
+    @Test
+    void upsertBulkEntries_unknownRecipe_returns404() throws Exception {
+        when(mealPlanService.upsertBulk(any())).thenThrow(new NoSuchElementException("Recipe not found"));
+
+        mockMvc.perform(post("/api/v1/menu-plan/entries/bulk")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"entries":[{"date":"2026-05-05","mealType":"DINNER","recipeId":"unknown"}]}
+                                """))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void getRecipeHistory_returnsHistory() throws Exception {
         MealPlanEntry entry = new MealPlanEntry();
         entry.setEntryDate(LocalDate.of(2024, 3, 15));

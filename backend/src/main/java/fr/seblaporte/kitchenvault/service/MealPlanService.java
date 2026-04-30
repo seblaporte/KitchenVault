@@ -3,6 +3,7 @@ package fr.seblaporte.kitchenvault.service;
 import fr.seblaporte.kitchenvault.entity.MealPlanEntry;
 import fr.seblaporte.kitchenvault.entity.MealType;
 import fr.seblaporte.kitchenvault.entity.Recipe;
+import fr.seblaporte.kitchenvault.generated.model.MealPlanBulkEntryDto;
 import fr.seblaporte.kitchenvault.repository.MealPlanEntryRepository;
 import fr.seblaporte.kitchenvault.repository.RecipeRepository;
 import org.springframework.data.domain.PageRequest;
@@ -44,6 +45,16 @@ public class MealPlanService {
         entry.setRecipeIdSnapshot(recipe.getId());
 
         return mealPlanEntryRepository.save(entry);
+    }
+
+    @Transactional
+    public List<MealPlanEntry> upsertBulk(List<MealPlanBulkEntryDto> entries) {
+        return entries.stream()
+                .map(e -> upsertEntry(
+                        e.getDate(),
+                        MealType.valueOf(e.getMealType().getValue()),
+                        e.getRecipeId()))
+                .toList();
     }
 
     @Transactional

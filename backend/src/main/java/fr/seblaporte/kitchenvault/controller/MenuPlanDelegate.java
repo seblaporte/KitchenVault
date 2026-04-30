@@ -5,6 +5,7 @@ import fr.seblaporte.kitchenvault.entity.Recipe;
 import fr.seblaporte.kitchenvault.exception.InvalidWeekStartException;
 import fr.seblaporte.kitchenvault.generated.api.MenuPlanApiDelegate;
 import fr.seblaporte.kitchenvault.generated.model.DayPlanDto;
+import fr.seblaporte.kitchenvault.generated.model.MealPlanBulkRequest;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanEntryDto;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanUpsertDto;
 import fr.seblaporte.kitchenvault.generated.model.MealType;
@@ -92,6 +93,17 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
         List<Recipe> recipes = mealPlanService.suggest(date, toEntityMealType(mealType), maxTotalMinutes, effectiveCount);
         List<MealPlanEntryDto> dtos = recipes.stream().map(mealPlanMapper::toEntryDtoFromRecipe).toList();
         return ResponseEntity.ok(dtos);
+    }
+
+    @Override
+    public ResponseEntity<List<MealPlanEntryDto>> upsertBulkEntries(MealPlanBulkRequest request) {
+        try {
+            List<MealPlanEntry> entries = mealPlanService.upsertBulk(request.getEntries());
+            List<MealPlanEntryDto> dtos = entries.stream().map(mealPlanMapper::toEntryDto).toList();
+            return ResponseEntity.ok(dtos);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @Override

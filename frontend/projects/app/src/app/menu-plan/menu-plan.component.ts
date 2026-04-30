@@ -1,10 +1,13 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, signal, effect, inject, Renderer2 } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroSparkles, heroPlay } from '@ng-icons/heroicons/outline';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, EMPTY, forkJoin, map, of, switchMap } from 'rxjs';
 import { MenuDayComponent } from './menu-day/menu-day.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
 import { ChatModalComponent } from './chat-modal/chat-modal.component';
+import { WeeklyPlanDrawerComponent } from './weekly-plan-drawer/weekly-plan-drawer.component';
 import { MenuPlanService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
 
 function getMondayOf(date: Date): Date {
@@ -44,7 +47,8 @@ interface ChatContext {
 @Component({
   selector: 'app-menu-plan',
   standalone: true,
-  imports: [CommonModule, MenuDayComponent, RecipePickerDialogComponent, ChatModalComponent],
+  imports: [CommonModule, NgIconComponent, MenuDayComponent, RecipePickerDialogComponent, ChatModalComponent, WeeklyPlanDrawerComponent],
+  viewProviders: [provideIcons({ heroSparkles, heroPlay })],
   template: `
     <div class="space-y-6">
       <h1 class="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">Menu de la semaine</h1>
@@ -80,15 +84,23 @@ interface ChatContext {
           </svg>
         </button>
         <button
+          (click)="weeklyDrawerOpen.set(true)"
+          [class.ring-2]="weeklyDrawerOpen()"
+          [class.ring-forest-500]="weeklyDrawerOpen()"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-600"
+          aria-label="Planifier la semaine avec l'IA"
+        >
+          <ng-icon name="heroSparkles" class="h-3.5 w-3.5" aria-hidden="true" />
+          Planifier avec l'IA
+        </button>
+        <button
           (click)="suggestWeek()"
           [disabled]="loading()"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-600"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
           aria-label="Suggérer des recettes aléatoires pour la semaine"
         >
-          <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z" />
-          </svg>
-          Suggérer la semaine
+          <ng-icon name="heroPlay" class="h-3.5 w-3.5" aria-hidden="true" />
+          Suggérer
         </button>
       </div>
 
@@ -122,6 +134,14 @@ interface ChatContext {
       }
     </div>
 
+    <!-- Drawer de planification IA hebdomadaire (fixed, viewport) -->
+    <app-weekly-plan-drawer
+      [weekStart]="toISODateStr(weekStart())"
+      [class.hidden]="!weeklyDrawerOpen()"
+      (dismissed)="onWeeklyDrawerDismissed($event)"
+      (planChanged)="loadWeekPlan()"
+    />
+
     <!-- Dialog de sélection de recette -->
     @if (pickerOpen()) {
       <app-recipe-picker-dialog
@@ -145,17 +165,33 @@ interface ChatContext {
     }
   `,
 })
-export class MenuPlanComponent implements OnInit {
+export class MenuPlanComponent implements OnInit, OnDestroy {
   weekStart = signal<Date>(getMondayOf(new Date()));
   weekPlan = signal<MenuPlanDto | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
   pickerOpen = signal(false);
   chatContext = signal<ChatContext | null>(null);
+  weeklyDrawerOpen = signal(false);
   pickerDate = '';
   pickerMealType = '';
 
-  constructor(private menuPlanService: MenuPlanService) {}
+  private renderer = inject(Renderer2);
+  private document = inject(DOCUMENT);
+
+  constructor(private menuPlanService: MenuPlanService) {
+    effect(() => {
+      if (this.weeklyDrawerOpen()) {
+        this.renderer.addClass(this.document.body, 'drawer-open');
+      } else {
+        this.renderer.removeClass(this.document.body, 'drawer-open');
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.renderer.removeClass(this.document.body, 'drawer-open');
+  }
 
   ngOnInit(): void {
     this.loadWeekPlan();
@@ -276,7 +312,18 @@ export class MenuPlanComponent implements OnInit {
     }
   }
 
-  private loadWeekPlan(): void {
+  onWeeklyDrawerDismissed(planModified: boolean): void {
+    this.weeklyDrawerOpen.set(false);
+    if (planModified) {
+      this.loadWeekPlan();
+    }
+  }
+
+  toISODateStr(d: Date): string {
+    return toISODate(d);
+  }
+
+  loadWeekPlan(): void {
     this.loading.set(true);
     this.error.set(null);
     this.menuPlanService.getWeekPlan(toISODate(this.weekStart()))

@@ -20,7 +20,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class ChatDelegate implements ChatApiDelegate {
@@ -32,7 +31,6 @@ public class ChatDelegate implements ChatApiDelegate {
     private final RecipeService recipeService;
     private final RecipeMapper recipeMapper;
     private final WeeklyMealPlanService weeklyMealPlanService;
-    private final AtomicReference<String> currentSessionId = new AtomicReference<>(null);
 
     public ChatDelegate(RecipeSuggestionAgent recipeSuggestionAgent,
                         PostgresChatMemoryStore chatMemoryStore,
@@ -63,10 +61,6 @@ public class ChatDelegate implements ChatApiDelegate {
     @Override
     public ResponseEntity<ChatResponseDto> chatRecipe(ChatMessageDto chatMessageDto) {
         String sessionId = chatMessageDto.getSessionId();
-        String prevSession = currentSessionId.getAndSet(sessionId);
-        if (!sessionId.equals(prevSession)) {
-            chatMemoryStore.deleteAllMessages();
-        }
         try {
             RecipeSuggestionResult result = recipeSuggestionAgent.suggestRecipes(sessionId, chatMessageDto.getMessage());
             List<RecipeSummaryDto> suggestions = result.recipeIds() == null ? List.of() :

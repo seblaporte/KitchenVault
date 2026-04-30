@@ -58,8 +58,7 @@ public class WeeklyMealPlanService {
         }
 
         WeeklyPlanSession session = sessionRepository.findById(request.getSessionId())
-                .orElseGet(() -> sessionRepository.save(
-                        new WeeklyPlanSession(request.getSessionId(), request.getWeekStart())));
+                .orElseGet(() -> new WeeklyPlanSession(request.getSessionId(), request.getWeekStart()));
         session.setLastActiveAt(Instant.now());
         sessionRepository.save(session);
 
@@ -97,7 +96,7 @@ public class WeeklyMealPlanService {
                     try {
                         mealPlanService.upsertEntry(
                                 LocalDate.parse(a.date()),
-                                MealType.valueOf(a.mealType()),
+                                MealType.valueOf(a.mealType().toUpperCase()),
                                 a.recipeId());
                     } catch (Exception e) {
                         log.warn("Failed to apply meal assignment {}/{}/{}: {}", a.date(), a.mealType(), a.recipeId(), e.getMessage());
@@ -186,7 +185,7 @@ public class WeeklyMealPlanService {
             try {
                 mealPlanService.upsertEntry(
                         LocalDate.parse((String) change.get("date")),
-                        MealType.valueOf((String) change.get("mealType")),
+                        MealType.valueOf(((String) change.get("mealType")).toUpperCase()),
                         (String) change.get("recipeId"));
             } catch (Exception e) {
                 log.warn("Failed to apply pending change {}: {}", change, e.getMessage());
@@ -232,7 +231,7 @@ public class WeeklyMealPlanService {
     private PendingMealChangeDto toPendingMealChangeDto(Map<String, Object> raw) {
         PendingMealChangeDto dto = new PendingMealChangeDto();
         dto.setDate(java.time.LocalDate.parse((String) raw.get("date")));
-        dto.setMealType(fr.seblaporte.kitchenvault.generated.model.MealType.valueOf((String) raw.get("mealType")));
+        dto.setMealType(fr.seblaporte.kitchenvault.generated.model.MealType.valueOf(((String) raw.get("mealType")).toUpperCase()));
         dto.setRecipeId((String) raw.get("recipeId"));
         dto.setRecipeName((String) raw.get("recipeName"));
         dto.setPreviousRecipeName((String) raw.get("previousRecipeName"));

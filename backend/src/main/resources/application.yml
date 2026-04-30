@@ -24,6 +24,9 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
 ai:
+  session:
+    retention-days: 30
+    cleanup-cron: "0 0 2 * * *"
   ovh:
     api-key: ${OVH_AI_ENDPOINTS_ACCESS_TOKEN:}
     model-name: gpt-oss-120b
@@ -70,4 +73,4 @@ logging:
   level:
     fr.seblaporte.kitchenvault: INFO
     org.liquibase: INFO
-    dev.langchain4j: DEBUG
+    dev.langchain4j: INFO

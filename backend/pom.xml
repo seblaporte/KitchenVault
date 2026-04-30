@@ -91,7 +91,6 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-agentic</artifactId>
-            <version>1.13.1-beta23</version>
         </dependency>
         <!-- OVH AI Endpoints use OpenAI-compatible API -->
         <dependency>
@@ -111,6 +110,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- Test slices (@WebMvcTest, @DataJpaTest) — désormais des starters dédiés dans Spring Boot 4 -->

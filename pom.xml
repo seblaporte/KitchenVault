@@ -103,6 +103,13 @@
                 <scope>import</scope>
             </dependency>
 
+            <!-- langchain4j-agentic is not included in the BOM yet (beta artifact) -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-agentic</artifactId>
+                <version>${langchain4j.version}-beta23</version>
+            </dependency>
+
 
             <!-- pgvector JDBC type extension -->
             <dependency>

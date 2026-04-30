@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ public class PostgresChatMemoryStore implements ChatMemoryStore {
         return messages;
     }
 
+    @Transactional
     @Override
     public void updateMessages(Object memoryId, List<ChatMessage> messages) {
         String sessionId = memoryId.toString();

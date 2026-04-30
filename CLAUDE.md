@@ -151,6 +151,48 @@ Standard AssertJ is imported statically; AssertJ-DB is called fully qualified to
 - `cookidoo.sync.cron: "-"` disables `@Scheduled` in tests
 - `cookidoo.service.url: http://localhost:9999` is intended for WireMock overrides in integration tests
 
+## AI weekly meal planner
+
+### Architecture
+
+`WeeklyMealPlanService` orchestrates everything deterministically. The LLM does not write to the database — it returns a structured output and the service applies changes.
+
+```
+processChat()
+  ├── Load/create WeeklyPlanSession
+  ├── Fetch current week plan → inject into enriched message
+  ├── agent.chat() → WeeklyPlanAgentResult {
+  │     reply, quickActions,
+  │     mealAssignments: [{date, mealType, recipeId, recipeName}],
+  │     action: APPLY_PENDING | CLEAR_PENDING | null }
+  ├── If action == APPLY_PENDING → apply pending changes from session
+  ├── If action == CLEAR_PENDING → clear pending changes from session
+  ├── If mealAssignments not empty:
+  │     !initialDone → upsertEntry() each, setInitialDone(true)
+  │     initialDone  → store as pendingChanges JSON on session
+  └── Return WeeklyPlanChatResponse with proposedChanges if any pending
+```
+
+The agent has **no tools** — only the RAG `contentRetriever` for recipe context. The current week plan is injected as plain text in the enriched message.
+
+### Key pitfalls
+
+**`@Transactional` on `@Tool` classes breaks LangChain4J scanning.** Spring wraps transactional beans in CGLIB proxies; langchain4j scans the proxy class and doesn't find `@Tool` annotations. Fix: remove `@Transactional` from tool classes — the calling service's transaction propagates.
+
+**`jsonb` column requires `@JdbcTypeCode(SqlTypes.JSON)`.** Using only `columnDefinition = "jsonb"` in `@Column` tells Hibernate the DDL type but not the JDBC binding type — Hibernate binds `String` as `varchar`, causing a runtime `SQLGrammarException`. Always add `@JdbcTypeCode(SqlTypes.JSON)` on any `String` field backed by a jsonb column.
+
+**`ObjectMapper` is not auto-wired as a Spring bean by default** in some test/component contexts. Use field initialization `private final ObjectMapper objectMapper = new ObjectMapper()` instead of constructor injection in tool/service classes.
+
+### Frontend drawer layout
+
+The weekly planner drawer is `position: fixed; right: 0`. When open, a `drawer-open` class is added to `<body>` via `Renderer2`, and a CSS rule in `styles.css` removes the `max-w-6xl` constraint on `<main>` and adds `padding-right: 400px`, giving the content full viewport width minus the drawer:
+
+```css
+body.drawer-open main { max-width: none; padding-right: 400px; }
+```
+
+`MenuPlanComponent` toggles this class via an Angular `effect()` and cleans up in `ngOnDestroy`.
+
 ## Key configuration
 
 | Property | Default | Purpose |
@@ -161,6 +203,12 @@ Standard AssertJ is imported statically; AssertJ-DB is called fully qualified to
 | `spring.threads.virtual.enabled` | `true` | Virtual threads for @Async |
 | `spring.jpa.open-in-view` | `false` | OSIV disabled |
 | `spring.jpa.hibernate.ddl-auto` | `validate` | Schema owned by Liquibase |
+| `ai.ovh.base-url` | — | OVH AI Endpoints base URL (LLM) |
+| `ai.ovh.api-key` | — | OVH AI Endpoints API key |
+| `ai.ovh.model-name` | — | LLM model name |
+| `ai.ovh-embedding.base-url` | — | OVH AI Endpoints base URL (embeddings) |
+| `ai.ovh-embedding.api-key` | — | OVH AI Endpoints API key (embeddings) |
+| `ai.ovh-embedding.model-name` | — | Embedding model name |
 
 ## Documentation
 

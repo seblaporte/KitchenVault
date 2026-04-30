@@ -13,18 +13,36 @@ graph LR
     PY["FastAPI Python\n:8001"]
     DB[("PostgreSQL\n:5432")]
     EXT[["API Cookidoo\n(externe)"]]
+    AI[["OVH AI Endpoints\n(LLM + Embeddings)"]]
 
     FE -->|HTTP| BE
     BE -->|"@HttpExchange"| PY
     BE --- DB
+    BE -->|LangChain4J| AI
     PY --- EXT
 ```
 
 | Composant           | Rôle                                              | Technologie                            |
 |---------------------|---------------------------------------------------|----------------------------------------|
 | `cookidoo-service`  | Wrapper autour de l'API Cookidoo non-officielle   | Python 3.12 · FastAPI · cookidoo-api  |
-| `backend`           | API REST, persistance, synchronisation planifiée  | Java 25 · Spring Boot 3.4 · PostgreSQL 17 |
+| `backend`           | API REST, persistance, synchronisation planifiée, IA | Java 25 · Spring Boot 3.4 · PostgreSQL 17 · LangChain4J |
 | `frontend`          | Interface utilisateur                             | Angular 21 · TailwindCSS 4            |
+
+## Fonctionnalités IA
+
+### Assistant de suggestions de recettes
+
+Accessible depuis chaque créneau du planning. Un agent LangChain4J utilise la RAG (pgvector) pour suggérer des recettes contextuelles en mode conversationnel.
+
+### Planification IA hebdomadaire
+
+Accessible via le bouton **"Planifier avec l'IA"** dans la vue planning. L'assistant :
+1. Collecte les contraintes de la semaine (jours d'absence, jours sans four, ingrédients prioritaires)
+2. Génère un menu complet pour les 7 jours (déjeuner + dîner) en tenant compte des recettes disponibles
+3. Propose des modifications slot par slot après la génération initiale
+4. Demande confirmation avant d'appliquer les modifications
+
+L'orchestration est entièrement déterministe : le LLM retourne une sortie structurée (`mealAssignments`, `action`) et le service Java applique les écritures en base — le LLM ne touche jamais la base directement.
 
 ## Prérequis
 

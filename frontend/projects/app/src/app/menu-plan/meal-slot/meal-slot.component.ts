@@ -11,70 +11,68 @@ import { MealPlanEntryDto } from '@KitchenVault/api-client';
   imports: [CommonModule, RouterLink, NgIconComponent],
   providers: [provideIcons({ heroSparkles })],
   template: `
-    <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-4 shadow-sm min-h-[100px]">
-      <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">{{ label }}</p>
-
-      @if (entry) {
-        <!-- Recette planifiée -->
-        <div class="flex items-start gap-3">
-          <div class="shrink-0 w-14 h-14 overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-800">
-            @if (entry.recipeThumbnailUrl) {
-              <img [src]="entry.recipeThumbnailUrl" [alt]="entry.recipeName" class="h-full w-full object-cover" loading="lazy" />
-            } @else {
-              <div class="flex h-full w-full items-center justify-center">
-                <svg class="h-6 w-6 text-stone-300 dark:text-stone-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-            }
-          </div>
-          <div class="flex-1 min-w-0">
-            @if (entry.recipeId) {
-              <a [routerLink]="['/recipes', entry.recipeId]" class="block text-sm font-medium text-stone-900 dark:text-stone-100 hover:text-forest-600 dark:hover:text-forest-400 truncate transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded">
-                {{ entry.recipeName }}
-              </a>
-            } @else {
-              <p class="text-sm font-medium text-stone-400 dark:text-stone-500 truncate italic">{{ entry.recipeName }}</p>
-            }
-            @if (entry.recipeTotalTimeMinutes) {
-              <p class="mt-0.5 text-xs text-stone-400 dark:text-stone-500">{{ entry.recipeTotalTimeMinutes }} min</p>
-            }
-          </div>
-          <button
-            (click)="onRemove()"
-            class="flex-shrink-0 rounded-lg p-1.5 text-stone-400 dark:text-stone-500 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-500 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
-            aria-label="Supprimer ce repas"
-          >
-            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    @if (entry) {
+      <div class="group relative rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 overflow-hidden hover:-translate-y-0.5 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-md transition-all">
+        <div class="w-full h-24 bg-stone-100 dark:bg-stone-800 overflow-hidden flex items-center justify-center">
+          @if (entry.recipeThumbnailUrl) {
+            <img [src]="entry.recipeThumbnailUrl" [alt]="entry.recipeName" class="w-full h-full object-cover" loading="lazy" />
+          } @else {
+            <svg class="h-8 w-8 text-stone-300 dark:text-stone-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-          </button>
+          }
         </div>
-
-      } @else {
-        <!-- Créneau vide -->
-        <div class="flex items-center gap-2">
-          <button
-            (click)="onAdd()"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 dark:border-stone-600 px-3 py-1.5 text-sm text-stone-500 dark:text-stone-400 hover:border-forest-400 hover:text-forest-600 dark:hover:text-forest-400 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
-            aria-label="Ajouter une recette"
-          >
-            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Ajouter
-          </button>
-          <button
-            (click)="onChatRequested()"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 px-3 py-1.5 text-sm text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
-            aria-label="Suggérer une recette via l'assistant IA"
-          >
-            <ng-icon name="heroSparkles" class="h-3.5 w-3.5" aria-hidden="true" />
-            Suggérer
-          </button>
+        <div class="p-2.5 flex flex-col gap-1">
+          @if (entry.recipeId) {
+            <a
+              [routerLink]="['/recipes', entry.recipeId]"
+              (click)="$event.stopPropagation()"
+              class="block text-xs font-medium text-stone-800 dark:text-stone-200 hover:text-forest-600 dark:hover:text-forest-400 line-clamp-2 leading-snug transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
+            >{{ entry.recipeName }}</a>
+          } @else {
+            <p class="text-xs font-medium text-stone-400 dark:text-stone-500 line-clamp-2 leading-snug italic">{{ entry.recipeName }}</p>
+          }
+          @if (entry.recipeTotalTimeMinutes) {
+            <p class="flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500">
+              <svg class="h-3 w-3 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 16" stroke="currentColor" aria-hidden="true">
+                <circle cx="8" cy="8" r="6" stroke-width="1.3"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3" d="M8 5v3.5l2 2"/>
+              </svg>
+              {{ entry.recipeTotalTimeMinutes }} min
+            </p>
+          }
         </div>
-      }
-    </div>
+        <button
+          (click)="$event.stopPropagation(); onRemove()"
+          class="absolute top-1.5 right-1.5 w-6 h-6 rounded-md bg-black/40 text-white/70 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all backdrop-blur-sm cursor-pointer"
+          aria-label="Supprimer ce repas"
+        >
+          <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    } @else {
+      <div class="group relative w-full min-h-[130px] rounded-xl border-2 border-dashed border-stone-200 dark:border-stone-700 transition-colors hover:border-forest-400 dark:hover:border-forest-600 hover:bg-forest-50 dark:hover:bg-forest-950/30">
+        <button
+          (click)="onAdd()"
+          class="absolute inset-0 w-full h-full rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
+          [attr.aria-label]="'Ajouter une recette pour ' + label"
+        >
+          <svg class="h-4 w-4 text-stone-300 dark:text-stone-600 group-hover:text-forest-500 dark:group-hover:text-forest-400 transition-colors" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span class="text-xs text-stone-400 dark:text-stone-600 group-hover:text-forest-500 dark:group-hover:text-forest-400 transition-colors">Ajouter</span>
+        </button>
+        <button
+          (click)="$event.stopPropagation(); onChatRequested()"
+          class="absolute bottom-1.5 right-1.5 z-10 w-6 h-6 rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-400 dark:text-stone-500 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:border-forest-400 hover:text-forest-600 dark:hover:text-forest-400 transition-all cursor-pointer"
+          [attr.aria-label]="'Suggérer une recette IA pour ' + label"
+        >
+          <ng-icon name="heroSparkles" class="h-3 w-3" aria-hidden="true" />
+        </button>
+      </div>
+    }
   `,
 })
 export class MealSlotComponent {

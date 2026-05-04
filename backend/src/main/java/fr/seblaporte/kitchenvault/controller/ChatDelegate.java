@@ -32,6 +32,8 @@ public class ChatDelegate implements ChatApiDelegate {
     private final RecipeMapper recipeMapper;
     private final WeeklyMealPlanService weeklyMealPlanService;
 
+    private String lastSessionId = null;
+
     public ChatDelegate(RecipeSuggestionAgent recipeSuggestionAgent,
                         PostgresChatMemoryStore chatMemoryStore,
                         RecipeService recipeService,
@@ -61,6 +63,10 @@ public class ChatDelegate implements ChatApiDelegate {
     @Override
     public ResponseEntity<ChatResponseDto> chatRecipe(ChatMessageDto chatMessageDto) {
         String sessionId = chatMessageDto.getSessionId();
+        if (!sessionId.equals(lastSessionId)) {
+            chatMemoryStore.deleteAllMessages();
+            lastSessionId = sessionId;
+        }
         try {
             RecipeSuggestionResult result = recipeSuggestionAgent.suggestRecipes(sessionId, chatMessageDto.getMessage());
             List<RecipeSummaryDto> suggestions = result.recipeIds() == null ? List.of() :

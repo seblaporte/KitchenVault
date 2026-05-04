@@ -10,13 +10,13 @@ import { RecipesService, RecipeSummaryDto } from '@KitchenVault/api-client';
   imports: [CommonModule, FormsModule],
   template: `
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Sélectionner une recette"
       (click)="onBackdropClick($event)"
     >
-      <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-stone-900 shadow-xl flex flex-col max-h-[80vh]" (click)="$event.stopPropagation()">
+      <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl flex flex-col max-h-[80vh]" (click)="$event.stopPropagation()">
 
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 px-6 py-4">

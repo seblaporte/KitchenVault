@@ -28,11 +28,11 @@ interface ChatMessage {
       aria-label="Assistant IA culinaire"
       (click)="onBackdropClick($event)"
     >
-      <div class="absolute inset-0 bg-black/50" aria-hidden="true"></div>
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-hidden="true"></div>
 
       <div
         #modalCard
-        class="relative flex flex-col w-full max-w-lg h-[80vh] rounded-2xl bg-white dark:bg-stone-900 shadow-xl overflow-hidden"
+        class="relative flex flex-col w-full max-w-lg h-[80vh] rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden"
         (click)="$event.stopPropagation()"
       >
         <!-- En-tête -->

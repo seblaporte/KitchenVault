@@ -226,7 +226,6 @@
                             <buildArgs>
                                 <buildArg>-Ob</buildArg>
                                 <buildArg>-J-Xmx4g</buildArg>
-                                <buildArg>-J-XX:+UseSerialGC</buildArg>
                             </buildArgs>
                             <metadataRepository>
                                 <enabled>true</enabled>

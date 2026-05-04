@@ -225,7 +225,7 @@
                             <imageName>kitchen-vault</imageName>
                             <buildArgs>
                                 <buildArg>-Ob</buildArg>
-                                <buildArg>-J-Xmx4g</buildArg>
+                                <buildArg>-J-Xmx7g</buildArg>
                             </buildArgs>
                             <metadataRepository>
                                 <enabled>true</enabled>

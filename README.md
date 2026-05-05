@@ -100,7 +100,12 @@ podman run -p 8080:8080 kitchen-vault:native
 ```
 
 - API : http://localhost:8080
-- Swagger UI : http://localhost:8080/swagger-ui.html
+
+> **Note** : Swagger UI est désactivé par défaut en mode natif (conflit de version swagger-annotations). Pour l'activer en mode JVM :
+> ```bash
+> SPRINGDOC_API-DOCS_ENABLED=true SPRINGDOC_SWAGGER-UI_ENABLED=true mvn spring-boot:run -pl backend
+> ```
+> Swagger UI : http://localhost:8080/swagger-ui.html
 
 ### 4. Frontend Angular
 

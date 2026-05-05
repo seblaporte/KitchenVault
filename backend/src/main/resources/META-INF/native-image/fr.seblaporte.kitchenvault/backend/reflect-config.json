@@ -2,6 +2,7 @@
   {
     "name": "[Ljava.util.UUID;"
   },
+
   {
     "name": "fr.seblaporte.kitchenvault.config.AiProperties",
     "allDeclaredFields": true
@@ -17,5 +18,103 @@
   {
     "name": "fr.seblaporte.kitchenvault.config.AiProperties$ShoppingListProperties",
     "allDeclaredFields": true
+  },
+
+  {
+    "name": "fr.seblaporte.kitchenvault.config.CookidooProperties",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.config.CookidooProperties$ServiceProperties",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.config.CookidooProperties$SyncProperties",
+    "allDeclaredFields": true
+  },
+
+  {
+    "name": "fr.seblaporte.kitchenvault.ai.agent.RecipeSuggestionResult",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult$QuickAction",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult$MealSlotAssignment",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult$AgentAction",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+
+  {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooRecipeDetails",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooIngredient",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooCategory",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooNutritionGroup",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooNutrition",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooRecipeNutrition",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooChapter",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooChapterRecipe",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooCollection",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
   }
 ]

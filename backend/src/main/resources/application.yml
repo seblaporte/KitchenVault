@@ -35,6 +35,7 @@ ai:
     api-key: ${OVH_AI_ENDPOINTS_ACCESS_TOKEN:}
     model-name: bge-m3
     base-url: https://oai.endpoints.kepler.ai.cloud.ovh.net/v1
+    dimension: 1024
   shopping-list:
     basic-necessities:
       - eau

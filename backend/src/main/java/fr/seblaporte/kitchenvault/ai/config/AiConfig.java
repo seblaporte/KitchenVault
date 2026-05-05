@@ -54,7 +54,7 @@ public class AiConfig {
         return PgVectorEmbeddingStore.datasourceBuilder()
                 .datasource(dataSource)
                 .table("recipe_embedding_store")
-                .dimension(embeddingModel().dimension())
+                .dimension(aiProperties.ovhEmbedding().dimension())
                 .createTable(false)
                 .build();
     }

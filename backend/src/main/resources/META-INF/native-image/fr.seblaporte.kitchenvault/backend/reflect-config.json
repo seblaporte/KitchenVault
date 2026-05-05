@@ -127,5 +127,12 @@
     "name": "dev.langchain4j.model.openai.internal.embedding.OpenAiEmbeddingDeserializer",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true
+  },
+
+  {
+    "name": "com.pgvector.PGvector",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
   }
 ]

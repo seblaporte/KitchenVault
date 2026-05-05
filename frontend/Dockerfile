@@ -11,7 +11,6 @@ RUN npm run build
 
 # Stage 2: serve with nginx
 FROM nginx:alpine
-RUN apk add --no-cache jq
 RUN printf 'server {\n\
     listen 80;\n\
     root /usr/share/nginx/html;\n\

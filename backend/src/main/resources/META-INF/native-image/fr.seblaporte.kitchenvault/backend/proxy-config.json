@@ -1,4 +1,5 @@
 [
+  ["fr.seblaporte.kitchenvault.ai.agent.RecipeSuggestionAgent"],
   [
     "fr.seblaporte.kitchenvault.ai.agent.RecipeSuggestionAgent",
     "dev.langchain4j.agentic.internal.InternalAgent",
@@ -7,6 +8,7 @@
     "dev.langchain4j.agentic.agent.ChatMessagesAccess",
     "dev.langchain4j.observability.api.listener.AiServiceResponseReceivedListener"
   ],
+  ["fr.seblaporte.kitchenvault.ai.agent.WeeklyMealPlanAgent"],
   [
     "fr.seblaporte.kitchenvault.ai.agent.WeeklyMealPlanAgent",
     "dev.langchain4j.agentic.internal.InternalAgent",

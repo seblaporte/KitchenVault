@@ -1,5 +1,21 @@
 [
   {
     "name": "[Ljava.util.UUID;"
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.config.AiProperties",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.config.AiProperties$OvhProperties",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.config.AiProperties$OvhEmbeddingProperties",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.config.AiProperties$ShoppingListProperties",
+    "allDeclaredFields": true
   }
 ]

@@ -21,6 +21,11 @@
   },
 
   {
+    "name": "fr.seblaporte.kitchenvault.config.CorsProperties",
+    "allDeclaredFields": true
+  },
+
+  {
     "name": "fr.seblaporte.kitchenvault.config.CookidooProperties",
     "allDeclaredFields": true
   },

@@ -1,10 +1,10 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { catchError, interval, of, Subscription, switchMap, startWith } from 'rxjs';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroArrowPath } from '@ng-icons/heroicons/outline';
-import { environment } from '../../environments/environment';
+import { BASE_PATH } from '@KitchenVault/api-client';
 
 interface SyncRun {
   id: string;
@@ -189,7 +189,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   private pollSubscription?: Subscription;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, @Inject(BASE_PATH) private basePath: string) {}
 
   ngOnInit(): void {
     this.loadStats();
@@ -203,7 +203,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   triggerSync(): void {
     if (this.isSyncing()) return;
 
-    this.http.post<SyncRun>(`${environment.apiUrl}/api/v1/sync`, {}).subscribe({
+    this.http.post<SyncRun>(`${this.basePath}/api/v1/sync`, {}).subscribe({
       next: run => {
         this.latestSync.set(run);
         this.isSyncing.set(true);
@@ -217,7 +217,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       .pipe(
         startWith(0),
         switchMap(() =>
-          this.http.get<SyncRun>(`${environment.apiUrl}/api/v1/sync/latest`).pipe(
+          this.http.get<SyncRun>(`${this.basePath}/api/v1/sync/latest`).pipe(
             catchError(err => {
               if (err.status === 404) return of(null);
               throw err;
@@ -241,7 +241,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     if (this.isIndexing()) return;
     this.isIndexing.set(true);
     this.indexingMessage.set(null);
-    this.http.post(`${environment.apiUrl}/api/v1/embeddings/index`, {}).subscribe({
+    this.http.post(`${this.basePath}/api/v1/embeddings/index`, {}).subscribe({
       next: () => {
         this.isIndexing.set(false);
         this.indexingMessage.set({ type: 'success', text: 'Indexation démarrée.' });
@@ -256,7 +256,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   private loadStats(): void {
     this.http
-      .get<AdminStats>(`${environment.apiUrl}/api/v1/admin/stats`)
+      .get<AdminStats>(`${this.basePath}/api/v1/admin/stats`)
       .subscribe({ next: stats => this.stats.set(stats) });
   }
 

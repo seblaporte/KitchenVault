@@ -11,6 +11,7 @@ RUN npm run build
 
 # Stage 2: serve with nginx
 FROM nginx:alpine
+RUN apk add --no-cache jq
 RUN printf 'server {\n\
     listen 80;\n\
     root /usr/share/nginx/html;\n\
@@ -20,4 +21,7 @@ RUN printf 'server {\n\
     }\n\
 }\n' > /etc/nginx/conf.d/default.conf
 COPY --from=builder /workspace/frontend/dist/app/browser /usr/share/nginx/html
+COPY frontend/scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 EXPOSE 80
+ENTRYPOINT ["/entrypoint.sh"]

@@ -121,5 +121,11 @@
     "allDeclaredFields": true,
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true
+  },
+
+  {
+    "name": "dev.langchain4j.model.openai.internal.embedding.OpenAiEmbeddingDeserializer",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
   }
 ]

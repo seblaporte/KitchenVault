@@ -1,6 +1,7 @@
 package fr.seblaporte.kitchenvault.ai.config;
 
 import dev.langchain4j.agentic.AgenticServices;
+import dev.langchain4j.service.AiServices;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
@@ -103,7 +104,7 @@ public class AiConfig {
 
     @Bean
     public ShoppingListConsolidationAgent shoppingListConsolidationAgent() {
-        return AgenticServices.agentBuilder(ShoppingListConsolidationAgent.class)
+        return AiServices.builder(ShoppingListConsolidationAgent.class)
                 .chatModel(chatModel())
                 .build();
     }

@@ -51,7 +51,7 @@ public class Recipe {
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
-    private List<IngredientGroup> ingredientGroups = new ArrayList<>();
+    private Set<IngredientGroup> ingredientGroups = new HashSet<>();
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<NutritionGroup> nutritionGroups = new ArrayList<>();

@@ -28,6 +28,8 @@ tags:
     description: Planification du menu
   - name: chat
     description: Chat IA avec suggestions de recettes et planification
+  - name: shopping-list
+    description: Liste de courses
 
 paths:
 
@@ -506,6 +508,165 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RecipeHistoryDto"
+
+  # ─── Liste de courses ────────────────────────────────────────────────────────
+
+  /api/v1/shopping-list:
+    get:
+      tags: [shopping-list]
+      operationId: getShoppingList
+      summary: Retourne la liste de courses
+      responses:
+        "200":
+          description: Liste de courses complète
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListDto"
+
+    delete:
+      tags: [shopping-list]
+      operationId: clearShoppingList
+      summary: Vide entièrement la liste de courses
+      responses:
+        "204":
+          description: Liste vidée
+
+  /api/v1/shopping-list/checked:
+    delete:
+      tags: [shopping-list]
+      operationId: clearCheckedItems
+      summary: Supprime tous les articles cochés
+      responses:
+        "204":
+          description: Articles cochés supprimés
+
+  /api/v1/shopping-list/recipes/{recipeId}:
+    post:
+      tags: [shopping-list]
+      operationId: addRecipeToShoppingList
+      summary: Ajoute les ingrédients d'une recette à la liste (avec consolidation IA)
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Nouvelle liste consolidée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service IA indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+    delete:
+      tags: [shopping-list]
+      operationId: removeRecipeFromShoppingList
+      summary: Retire la contribution d'une recette de la liste
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Liste mise à jour après retrait de la recette
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListDto"
+        "404":
+          description: Recette non présente dans la liste
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/shopping-list/items:
+    post:
+      tags: [shopping-list]
+      operationId: addCustomShoppingListItem
+      summary: Ajoute un article personnalisé à la liste
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddShoppingListItemRequest"
+      responses:
+        "201":
+          description: Article ajouté
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListItemDto"
+        "400":
+          description: Requête invalide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/shopping-list/items/{itemId}:
+    patch:
+      tags: [shopping-list]
+      operationId: toggleShoppingListItem
+      summary: Bascule le statut coché/non-coché d'un article
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Article mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListItemDto"
+        "404":
+          description: Article introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+    delete:
+      tags: [shopping-list]
+      operationId: deleteShoppingListItem
+      summary: Supprime un article de la liste
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Article supprimé
+        "404":
+          description: Article introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
 
 # ─── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -1005,6 +1166,80 @@ components:
           description: Recettes suggérées par l'IA
           items:
             $ref: "#/components/schemas/RecipeSummaryDto"
+
+    # ── Erreurs ────────────────────────────────────────────────────────────────
+
+    # ── Liste de courses ───────────────────────────────────────────────────────
+
+    ShoppingCategory:
+      type: string
+      enum: [produce, meat, dairy, bakery, grocery, frozen, spices, other]
+      description: |
+        Catégorie de rayon :
+        - produce : Fruits & Légumes
+        - meat : Viandes & Poissons
+        - dairy : Crémerie & Œufs
+        - bakery : Boulangerie
+        - grocery : Épicerie
+        - frozen : Surgelés
+        - spices : Épices
+        - other : Autres
+
+    ShoppingListItemDto:
+      type: object
+      required: [id, name, category, checked, sourceRecipeIds, custom, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        quantity:
+          type: string
+          nullable: true
+        category:
+          $ref: "#/components/schemas/ShoppingCategory"
+        checked:
+          type: boolean
+        sourceRecipeIds:
+          type: array
+          items:
+            type: string
+        custom:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ShoppingListDto:
+      type: object
+      required: [items, addedRecipeIds]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShoppingListItemDto"
+        addedRecipeIds:
+          type: array
+          description: Identifiants des recettes dont les ingrédients sont dans la liste
+          items:
+            type: string
+
+    AddShoppingListItemRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        quantity:
+          type: string
+          nullable: true
+          maxLength: 255
 
     # ── Erreurs ────────────────────────────────────────────────────────────────
 

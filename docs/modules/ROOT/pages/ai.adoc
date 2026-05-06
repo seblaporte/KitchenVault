@@ -1,0 +1,503 @@
+= Assistant IA culinaire
+:description: Architecture et fonctionnalités de l'assistant conversationnel basé sur LangChain4J
+
+== Vue d'ensemble
+
+KitchenVault intègre un assistant IA conversationnel accessible via l'endpoint `POST /api/v1/chat`.
+L'assistant peut suggérer des recettes par recherche sémantique, interroger les légumes de saison, planifier des repas dans le menu de la semaine et générer la liste de courses correspondante — le tout au fil d'une conversation en langage naturel.
+
+L'implémentation s'appuie sur trois briques technologiques :
+
+* *LangChain4J 1.0.0* — orchestration LLM, gestion des outils et de la mémoire
+* *Groq* (API compatible OpenAI) — LLM `llama-3.3-70b-versatile` pour la génération de texte
+* *Nomic AI* + *pgvector* — embeddings 384 dimensions et recherche vectorielle dans PostgreSQL
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam componentStyle rectangle
+skinparam ArrowColor #555555
+skinparam defaultFontSize 13
+
+actor Utilisateur
+component "[Angular]\nChat UI" as UI
+component "[Spring Boot]\nChatDelegate" as Delegate
+component "[LangChain4J]\nRecipeAssistant" as Assistant
+component "[Groq / LLaMA]\nChatModel" as LLM
+database "[PostgreSQL]\nMémoire conversation" as Memory
+component "[Tools]\n4 outils métier" as Tools
+
+Utilisateur --> UI : message texte
+UI --> Delegate : POST /api/v1/chat
+Delegate --> Assistant : chat(sessionId, message)
+Assistant --> Memory : charger l'historique
+Assistant --> LLM : prompt + historique + outils
+LLM --> Assistant : réponse + appels d'outils
+Assistant --> Tools : exécution des outils demandés
+Tools --> Assistant : résultats
+Assistant --> Memory : sauvegarder l'échange
+Assistant --> Delegate : réponse finale
+Delegate --> UI : ChatResponseDto
+@enduml
+....
+
+== Composants
+
+=== RecipeAssistant — l'interface LangChain4J
+
+`RecipeAssistant` est une interface Java déclarée avec les annotations LangChain4J.
+`AiServices.builder()` génère dynamiquement l'implémentation au démarrage de l'application.
+
+[source,java]
+----
+public interface RecipeAssistant {
+    String chat(@MemoryId String sessionId, @UserMessage String userMessage);
+}
+----
+
+`@MemoryId` identifie la session de l'utilisateur : chaque session a son propre historique isolé dans PostgreSQL.
+`@UserMessage` transmet le texte du message au LLM.
+
+=== AiConfig — câblage des beans
+
+`AiConfig` est la classe `@Configuration` qui assemble l'ensemble de la chaîne :
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam classBackgroundColor #F9F9F9
+
+class AiConfig << @Configuration >> {
+  chatModel() : ChatModel
+  embeddingModel() : EmbeddingModel
+  embeddingStore() : EmbeddingStore<TextSegment>
+  recipeAssistant(...) : RecipeAssistant
+}
+
+class OpenAiChatModel {
+  baseUrl = https://api.groq.com/openai/v1/
+  modelName = llama-3.3-70b-versatile
+}
+
+class NomicEmbeddingModel {
+  modelName = nomic-embed-text-v1.5
+  dimensions = 384
+}
+
+class PgVectorEmbeddingStore {
+  table = recipe_embedding_store
+  createTable = false
+}
+
+class MessageWindowChatMemory {
+  maxMessages = 20
+  store = PostgresChatMemoryStore
+}
+
+AiConfig ..> OpenAiChatModel : crée
+AiConfig ..> NomicEmbeddingModel : crée
+AiConfig ..> PgVectorEmbeddingStore : crée
+AiConfig ..> MessageWindowChatMemory : fournit via ChatMemoryProvider
+@enduml
+....
+
+=== ChatDelegate — point d'entrée HTTP
+
+`ChatDelegate` implémente `ChatApiDelegate` (contrat généré depuis `api.yaml`).
+Il transmet le message à `RecipeAssistant` et gère les erreurs d'indisponibilité du service IA.
+
+[source,java]
+----
+POST /api/v1/chat
+Content-Type: application/json
+
+{ "sessionId": "user-abc123", "message": "Quelles recettes de saison peut-on faire ce soir ?" }
+
+→ 200 OK  { "reply": "En mai, les asperges et les épinards..." }
+→ 503 Service Unavailable  (si le LLM est inaccessible)
+----
+
+== Recherche sémantique de recettes
+
+La recherche sémantique permet de trouver des recettes par *sens* plutôt que par mots-clés exacts.
+Une requête comme « plat réconfortant pour un dimanche hivernal » peut retourner un gratin dauphinois même si ces mots n'apparaissent pas dans la recette.
+
+=== Fonctionnement
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+
+participant "RecipeSuggestionTool" as Tool
+participant "RecipeEmbeddingService" as Svc
+participant "NomicEmbeddingModel" as Nomic
+database "pgvector\nrecipe_embedding_store" as PG
+participant "RecipeRepository" as Repo
+
+== Indexation (après chaque sync) ==
+Svc -> Repo : findAll()
+Repo --> Svc : List<Recipe>
+Svc -> Nomic : embedAll(List<TextSegment>)
+Nomic --> Svc : List<Embedding> (vecteurs 384 dim.)
+Svc -> PG : removeAll() + addAll(embeddings, segments)
+
+== Recherche ==
+Tool -> Svc : searchSimilar("plat réconfortant", 15)
+Svc -> Nomic : embed("plat réconfortant")
+Nomic --> Svc : Embedding (vecteur requête)
+Svc -> PG : search(queryEmbedding, maxResults=15)
+PG --> Svc : List<EmbeddingMatch> (triés par score cosinus)
+Svc --> Tool : résultats avec score de similarité
+@enduml
+....
+
+Chaque recette est convertie en un `TextSegment` contenant :
+
+----
+Recette: Gratin dauphinois. Difficulté: easy. Temps total: 75 min.
+Ingrédients: pomme de terre, crème, gruyère, ail, muscade.
+Ustensiles: Four, Plat à gratin.
+----
+
+Ce texte est encodé en vecteur de 384 dimensions par le modèle `nomic-embed-text-v1.5`.
+La recherche utilise la distance cosinus via un index *HNSW* (Hierarchical Navigable Small World) pour une récupération en temps quasi-constant même avec des milliers de recettes.
+
+=== Schéma de la table d'embeddings
+
+[source,sql]
+----
+CREATE TABLE recipe_embedding_store (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    recipe_id  varchar(255) NOT NULL REFERENCES recipe(id) ON DELETE CASCADE,
+    embedding  vector(384)  NOT NULL
+);
+CREATE INDEX ON recipe_embedding_store USING hnsw (embedding vector_cosine_ops);
+----
+
+== Les quatre outils (Tools)
+
+Les outils sont des méthodes Java annotées `@Tool` que le LLM peut appeler automatiquement lorsqu'il juge qu'une action métier est nécessaire.
+LangChain4J expose leur signature au LLM sous forme de JSON Schema ; le LLM décide seul quand les invoquer et avec quels paramètres.
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam packageBackgroundColor #F0F4FF
+skinparam classBackgroundColor #FAFAFA
+
+package "Tools LangChain4J" {
+  class SeasonalVegetableTool {
+    +getSeasonalVegetables(month: int)
+    → légumes de saison + indicateur pic
+  }
+
+  class RecipeSuggestionTool {
+    +suggestRecipes(query, count,\n  maxTime, difficulty,\n  maxCalories, utensils)
+    → List<RecipeProposal>
+  }
+
+  class MealPlanTool {
+    +planMeal(weekStart, day, mealType, recipeId)
+    +getCurrentWeekPlan(weekStart)
+    +planWeekWithConstraints(weekStart,\n  constraints, candidates, overwrite)
+  }
+
+  class ShoppingListTool {
+    +generateShoppingList(weekStart, includeBasics)
+    → liste par catégorie avec quantités agrégées
+  }
+}
+@enduml
+....
+
+=== SeasonalVegetableTool
+
+Interroge la table `seasonal_vegetable` pour retourner les légumes disponibles un mois donné, en précisant si le légume est en *pleine saison* (ni début ni fin de période).
+
+Exemple d'invocation par le LLM :
+
+----
+getSeasonalVegetables(month=5)
+→ { month: 5, monthName: "May", vegetables: [
+     { name: "Asperge",  isPeakSeason: false },
+     { name: "Épinard",  isPeakSeason: true  },
+     { name: "Artichaut", isPeakSeason: false }
+   ]}
+----
+
+=== RecipeSuggestionTool
+
+Combine la recherche vectorielle et des filtres métier stricts :
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+
+start
+:searchSimilar(query, count × 3)\nrecherche sémantique élargie;
+repeat
+  :charger Recipe depuis repository;
+  if (totalTimeMinutes > maxTime ?) then (oui)
+    :ignorer;
+  elseif (difficulty ≠ filtre ?) then (oui)
+    :ignorer;
+  elseif (ustensiles manquants ?) then (oui)
+    :ignorer;
+  elseif (calories > max ?) then (oui)
+    :ignorer;
+  else (passe tous les filtres)
+    :ajouter à la liste;
+  endif
+repeat while (résultats < count ET matches restants)
+:retourner List<RecipeProposal>;
+stop
+@enduml
+....
+
+Les calories sont lues dans les `NutritionGroup` de la recette (champ `unitType` = `kcal` ou `Cal`), pas dans un champ dédié.
+
+=== MealPlanTool
+
+Offre trois actions au LLM pour gérer le menu de la semaine :
+
+[cols="1,2,2", options="header"]
+|===
+|Méthode |Paramètres clés |Usage typique
+|`planMeal` |weekStart (lundi), jour, LUNCH/DINNER, recipeId |« Planifie cette recette lundi midi »
+|`getCurrentWeekPlan` |weekStart |« Montre-moi mon menu de cette semaine »
+|`planWeekWithConstraints` |weekStart, contraintes texte, liste de recettes candidates, overwrite |« Planifie toute la semaine avec des repas rapides »
+|===
+
+Le paramètre `weekStart` est toujours validé comme un lundi au format `YYYY-MM-DD`.
+`planWeekWithConstraints` remplit les 14 créneaux (lundi–dimanche × déjeuner/dîner) en distribuant les recettes candidates sans répétition.
+
+=== ShoppingListTool
+
+Génère la liste de courses en agrégeant les ingrédients de toutes les recettes planifiées dans la semaine.
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+
+start
+:charger MealPlanEntries de la semaine;
+:extraire tous les ingrédients\n(Ingredient.description = quantité libre);
+:parser les quantités\n(regex: "^([\\d.,]+)\\s*([unité]*)");
+if (includeBasics = false ?) then (oui)
+  :exclure sel, poivre, huile, etc.\n(liste configurable dans application.yml);
+endif
+:regrouper par nom d'ingrédient;
+:agréger les quantités\n(UnitNormalizationService);
+:catégoriser par mots-clés;
+:retourner ShoppingListResult;
+stop
+@enduml
+....
+
+==== Catégories générées automatiquement
+
+* Légumes et herbes
+* Fruits
+* Viandes et poissons
+* Produits laitiers
+* Féculents
+* Épices et condiments
+* Autres
+
+==== Normalisation des unités
+
+`UnitNormalizationService` regroupe les unités en familles compatibles et agrège leurs quantités :
+
+[cols="1,1,1", options="header"]
+|===
+|Famille |Unités reconnues |Affichage
+|MASS |mg, g, kg |< 1000 g → « 500 g » / ≥ 1000 → « 1.5 kg »
+|VOLUME |ml, cl, dl, l |< 100 ml → « 80 ml » / 100–999 → « 15 cl » / ≥ 1000 → « 1.5 l »
+|SMALL_VOLUME |c.à.s (15 ml), c.à.c (5 ml), pincée (0.5 ml) |converti en ml
+|PIECE |unité, tranche, gousse, ... |conservées séparément (non agrégeables)
+|===
+
+Si deux occurrences d'un même ingrédient ont des unités de familles incompatibles (ex : « 200 g » + « 2 unités »), elles sont listées séparément avec un avertissement.
+
+== Mémoire de conversation
+
+La mémoire est persistée en PostgreSQL (table `chat_message`) via `PostgresChatMemoryStore`, une implémentation de l'interface `ChatMemoryStore` de LangChain4J.
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+
+participant "RecipeAssistant\n(LangChain4J)" as AI
+participant "MessageWindowChatMemory\n(max 20 messages)" as Window
+participant "PostgresChatMemoryStore" as Store
+database "chat_message\n(PostgreSQL)" as DB
+
+AI -> Window : getMessages(sessionId)
+Window -> Store : getMessages(sessionId)
+Store -> DB : SELECT role, content\nWHERE session_id = ?\nORDER BY created_at
+DB --> Store : rows
+Store --> Window : List<ChatMessage>
+
+note right of Window
+  Fenêtre glissante :
+  seuls les 20 derniers messages
+  sont transmis au LLM.
+end note
+
+AI -> Window : updateMessages(sessionId, messages)
+Window -> Store : updateMessages(sessionId, messages)
+Store -> DB : DELETE WHERE session_id = ?
+Store -> DB : INSERT (role, content) × N
+@enduml
+....
+
+Chaque message est sérialisé en JSON avec son rôle (`USER`, `AI`, `TOOL_EXECUTION_RESULT`, `SYSTEM`).
+Les appels d'outils du LLM sont également persistés pour maintenir la cohérence de l'historique.
+
+[source,sql]
+----
+CREATE TABLE chat_message (
+    id         bigserial PRIMARY KEY,
+    session_id varchar(255) NOT NULL,
+    role       varchar(50)  NOT NULL,   -- USER | AI | TOOL_EXECUTION_RESULT | SYSTEM
+    content    text         NOT NULL,   -- JSON sérialisé
+    created_at timestamptz  NOT NULL DEFAULT NOW()
+);
+CREATE INDEX ON chat_message (session_id, created_at);
+----
+
+== Configuration
+
+Toutes les propriétés IA sont regroupées sous le préfixe `ai:` dans `application.yml` et exposées via `AiProperties` (`@ConfigurationProperties`).
+
+[source,yaml]
+----
+ai:
+  groq:
+    api-key: ${GROQ_API_KEY}          # variable d'environnement obligatoire
+    model-name: llama-3.3-70b-versatile
+  nomic:
+    api-key: ${NOMIC_API_KEY}         # variable d'environnement obligatoire
+    model-name: nomic-embed-text-v1.5
+  shopping-list:
+    basic-necessities:                # exclus de la liste de courses par défaut
+      - sel
+      - poivre
+      - huile
+      - huile d'olive
+      - sucre
+      - farine
+      - beurre
+      - vinaigre
+      - moutarde
+      - levure chimique
+      - bicarbonate
+      - laurier
+      - thym
+      - paprika
+      - cumin
+----
+
+== Flux d'une conversation typique
+
+Voici le déroulé complet d'une demande : _« Quelles recettes de saison peut-on faire cette semaine, et planifie-moi le menu. »_
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 11
+skinparam ArrowColor #555555
+skinparam sequenceMessageAlign center
+
+actor Utilisateur
+participant "ChatDelegate" as HTTP
+participant "RecipeAssistant\n(LangChain4J)" as AI
+participant "Groq / LLaMA" as LLM
+participant "SeasonalVegetableTool" as SVT
+participant "RecipeSuggestionTool" as RST
+participant "MealPlanTool" as MPT
+
+Utilisateur -> HTTP : POST /api/v1/chat\n"Quelles recettes de saison\npour cette semaine ?"
+
+HTTP -> AI : chat(sessionId, message)
+AI -> LLM : [historique + message + schémas des outils]
+
+LLM --> AI : appel outil getSeasonalVegetables(month=4)
+AI -> SVT : getSeasonalVegetables(4)
+SVT --> AI : { vegetables: [Asperge, Épinard, ...] }
+
+AI -> LLM : [résultat outil]
+LLM --> AI : appel outil suggestRecipes(\n  "recettes avec asperges ou épinards", 5)
+AI -> RST : suggestRecipes(...)
+RST --> AI : [Quiche aux asperges, Risotto aux épinards, ...]
+
+AI -> LLM : [résultats recettes]
+LLM --> AI : appel outil planWeekWithConstraints(\n  weekStart, constraints, [recipe-ids], overwrite=false)
+AI -> MPT : planWeekWithConstraints(...)
+MPT --> AI : { assigned: 5, warnings: [] }
+
+AI -> LLM : [résultat planification]
+LLM --> AI : "J'ai sélectionné 5 recettes de saison et planifié\nvotre semaine ! Voici le détail..."
+
+AI --> HTTP : réponse textuelle finale
+HTTP --> Utilisateur : ChatResponseDto { reply: "..." }
+@enduml
+....
+
+== Indexation et synchronisation
+
+L'indexation des embeddings est déclenchée automatiquement après chaque synchronisation Cookidoo réussie.
+Elle est exécutée de façon asynchrone (`@Async`) pour ne pas bloquer le thread de synchronisation.
+
+[source]
+----
+SyncService.executeSync()
+  └── run.complete(collectionsSynced, recipesSynced)
+  └── recipeEmbeddingService.indexAllRecipes()  ← @Async, non bloquant
+        └── recipeRepository.findAll()
+        └── embeddingModel.embedAll(segments)
+        └── embeddingStore.removeAll()
+        └── embeddingStore.addAll(embeddings, segments)
+----
+
+NOTE: L'index est entièrement recalculé à chaque sync (pas de mise à jour incrémentale).
+Avec un catalogue de plusieurs centaines de recettes, la durée d'indexation est typiquement de quelques secondes.
+
+=== Déclenchement manuel de l'indexation
+
+Un endpoint dédié permet de réindexer les embeddings indépendamment d'une synchronisation Cookidoo — utile après un changement de modèle d'embedding ou une migration de schéma.
+
+[source]
+----
+POST /api/v1/embeddings/index
+
+→ 202 Accepted  (indexation démarrée en arrière-plan)
+----
+
+L'endpoint délègue directement à `RecipeEmbeddingService.indexAllRecipes()` sans déclencher de synchronisation des recettes depuis Cookidoo.

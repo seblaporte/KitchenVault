@@ -16,6 +16,10 @@ cookidoo:
     cron: "-"  # Disable scheduled sync in tests
     resync-after-hours: 24
 
+ai:
+  session:
+    cleanup-cron: "-"  # Disable session cleanup in tests
+
 logging:
   level:
     fr.seblaporte.kitchenvault: DEBUG

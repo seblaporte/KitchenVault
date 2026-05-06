@@ -83,10 +83,38 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- ── LangChain4J ────────────────────────────────────────────────────── -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-agentic</artifactId>
+        </dependency>
+        <!-- OVH AI Endpoints use OpenAI-compatible API -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-pgvector</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.pgvector</groupId>
+            <artifactId>pgvector</artifactId>
+        </dependency>
+
         <!-- ── Test ────────────────────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- Test slices (@WebMvcTest, @DataJpaTest) — désormais des starters dédiés dans Spring Boot 4 -->
@@ -197,7 +225,7 @@
                             <imageName>kitchen-vault</imageName>
                             <buildArgs>
                                 <buildArg>-Ob</buildArg>
-                                <buildArg>-J-Xmx5g</buildArg>
+                                <buildArg>-J-Xmx7g</buildArg>
                             </buildArgs>
                             <metadataRepository>
                                 <enabled>true</enabled>

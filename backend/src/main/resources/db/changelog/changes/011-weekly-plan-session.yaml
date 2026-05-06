@@ -1,0 +1,41 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 011-create-weekly-plan-session
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: weekly_plan_session
+            columns:
+              - column:
+                  name: session_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: week_start
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: initial_done
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: pending_changes
+                  type: jsonb
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_active_at
+                  type: timestamptz
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false

@@ -1,8 +1,10 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { catchError, interval, of, Subscription, switchMap, startWith } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroArrowPath } from '@ng-icons/heroicons/outline';
+import { BASE_PATH } from '@KitchenVault/api-client';
 
 interface SyncRun {
   id: string;
@@ -23,7 +25,8 @@ interface AdminStats {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NgIconComponent],
+  providers: [provideIcons({ heroArrowPath })],
   template: `
     <div class="space-y-8">
       <h1 class="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">Administration</h1>
@@ -79,11 +82,7 @@ interface AdminStats {
             aria-label="Lancer une synchronisation manuelle"
           >
             @if (isSyncing()) {
-              <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                <path class="opacity-75" fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-              </svg>
+              <ng-icon name="heroArrowPath" class="h-4 w-4 animate-spin" aria-hidden="true" />
               Synchronisation…
             } @else {
               Synchroniser
@@ -129,6 +128,55 @@ interface AdminStats {
           </div>
         }
       </section>
+
+      <!-- Embedding indexation -->
+      <section
+        class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6"
+        aria-labelledby="indexing-heading"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="indexing-heading" class="text-base font-semibold text-stone-900 dark:text-stone-100">
+              Indexation des embeddings
+            </h2>
+            <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">
+              Réindexe les embeddings de toutes les recettes sans relancer une synchronisation Cookidoo.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="triggerIndexation()"
+            [disabled]="isIndexing()"
+            class="inline-flex items-center gap-2 rounded-lg bg-forest-600 px-4 py-2 text-sm
+                   font-medium text-white hover:bg-forest-700 cursor-pointer disabled:opacity-50
+                   disabled:cursor-not-allowed transition-colors
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-600"
+            [attr.aria-busy]="isIndexing()"
+            aria-label="Lancer une indexation manuelle des embeddings"
+          >
+            @if (isIndexing()) {
+              <ng-icon name="heroArrowPath" class="h-4 w-4 animate-spin" aria-hidden="true" />
+              Indexation…
+            } @else {
+              Indexer
+            }
+          </button>
+        </div>
+
+        @if (indexingMessage()) {
+          <div
+            class="mt-4 rounded-lg p-3 text-sm"
+            [ngClass]="{
+              'bg-emerald-50 text-emerald-800': indexingMessage()!.type === 'success',
+              'bg-red-50 text-red-700': indexingMessage()!.type === 'error'
+            }"
+            role="status"
+            aria-live="polite"
+          >
+            {{ indexingMessage()!.text }}
+          </div>
+        }
+      </section>
     </div>
   `,
 })
@@ -136,10 +184,12 @@ export class AdminComponent implements OnInit, OnDestroy {
   latestSync = signal<SyncRun | null>(null);
   stats = signal<AdminStats | null>(null);
   isSyncing = signal(false);
+  isIndexing = signal(false);
+  indexingMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   private pollSubscription?: Subscription;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, @Inject(BASE_PATH) private basePath: string) {}
 
   ngOnInit(): void {
     this.loadStats();
@@ -153,7 +203,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   triggerSync(): void {
     if (this.isSyncing()) return;
 
-    this.http.post<SyncRun>(`${environment.apiUrl}/api/v1/sync`, {}).subscribe({
+    this.http.post<SyncRun>(`${this.basePath}/api/v1/sync`, {}).subscribe({
       next: run => {
         this.latestSync.set(run);
         this.isSyncing.set(true);
@@ -167,7 +217,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       .pipe(
         startWith(0),
         switchMap(() =>
-          this.http.get<SyncRun>(`${environment.apiUrl}/api/v1/sync/latest`).pipe(
+          this.http.get<SyncRun>(`${this.basePath}/api/v1/sync/latest`).pipe(
             catchError(err => {
               if (err.status === 404) return of(null);
               throw err;
@@ -187,9 +237,26 @@ export class AdminComponent implements OnInit, OnDestroy {
       });
   }
 
+  triggerIndexation(): void {
+    if (this.isIndexing()) return;
+    this.isIndexing.set(true);
+    this.indexingMessage.set(null);
+    this.http.post(`${this.basePath}/api/v1/embeddings/index`, {}).subscribe({
+      next: () => {
+        this.isIndexing.set(false);
+        this.indexingMessage.set({ type: 'success', text: 'Indexation démarrée.' });
+      },
+      error: err => {
+        this.isIndexing.set(false);
+        this.indexingMessage.set({ type: 'error', text: 'Erreur lors du déclenchement.' });
+        console.error('Indexation trigger failed', err);
+      },
+    });
+  }
+
   private loadStats(): void {
     this.http
-      .get<AdminStats>(`${environment.apiUrl}/api/v1/admin/stats`)
+      .get<AdminStats>(`${this.basePath}/api/v1/admin/stats`)
       .subscribe({ next: stats => this.stats.set(stats) });
   }
 

@@ -1,5 +1,6 @@
 package fr.seblaporte.kitchenvault.service;
 
+import fr.seblaporte.kitchenvault.ai.service.RecipeEmbeddingService;
 import fr.seblaporte.kitchenvault.config.CookidooProperties;
 import fr.seblaporte.kitchenvault.cookidoo.CookidooServiceClient;
 import fr.seblaporte.kitchenvault.cookidoo.model.*;
@@ -35,6 +36,7 @@ class SyncServiceTest {
     @Mock CookidooProperties properties;
     @Mock CookidooProperties.ServiceProperties serviceProperties;
     @Mock CookidooProperties.SyncProperties syncProperties;
+    @Mock RecipeEmbeddingService recipeEmbeddingService;
 
     @InjectMocks SyncService syncService;
 

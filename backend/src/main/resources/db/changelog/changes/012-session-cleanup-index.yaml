@@ -1,0 +1,8 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 012-index-weekly-plan-session-last-active-at
+      author: seblaporte
+      changes:
+        - sql:
+            sql: CREATE INDEX IF NOT EXISTS idx_weekly_plan_session_last_active_at ON weekly_plan_session (last_active_at);

@@ -14,6 +14,8 @@ servers:
 tags:
   - name: sync
     description: Synchronisation avec Cookidoo
+  - name: embedding
+    description: Indexation des embeddings pour la recherche sémantique
   - name: admin
     description: Administration et statistiques
   - name: recipes
@@ -24,6 +26,8 @@ tags:
     description: Consultation des catégories
   - name: menu-plan
     description: Planification du menu
+  - name: chat
+    description: Chat IA avec suggestions de recettes et planification
 
 paths:
 
@@ -82,6 +86,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SyncRunPageDto"
+
+  # ─── Embeddings ──────────────────────────────────────────────────────────────
+
+  /api/v1/embeddings/index:
+    post:
+      tags: [embedding]
+      operationId: triggerEmbeddingIndexation
+      summary: Déclenche l'indexation des embeddings
+      description: |
+        Lance l'indexation asynchrone des embeddings pour toutes les recettes.
+        Permet de réindexer sans relancer une synchronisation Cookidoo complète.
+      responses:
+        "202":
+          description: Indexation démarrée
 
   # ─── Administration ──────────────────────────────────────────────────────────
 
@@ -247,6 +265,71 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorDto"
 
+  # ─── Chat IA ─────────────────────────────────────────────────────────────────
+
+  /api/v1/chat/meal-plan-week:
+    post:
+      tags: [chat]
+      operationId: chatMealPlanWeek
+      summary: Planification IA de la semaine
+      description: |
+        Assistant conversationnel pour planifier les déjeuners et dîners de la semaine.
+        Phase 1 : collecte et clarification des contraintes.
+        Phase 2 : génération du menu complet et itérations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WeeklyPlanChatRequest"
+      responses:
+        "200":
+          description: Réponse de l'assistant de planification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyPlanChatResponse"
+        "422":
+          description: Base de recettes vide ou insuffisante
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service IA indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/chat/recipe:
+    post:
+      tags: [chat]
+      operationId: chatRecipe
+      summary: Suggestions de recettes
+      description: |
+        Workflow spécialisé pour la recherche et suggestion de recettes.
+        Chaîne les agents : SeasonalContextAgent → RecipeSuggestionAgent (RAG).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageDto"
+      responses:
+        "200":
+          description: Suggestions de recettes de l'assistant IA
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponseDto"
+        "503":
+          description: Service IA indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
   # ─── Menu Plan ──────────────────────────────────────────────────────────────
 
   /api/v1/menu-plan:
@@ -370,6 +453,33 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/MealPlanEntryDto"
+
+  /api/v1/menu-plan/entries/bulk:
+    post:
+      tags: [menu-plan]
+      operationId: upsertBulkEntries
+      summary: Appliquer plusieurs créneaux en une seule requête
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanBulkRequest"
+      responses:
+        "200":
+          description: Entrées créées ou mises à jour
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MealPlanEntryDto"
+        "404":
+          description: Une des recettes est introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
 
   /api/v1/menu-plan/history:
     get:
@@ -744,6 +854,27 @@ components:
         recipeId:
           type: string
 
+    MealPlanBulkRequest:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealPlanBulkEntryDto"
+
+    MealPlanBulkEntryDto:
+      type: object
+      required: [date, mealType, recipeId]
+      properties:
+        date:
+          type: string
+          format: date
+        mealType:
+          $ref: "#/components/schemas/MealType"
+        recipeId:
+          type: string
+
     RecipeHistoryDto:
       type: object
       required: [recipeId, dates]
@@ -755,6 +886,125 @@ components:
           items:
             type: string
             format: date
+
+    # ── Chat IA ────────────────────────────────────────────────────────────────
+
+    WeeklyPlanChatRequest:
+      type: object
+      required: [sessionId, weekStart, message]
+      properties:
+        sessionId:
+          type: string
+          description: Identifiant de session (UUID côté client)
+        weekStart:
+          type: string
+          format: date
+          description: Lundi de la semaine à planifier (ISO-8601)
+        message:
+          type: string
+          description: Message de l'utilisateur, ou "CONFIRM" / "REJECT" pour la confirmation
+        constraints:
+          allOf:
+            - $ref: "#/components/schemas/WeekConstraintsDto"
+          nullable: true
+          description: Contraintes initiales, présentes uniquement au premier appel
+
+    WeekConstraintsDto:
+      type: object
+      properties:
+        absenceDays:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Jours sans repas (ex. ["MONDAY", "WEDNESDAY"])
+        priorityIngredients:
+          type: string
+          nullable: true
+          description: Ingrédients à utiliser en priorité (texte libre)
+        thermalConstraintDays:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Jours où le four est à éviter
+        freeText:
+          type: string
+          nullable: true
+          description: Remarques libres supplémentaires
+
+    WeeklyPlanChatResponse:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string
+          description: Réponse conversationnelle de l'IA (Markdown)
+        proposedChanges:
+          type: array
+          nullable: true
+          description: Modifications en attente de confirmation (null si déjà appliquées)
+          items:
+            $ref: "#/components/schemas/PendingMealChangeDto"
+        quickActions:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/QuickActionDto"
+
+    PendingMealChangeDto:
+      type: object
+      required: [date, mealType, recipeId, recipeName]
+      properties:
+        date:
+          type: string
+          format: date
+        mealType:
+          $ref: "#/components/schemas/MealType"
+        recipeId:
+          type: string
+        recipeName:
+          type: string
+        previousRecipeName:
+          type: string
+          nullable: true
+          description: Nom de la recette remplacée (null si créneau vide)
+
+    QuickActionDto:
+      type: object
+      required: [label, action]
+      properties:
+        label:
+          type: string
+          description: Texte affiché sur le chip
+        action:
+          type: string
+          description: Message à renvoyer comme prochain message utilisateur
+
+    ChatMessageDto:
+      type: object
+      required: [sessionId, message]
+      properties:
+        sessionId:
+          type: string
+          description: Identifiant de session pour la mémoire conversationnelle
+        message:
+          type: string
+          description: Message de l'utilisateur
+
+    ChatResponseDto:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string
+          description: Réponse de l'assistant IA
+        suggestions:
+          type: array
+          nullable: true
+          description: Recettes suggérées par l'IA
+          items:
+            $ref: "#/components/schemas/RecipeSummaryDto"
 
     # ── Erreurs ────────────────────────────────────────────────────────────────
 

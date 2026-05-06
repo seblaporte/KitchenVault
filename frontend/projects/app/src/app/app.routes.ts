@@ -28,4 +28,9 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./menu-plan/menu-plan.component').then(m => m.MenuPlanComponent),
   },
+  {
+    path: 'shopping-list',
+    loadComponent: () =>
+      import('./shopping-list/shopping-list.component').then(m => m.ShoppingListComponent),
+  },
 ];

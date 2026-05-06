@@ -9,6 +9,7 @@ import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picke
 import { ChatModalComponent } from './chat-modal/chat-modal.component';
 import { WeeklyPlanDrawerComponent } from './weekly-plan-drawer/weekly-plan-drawer.component';
 import { MenuPlanService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
+import { ShoppingListStateService } from '../shopping-list/shopping-list-state.service';
 
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
@@ -180,9 +181,11 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="LUNCH"
                   label="Déjeuner"
+                  [inCart]="isInCart(day.lunch?.recipeId)"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
                   (chatRequested)="openChatForSlot($event)"
+                  (cartToggleRequested)="handleCartToggle($event)"
                 />
               </div>
             }
@@ -201,9 +204,11 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="DINNER"
                   label="Dîner"
+                  [inCart]="isInCart(day.dinner?.recipeId)"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
                   (chatRequested)="openChatForSlot($event)"
+                  (cartToggleRequested)="handleCartToggle($event)"
                 />
               </div>
             }
@@ -283,6 +288,7 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
 
   private renderer = inject(Renderer2);
   private document = inject(DOCUMENT);
+  private shoppingListState = inject(ShoppingListStateService);
 
   constructor(private menuPlanService: MenuPlanService) {
     effect(() => {
@@ -300,6 +306,22 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadWeekPlan();
+    this.shoppingListState.load();
+  }
+
+  isInCart(recipeId?: string): boolean {
+    if (!recipeId) return false;
+    return this.shoppingListState.addedRecipeIds().includes(recipeId);
+  }
+
+  handleCartToggle(event: { recipeId: string; recipeName: string }): void {
+    const obs = this.isInCart(event.recipeId)
+      ? this.shoppingListState.removeRecipe(event.recipeId)
+      : this.shoppingListState.addRecipe(event.recipeId, event.recipeName);
+    obs.pipe(catchError(() => {
+      this.error.set('Impossible de modifier la liste de courses.');
+      return EMPTY;
+    })).subscribe();
   }
 
   weekRangeLabel(): string {

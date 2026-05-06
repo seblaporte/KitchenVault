@@ -42,6 +42,17 @@ import { MealPlanEntryDto } from '@KitchenVault/api-client';
             </p>
           }
         </div>
+        @if (entry.recipeId) {
+          <button
+            (click)="$event.stopPropagation(); onCartToggle()"
+            [class]="'absolute top-1.5 left-1.5 w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm cursor-pointer ' + (inCart ? 'bg-forest-600 text-white' : 'bg-black/40 text-white/70 hover:bg-forest-600 hover:text-white')"
+            [attr.aria-label]="inCart ? 'Retirer de la liste de courses' : 'Ajouter à la liste de courses'"
+          >
+            <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </button>
+        }
         <button
           (click)="$event.stopPropagation(); onRemove()"
           class="absolute top-1.5 right-1.5 w-6 h-6 rounded-md bg-black/40 text-white/70 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all backdrop-blur-sm cursor-pointer"
@@ -80,10 +91,12 @@ export class MealSlotComponent {
   @Input({ required: true }) date!: string;
   @Input({ required: true }) mealType!: string;
   @Input({ required: true }) label!: string;
+  @Input() inCart = false;
 
   @Output() addRequested = new EventEmitter<{ date: string; mealType: string }>();
   @Output() removeRequested = new EventEmitter<{ date: string; mealType: string }>();
   @Output() chatRequested = new EventEmitter<{ date: string; mealType: string; label: string }>();
+  @Output() cartToggleRequested = new EventEmitter<{ recipeId: string; recipeName: string }>();
 
   onAdd(): void {
     this.addRequested.emit({ date: this.date, mealType: this.mealType });
@@ -95,5 +108,14 @@ export class MealSlotComponent {
 
   onChatRequested(): void {
     this.chatRequested.emit({ date: this.date, mealType: this.mealType, label: this.label });
+  }
+
+  onCartToggle(): void {
+    if (this.entry?.recipeId) {
+      this.cartToggleRequested.emit({
+        recipeId: this.entry.recipeId,
+        recipeName: this.entry.recipeName ?? this.entry.recipeId,
+      });
+    }
   }
 }

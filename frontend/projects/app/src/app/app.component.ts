@@ -1,13 +1,14 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon } from '@ng-icons/heroicons/outline';
+import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart } from '@ng-icons/heroicons/outline';
+import { ShoppingListStateService } from './shopping-list/shopping-list-state.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIconComponent],
-  providers: [provideIcons({ heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon })],
+  providers: [provideIcons({ heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart })],
   template: `
     <div class="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
       <!-- Navigation -->
@@ -40,6 +41,24 @@ import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon } from
                 >
                   <ng-icon name="heroCalendarDays" class="h-5 w-5" aria-hidden="true" />
                   Menu
+                </a>
+              </li>
+              <li>
+                <a
+                  routerLink="/shopping-list"
+                  routerLinkActive="bg-stone-100 dark:bg-stone-800 text-forest-600 dark:text-forest-400"
+                  class="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+                  aria-label="Liste de courses"
+                >
+                  <span class="relative">
+                    <ng-icon name="heroShoppingCart" class="h-5 w-5" aria-hidden="true" />
+                    @if (shoppingListState.uncheckedCount() > 0) {
+                      <span class="absolute -top-2 -right-2 min-w-[16px] h-4 px-0.5 rounded-full bg-forest-600 text-white text-[10px] font-bold flex items-center justify-center leading-none" aria-hidden="true">
+                        {{ shoppingListState.uncheckedCount() }}
+                      </span>
+                    }
+                  </span>
+                  Liste
                 </a>
               </li>
               <li>
@@ -79,8 +98,10 @@ import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon } from
 })
 export class AppComponent implements OnInit {
   darkMode = signal(false);
+  shoppingListState = inject(ShoppingListStateService);
 
   ngOnInit(): void {
+    this.shoppingListState.load();
     const stored = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (stored === 'dark' || (!stored && prefersDark)) {

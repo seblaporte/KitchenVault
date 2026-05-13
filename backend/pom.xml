@@ -226,6 +226,7 @@
                             <buildArgs>
                                 <buildArg>-Ob</buildArg>
                                 <buildArg>-J-Xmx7g</buildArg>
+                                <buildArg>-march=compatibility</buildArg>
                             </buildArgs>
                             <metadataRepository>
                                 <enabled>true</enabled>

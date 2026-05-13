@@ -1,13 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon } from '@ng-icons/heroicons/outline';
+import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart } from '@ng-icons/heroicons/outline';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIconComponent],
-  providers: [provideIcons({ heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon })],
+  providers: [provideIcons({ heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart })],
   template: `
     <div class="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
       <!-- Navigation -->
@@ -40,6 +40,17 @@ import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon } from
                 >
                   <ng-icon name="heroCalendarDays" class="h-5 w-5" aria-hidden="true" />
                   Menu
+                </a>
+              </li>
+              <li>
+                <a
+                  routerLink="/shopping"
+                  routerLinkActive="bg-stone-100 dark:bg-stone-800 text-forest-600 dark:text-forest-400"
+                  class="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+                  aria-label="Liste de courses"
+                >
+                  <ng-icon name="heroShoppingCart" class="h-5 w-5" aria-hidden="true" />
+                  Courses
                 </a>
               </li>
               <li>

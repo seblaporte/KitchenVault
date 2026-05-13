@@ -23,3 +23,5 @@ databaseChangeLog:
       file: db/changelog/changes/011-weekly-plan-session.yaml
   - include:
       file: db/changelog/changes/012-session-cleanup-index.yaml
+  - include:
+      file: db/changelog/changes/013-shopping-list.yaml

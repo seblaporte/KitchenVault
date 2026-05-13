@@ -15,13 +15,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import fr.seblaporte.kitchenvault.entity.Ingredient;
+import fr.seblaporte.kitchenvault.entity.IngredientGroup;
+
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -67,6 +72,31 @@ class ShoppingListServiceTest {
         ShoppingList result = shoppingListService.getOrCreateActiveList();
 
         assertThat(result).isSameAs(existing);
+        verify(shoppingListRepository, never()).save(any());
+    }
+
+    // ─── getShoppingList ──────────────────────────────────────────────────────
+
+    @Test
+    void getShoppingList_whenListExists_returnsIt() {
+        ShoppingList existing = new ShoppingList();
+        when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(existing));
+
+        ShoppingList result = shoppingListService.getShoppingList();
+
+        assertThat(result).isSameAs(existing);
+        verify(shoppingListRepository, never()).save(any());
+    }
+
+    @Test
+    void getShoppingList_whenNoList_returnsEmptyUnsavedList() {
+        when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.empty());
+
+        ShoppingList result = shoppingListService.getShoppingList();
+
+        assertThat(result).isNotNull();
+        assertThat(result.getRecipes()).isEmpty();
+        assertThat(result.getItems()).isEmpty();
         verify(shoppingListRepository, never()).save(any());
     }
 
@@ -163,8 +193,8 @@ class ShoppingListServiceTest {
         when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
         when(consolidationAgent.consolidate(anyString())).thenReturn(
                 new ShoppingListConsolidationResult(List.of(
-                        new ConsolidatedItem("oeufs", "3 pièces", ShoppingCategory.DAIRY),
-                        new ConsolidatedItem("lait", "500ml", ShoppingCategory.DAIRY)
+                        new ConsolidatedItem("oeufs", "3 pièces", ShoppingCategory.DAIRY, null),
+                        new ConsolidatedItem("lait", "500ml", ShoppingCategory.DAIRY, null)
                 ))
         );
         when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -184,16 +214,16 @@ class ShoppingListServiceTest {
         Recipe recipe = makeRecipe("r-1", "Tarte");
         list.getRecipes().add(new ShoppingListRecipe(list, recipe));
 
-        ShoppingListItem customItem = new ShoppingListItem(list, "Pain de campagne", null, ShoppingCategory.BAKERY, List.of(), 0);
+        ShoppingListItem customItem = new ShoppingListItem(list, "Pain de campagne", null, ShoppingCategory.BAKERY, List.of(), Map.of(), 0);
         customItem.setCustom(true);
-        ShoppingListItem oldConsolidated = new ShoppingListItem(list, "Beurre", "100g", ShoppingCategory.DAIRY, List.of("r-1"), 1);
+        ShoppingListItem oldConsolidated = new ShoppingListItem(list, "Beurre", "100g", ShoppingCategory.DAIRY, List.of("r-1"), Map.of(), 1);
         list.getItems().addAll(List.of(customItem, oldConsolidated));
 
         when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(list));
         when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
         when(consolidationAgent.consolidate(anyString())).thenReturn(
                 new ShoppingListConsolidationResult(List.of(
-                        new ConsolidatedItem("oeufs", "2", ShoppingCategory.DAIRY)
+                        new ConsolidatedItem("oeufs", "2", ShoppingCategory.DAIRY, null)
                 ))
         );
         when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -215,9 +245,9 @@ class ShoppingListServiceTest {
         when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
         when(consolidationAgent.consolidate(anyString())).thenReturn(
                 new ShoppingListConsolidationResult(List.of(
-                        new ConsolidatedItem(null, "100g", ShoppingCategory.PRODUCE),
-                        new ConsolidatedItem("  ", "1", ShoppingCategory.PRODUCE),
-                        new ConsolidatedItem("carottes", "300g", ShoppingCategory.PRODUCE)
+                        new ConsolidatedItem(null, "100g", ShoppingCategory.PRODUCE, null),
+                        new ConsolidatedItem("  ", "1", ShoppingCategory.PRODUCE, null),
+                        new ConsolidatedItem("carottes", "300g", ShoppingCategory.PRODUCE, null)
                 ))
         );
         when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -270,6 +300,139 @@ class ShoppingListServiceTest {
         ));
     }
 
+    @Test
+    void consolidate_whenAgentThrows_rethrowsException() {
+        stubAiProperties();
+        ShoppingList list = new ShoppingList();
+        Recipe recipe = makeRecipe("r-1", "Tarte");
+        list.getRecipes().add(new ShoppingListRecipe(list, recipe));
+        when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(list));
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
+        when(consolidationAgent.consolidate(anyString())).thenThrow(new RuntimeException("AI error"));
+
+        assertThatThrownBy(() -> shoppingListService.consolidate())
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("AI error");
+    }
+
+    @Test
+    void consolidate_whenResultItemsIsNull_savesNoConsolidatedItems() {
+        stubAiProperties();
+        ShoppingList list = new ShoppingList();
+        Recipe recipe = makeRecipe("r-1", "Tarte");
+        list.getRecipes().add(new ShoppingListRecipe(list, recipe));
+        when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(list));
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
+        when(consolidationAgent.consolidate(anyString())).thenReturn(
+                new ShoppingListConsolidationResult(null));
+        when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ShoppingList result = shoppingListService.consolidate();
+
+        assertThat(result.getItems()).isEmpty();
+    }
+
+    @Test
+    void consolidate_whenSourceRecipeIdsEmpty_fallsBackToAllRecipes() {
+        stubAiProperties();
+        ShoppingList list = new ShoppingList();
+        Recipe recipe = makeRecipe("r-1", "Tarte");
+        list.getRecipes().add(new ShoppingListRecipe(list, recipe));
+        when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(list));
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
+        when(consolidationAgent.consolidate(anyString())).thenReturn(
+                new ShoppingListConsolidationResult(List.of(
+                        new ConsolidatedItem("farine", "200g", ShoppingCategory.GROCERY, null)
+                ))
+        );
+        when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ShoppingList result = shoppingListService.consolidate();
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().iterator().next().getSourceRecipeIds()).containsExactly("r-1");
+    }
+
+    @Test
+    void consolidate_whenRecipeDeletedFromRepo_continuesWithoutIngredients() {
+        stubAiProperties();
+        ShoppingList list = new ShoppingList();
+        Recipe recipe = makeRecipe("r-deleted", "Recette supprimée");
+        list.getRecipes().add(new ShoppingListRecipe(list, recipe));
+        when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(list));
+        when(recipeRepository.findById("r-deleted")).thenReturn(Optional.empty());
+        when(consolidationAgent.consolidate(anyString())).thenReturn(
+                new ShoppingListConsolidationResult(List.of()));
+        when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThatCode(() -> shoppingListService.consolidate()).doesNotThrowAnyException();
+        verify(consolidationAgent).consolidate(anyString());
+    }
+
+    @Test
+    void consolidate_whenCategoryIsNull_defaultsToOther() {
+        stubAiProperties();
+        ShoppingList list = new ShoppingList();
+        Recipe recipe = makeRecipe("r-1", "Tarte");
+        list.getRecipes().add(new ShoppingListRecipe(list, recipe));
+        when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(list));
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
+        when(consolidationAgent.consolidate(anyString())).thenReturn(
+                new ShoppingListConsolidationResult(List.of(
+                        new ConsolidatedItem("oeufs", "3", null, null)
+                ))
+        );
+        when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ShoppingList result = shoppingListService.consolidate();
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().iterator().next().getCategory()).isEqualTo(ShoppingCategory.OTHER);
+    }
+
+    @Test
+    void consolidate_whenSourceRecipeIdsProvided_usesThem() {
+        stubAiProperties();
+        ShoppingList list = new ShoppingList();
+        Recipe r1 = makeRecipe("r-1", "Tarte");
+        Recipe r2 = makeRecipe("r-2", "Quiche");
+        list.getRecipes().add(new ShoppingListRecipe(list, r1));
+        list.getRecipes().add(new ShoppingListRecipe(list, r2));
+        when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(list));
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(r1));
+        when(recipeRepository.findById("r-2")).thenReturn(Optional.of(r2));
+        when(consolidationAgent.consolidate(anyString())).thenReturn(
+                new ShoppingListConsolidationResult(List.of(
+                        new ConsolidatedItem("oeufs", "3", ShoppingCategory.DAIRY, List.of("r-1"))
+                ))
+        );
+        when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ShoppingList result = shoppingListService.consolidate();
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().iterator().next().getSourceRecipeIds()).containsExactly("r-1");
+    }
+
+    @Test
+    void consolidate_withRecipeHavingIngredients_includesThemInAgentPrompt() {
+        stubAiProperties();
+        ShoppingList list = new ShoppingList();
+        Recipe recipe = makeRecipeWithIngredients("r-1", "Tarte");
+        list.getRecipes().add(new ShoppingListRecipe(list, recipe));
+        when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(list));
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
+        when(consolidationAgent.consolidate(anyString())).thenReturn(
+                new ShoppingListConsolidationResult(List.of()));
+        when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        shoppingListService.consolidate();
+
+        verify(consolidationAgent).consolidate(argThat(text ->
+                text.contains("oeufs") && text.contains("3 pièces") && text.contains("farine")
+        ));
+    }
+
     // ─── addCustomItem ────────────────────────────────────────────────────────
 
     @Test
@@ -289,7 +452,7 @@ class ShoppingListServiceTest {
     @Test
     void addCustomItem_sortOrderFollowsExistingItems() {
         ShoppingList list = new ShoppingList();
-        ShoppingListItem existing = new ShoppingListItem(list, "Oeufs", "6", ShoppingCategory.DAIRY, List.of(), 5);
+        ShoppingListItem existing = new ShoppingListItem(list, "Oeufs", "6", ShoppingCategory.DAIRY, List.of(), Map.of(), 5);
         list.getItems().add(existing);
         when(shoppingListRepository.findTopByOrderByCreatedAtAsc()).thenReturn(Optional.of(list));
         when(shoppingListRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -305,7 +468,7 @@ class ShoppingListServiceTest {
     void toggleItem_whenNotChecked_setsCheckedTrue() {
         ShoppingList list = new ShoppingList();
         UUID itemId = UUID.randomUUID();
-        ShoppingListItem item = new ShoppingListItem(list, "Carottes", "500g", ShoppingCategory.PRODUCE, List.of(), 0);
+        ShoppingListItem item = new ShoppingListItem(list, "Carottes", "500g", ShoppingCategory.PRODUCE, List.of(), Map.of(), 0);
         when(shoppingListItemRepository.findById(itemId)).thenReturn(Optional.of(item));
         when(shoppingListItemRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -318,7 +481,7 @@ class ShoppingListServiceTest {
     void toggleItem_whenChecked_setsCheckedFalse() {
         ShoppingList list = new ShoppingList();
         UUID itemId = UUID.randomUUID();
-        ShoppingListItem item = new ShoppingListItem(list, "Carottes", "500g", ShoppingCategory.PRODUCE, List.of(), 0);
+        ShoppingListItem item = new ShoppingListItem(list, "Carottes", "500g", ShoppingCategory.PRODUCE, List.of(), Map.of(), 0);
         item.setChecked(true);
         when(shoppingListItemRepository.findById(itemId)).thenReturn(Optional.of(item));
         when(shoppingListItemRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -355,7 +518,7 @@ class ShoppingListServiceTest {
         ShoppingList list = new ShoppingList();
         Recipe recipe = makeRecipe("r-1", "Tarte");
         list.getRecipes().add(new ShoppingListRecipe(list, recipe));
-        ShoppingListItem item = new ShoppingListItem(list, "Oeufs", "3", ShoppingCategory.DAIRY, List.of(), 0);
+        ShoppingListItem item = new ShoppingListItem(list, "Oeufs", "3", ShoppingCategory.DAIRY, List.of(), Map.of(), 0);
         list.getItems().add(item);
         list.setConsolidatedAt(Instant.now());
 
@@ -379,11 +542,32 @@ class ShoppingListServiceTest {
         verify(shoppingListRepository, never()).save(any());
     }
 
+    // ─── ShoppingListItem constructor defaults ────────────────────────────────
+
+    @Test
+    void shoppingListItemConstructor_whenNullCollections_usesEmptyDefaults() {
+        ShoppingList list = new ShoppingList();
+        ShoppingListItem item = new ShoppingListItem(list, "Test", null, ShoppingCategory.OTHER, null, null, 0);
+
+        assertThat(item.getSourceRecipeIds()).isEmpty();
+        assertThat(item.getSourceRecipeNames()).isEmpty();
+    }
+
     // ─── helpers ─────────────────────────────────────────────────────────────
 
     private Recipe makeRecipe(String id, String name) {
         Recipe recipe = new Recipe(id);
         recipe.setName(name);
+        return recipe;
+    }
+
+    private Recipe makeRecipeWithIngredients(String id, String name) {
+        Recipe recipe = new Recipe(id);
+        recipe.setName(name);
+        IngredientGroup group = new IngredientGroup(recipe, null, 0);
+        group.getIngredients().add(new Ingredient("i-1", group, "oeufs", "3 pièces", 0));
+        group.getIngredients().add(new Ingredient("i-2", group, "farine", null, 1));
+        recipe.getIngredientGroups().add(group);
         return recipe;
     }
 }

@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -151,7 +152,7 @@ class ShoppingListDelegateTest {
     @Test
     void addShoppingListItem_returns201WithItem() throws Exception {
         ShoppingList list = new ShoppingList();
-        ShoppingListItem item = new ShoppingListItem(list, "Pain bio", "1 baguette", fr.seblaporte.kitchenvault.entity.ShoppingCategory.OTHER, List.of(), 0);
+        ShoppingListItem item = new ShoppingListItem(list, "Pain bio", "1 baguette", fr.seblaporte.kitchenvault.entity.ShoppingCategory.OTHER, List.of(), Map.of(), 0);
         item.setCustom(true);
 
         ShoppingListItemDto dto = new ShoppingListItemDto()
@@ -178,7 +179,7 @@ class ShoppingListDelegateTest {
     @Test
     void addShoppingListItem_withNullQuantity_returns201() throws Exception {
         ShoppingList list = new ShoppingList();
-        ShoppingListItem item = new ShoppingListItem(list, "Miel", null, fr.seblaporte.kitchenvault.entity.ShoppingCategory.OTHER, List.of(), 0);
+        ShoppingListItem item = new ShoppingListItem(list, "Miel", null, fr.seblaporte.kitchenvault.entity.ShoppingCategory.OTHER, List.of(), Map.of(), 0);
         item.setCustom(true);
 
         ShoppingListItemDto dto = new ShoppingListItemDto()
@@ -206,7 +207,7 @@ class ShoppingListDelegateTest {
     void toggleShoppingListItem_returns200WithUpdatedState() throws Exception {
         UUID itemId = UUID.randomUUID();
         ShoppingList list = new ShoppingList();
-        ShoppingListItem item = new ShoppingListItem(list, "Carottes", "500g", fr.seblaporte.kitchenvault.entity.ShoppingCategory.PRODUCE, List.of(), 0);
+        ShoppingListItem item = new ShoppingListItem(list, "Carottes", "500g", fr.seblaporte.kitchenvault.entity.ShoppingCategory.PRODUCE, List.of(), Map.of(), 0);
         item.setChecked(true);
 
         ShoppingListItemDto dto = new ShoppingListItemDto()

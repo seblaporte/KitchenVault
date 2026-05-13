@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.sql.DataSource;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -65,7 +66,7 @@ class ShoppingListItemRepositoryIT {
     @Test
     void addItem_persistsItemWithCategory() {
         ShoppingList list = shoppingListRepository.save(new ShoppingList());
-        ShoppingListItem item = new ShoppingListItem(list, "Carottes", "500g", ShoppingCategory.PRODUCE, List.of("r-1"), 0);
+        ShoppingListItem item = new ShoppingListItem(list, "Carottes", "500g", ShoppingCategory.PRODUCE, List.of("r-1"), Map.of(), 0);
 
         shoppingListItemRepository.save(item);
 
@@ -83,7 +84,7 @@ class ShoppingListItemRepositoryIT {
     void toggle_updatesCheckedStatus() {
         ShoppingList list = shoppingListRepository.save(new ShoppingList());
         ShoppingListItem item = shoppingListItemRepository.save(
-                new ShoppingListItem(list, "Oeufs", "6", ShoppingCategory.DAIRY, List.of(), 0));
+                new ShoppingListItem(list, "Oeufs", "6", ShoppingCategory.DAIRY, List.of(), Map.of(), 0));
 
         item.setChecked(true);
         item.setUpdatedAt(Instant.now());
@@ -114,7 +115,7 @@ class ShoppingListItemRepositoryIT {
     @Test
     void deleteShoppingList_cascadesToRecipesAndItems() {
         ShoppingList list = new ShoppingList();
-        ShoppingListItem item = new ShoppingListItem(list, "Tomates", "1kg", ShoppingCategory.PRODUCE, List.of(), 0);
+        ShoppingListItem item = new ShoppingListItem(list, "Tomates", "1kg", ShoppingCategory.PRODUCE, List.of(), Map.of(), 0);
         list.getItems().add(item);
         ShoppingList saved = shoppingListRepository.save(list);
 
@@ -126,7 +127,7 @@ class ShoppingListItemRepositoryIT {
     @Test
     void customItem_isFlaggedAndPersisted() {
         ShoppingList list = shoppingListRepository.save(new ShoppingList());
-        ShoppingListItem item = new ShoppingListItem(list, "Pain bio", null, ShoppingCategory.OTHER, List.of(), 0);
+        ShoppingListItem item = new ShoppingListItem(list, "Pain bio", null, ShoppingCategory.OTHER, List.of(), Map.of(), 0);
         item.setCustom(true);
 
         shoppingListItemRepository.save(item);

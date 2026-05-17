@@ -2,14 +2,14 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroSparkles } from '@ng-icons/heroicons/outline';
+import { heroSparkles, heroShoppingCart, heroCheck } from '@ng-icons/heroicons/outline';
 import { MealPlanEntryDto } from '@KitchenVault/api-client';
 
 @Component({
   selector: 'app-meal-slot',
   standalone: true,
   imports: [CommonModule, RouterLink, NgIconComponent],
-  providers: [provideIcons({ heroSparkles })],
+  providers: [provideIcons({ heroSparkles, heroShoppingCart, heroCheck })],
   template: `
     @if (entry) {
       <div class="group relative rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 overflow-hidden hover:-translate-y-0.5 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-md transition-all">
@@ -51,6 +51,24 @@ import { MealPlanEntryDto } from '@KitchenVault/api-client';
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
+        @if (entry.recipeId) {
+          <button
+            (click)="$event.stopPropagation(); onAddToShopping()"
+            class="absolute top-1.5 left-1.5 h-6 px-2 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all backdrop-blur-sm cursor-pointer"
+            [ngClass]="inSelection
+              ? 'bg-forest-600 text-white border border-forest-700 shadow-sm opacity-100'
+              : 'bg-black/40 text-white/70 opacity-0 group-hover:opacity-100 hover:bg-forest-600 hover:text-white'"
+            [title]="inSelection ? 'Recette dans la sélection' : 'Ajouter à la liste de courses'"
+            [attr.aria-label]="inSelection ? 'Recette dans la sélection' : 'Ajouter à la liste de courses'"
+          >
+            @if (inSelection) {
+              <ng-icon name="heroCheck" class="h-2.5 w-2.5" aria-hidden="true" />
+            } @else {
+              <ng-icon name="heroShoppingCart" class="h-3 w-3" aria-hidden="true" />
+            }
+            Liste
+          </button>
+        }
       </div>
     } @else {
       <div class="group relative w-full min-h-[130px] rounded-xl border-2 border-dashed border-stone-200 dark:border-stone-700 transition-colors hover:border-forest-400 dark:hover:border-forest-600 hover:bg-forest-50 dark:hover:bg-forest-950/30">
@@ -80,10 +98,12 @@ export class MealSlotComponent {
   @Input({ required: true }) date!: string;
   @Input({ required: true }) mealType!: string;
   @Input({ required: true }) label!: string;
+  @Input() inSelection: boolean = false;
 
   @Output() addRequested = new EventEmitter<{ date: string; mealType: string }>();
   @Output() removeRequested = new EventEmitter<{ date: string; mealType: string }>();
   @Output() chatRequested = new EventEmitter<{ date: string; mealType: string; label: string }>();
+  @Output() addToShoppingRequested = new EventEmitter<{ recipeId: string; recipeName: string }>();
 
   onAdd(): void {
     this.addRequested.emit({ date: this.date, mealType: this.mealType });
@@ -95,5 +115,10 @@ export class MealSlotComponent {
 
   onChatRequested(): void {
     this.chatRequested.emit({ date: this.date, mealType: this.mealType, label: this.label });
+  }
+
+  onAddToShopping(): void {
+    if (!this.entry?.recipeId) return;
+    this.addToShoppingRequested.emit({ recipeId: this.entry.recipeId, recipeName: this.entry.recipeName ?? '' });
   }
 }

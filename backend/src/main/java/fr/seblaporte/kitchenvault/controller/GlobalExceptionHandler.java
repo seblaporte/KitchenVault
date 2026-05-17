@@ -2,6 +2,7 @@ package fr.seblaporte.kitchenvault.controller;
 
 import fr.seblaporte.kitchenvault.exception.InvalidWeekStartException;
 import fr.seblaporte.kitchenvault.generated.model.ErrorDto;
+import fr.seblaporte.kitchenvault.service.ShoppingListService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,14 @@ public class GlobalExceptionHandler {
         ErrorDto error = new ErrorDto();
         error.setMessage(ex.getMessage());
         return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(ShoppingListService.EmptySelectionException.class)
+    public ResponseEntity<ErrorDto> handleEmptySelection(ShoppingListService.EmptySelectionException ex) {
+        log.warn("Empty shopping list selection: {}", ex.getMessage());
+        ErrorDto error = new ErrorDto();
+        error.setMessage(ex.getMessage());
+        return ResponseEntity.unprocessableEntity().body(error);
     }
 
     @ExceptionHandler(RestClientException.class)

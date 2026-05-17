@@ -39,6 +39,24 @@
   },
 
   {
+    "name": "fr.seblaporte.kitchenvault.ai.agent.ShoppingListConsolidationResult",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.ai.agent.ShoppingListConsolidationResult$ConsolidatedItem",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "fr.seblaporte.kitchenvault.entity.ShoppingCategory",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+
+  {
     "name": "fr.seblaporte.kitchenvault.ai.agent.RecipeSuggestionResult",
     "allDeclaredFields": true,
     "allDeclaredConstructors": true,

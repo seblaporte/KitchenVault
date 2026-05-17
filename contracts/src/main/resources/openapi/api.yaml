@@ -28,6 +28,8 @@ tags:
     description: Planification du menu
   - name: chat
     description: Chat IA avec suggestions de recettes et planification
+  - name: shopping-list
+    description: Liste de courses avec consolidation IA
 
 paths:
 
@@ -480,6 +482,160 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorDto"
+
+  # ─── Liste de courses ────────────────────────────────────────────────────────
+
+  /api/v1/shopping-list:
+    get:
+      tags: [shopping-list]
+      operationId: getShoppingList
+      summary: Retourne l'état complet de la liste de courses
+      description: |
+        Retourne la liste de courses active avec la sélection de recettes et les articles consolidés.
+        Crée automatiquement une liste vide si elle n'existe pas encore.
+      responses:
+        "200":
+          description: Liste de courses complète
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListDto"
+    delete:
+      tags: [shopping-list]
+      operationId: clearShoppingList
+      summary: Réinitialise complètement la liste de courses
+      description: Supprime tous les articles et la sélection de recettes.
+      responses:
+        "204":
+          description: Liste réinitialisée
+
+  /api/v1/shopping-list/selection/recipes/{recipeId}:
+    post:
+      tags: [shopping-list]
+      operationId: addRecipeToSelection
+      summary: Ajoute une recette à la sélection de la liste de courses
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recette ajoutée à la sélection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListRecipeDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+    delete:
+      tags: [shopping-list]
+      operationId: removeRecipeFromSelection
+      summary: Retire une recette de la sélection (idempotent)
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Recette retirée de la sélection
+
+  /api/v1/shopping-list/consolidate:
+    post:
+      tags: [shopping-list]
+      operationId: consolidateShoppingList
+      summary: Consolide la liste de courses via l'agent IA
+      description: |
+        Agrège les ingrédients de toutes les recettes de la sélection,
+        filtre les produits de base, fusionne les doublons et catégorise chaque article.
+        Remplace les articles précédemment consolidés.
+      responses:
+        "200":
+          description: Liste consolidée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListDto"
+        "422":
+          description: Aucune recette dans la sélection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service IA indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/shopping-list/items:
+    post:
+      tags: [shopping-list]
+      operationId: addShoppingListItem
+      summary: Ajoute un article custom à la liste de courses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddShoppingListItemRequest"
+      responses:
+        "201":
+          description: Article créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListItemDto"
+
+  /api/v1/shopping-list/items/{id}/toggle:
+    patch:
+      tags: [shopping-list]
+      operationId: toggleShoppingListItem
+      summary: Bascule l'état coché/décoché d'un article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Article mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListItemDto"
+        "404":
+          description: Article introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/shopping-list/items/{id}:
+    delete:
+      tags: [shopping-list]
+      operationId: deleteShoppingListItem
+      summary: Supprime un article de la liste
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Article supprimé
 
   /api/v1/menu-plan/history:
     get:
@@ -1005,6 +1161,104 @@ components:
           description: Recettes suggérées par l'IA
           items:
             $ref: "#/components/schemas/RecipeSummaryDto"
+
+    # ── Liste de courses ───────────────────────────────────────────────────────
+
+    ShoppingCategory:
+      type: string
+      enum: [PRODUCE, MEAT, DAIRY, BAKERY, GROCERY, FROZEN, SPICES, OTHER]
+
+    ShoppingListRecipeDto:
+      type: object
+      required: [id, recipeName, recipeIdSnapshot, consolidated, addedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        recipeId:
+          type: string
+          nullable: true
+          description: ID live de la recette (null si supprimée)
+        recipeName:
+          type: string
+        recipeIdSnapshot:
+          type: string
+          description: ID snapshot de la recette au moment de l'ajout
+        consolidated:
+          type: boolean
+          description: La recette est-elle déjà reflétée dans les articles consolidés
+        addedAt:
+          type: string
+          format: date-time
+        thumbnailUrl:
+          type: string
+          nullable: true
+          description: URL de la miniature de la recette (null si recette supprimée ou sans image)
+
+    ShoppingListItemDto:
+      type: object
+      required: [id, name, category, checked, sourceRecipeIds, custom, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        quantity:
+          type: string
+          nullable: true
+        category:
+          $ref: "#/components/schemas/ShoppingCategory"
+        checked:
+          type: boolean
+        sourceRecipeIds:
+          type: array
+          items:
+            type: string
+          description: IDs des recettes sources de cet article
+        sourceRecipeNames:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map recipeIdSnapshot → nom de la recette source (snapshot au moment de la consolidation)
+        custom:
+          type: boolean
+          description: Article ajouté manuellement par l'utilisateur
+        createdAt:
+          type: string
+          format: date-time
+
+    ShoppingListDto:
+      type: object
+      required: [recipes, items]
+      properties:
+        recipes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShoppingListRecipeDto"
+          description: Recettes dans la sélection
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShoppingListItemDto"
+          description: Articles de la liste (consolidés + custom)
+        consolidatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date de la dernière consolidation IA (null si jamais consolidée)
+
+    AddShoppingListItemRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        quantity:
+          type: string
+          nullable: true
 
     # ── Erreurs ────────────────────────────────────────────────────────────────
 

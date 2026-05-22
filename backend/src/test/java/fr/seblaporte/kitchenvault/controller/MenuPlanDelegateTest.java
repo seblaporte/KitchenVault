@@ -7,6 +7,7 @@ import fr.seblaporte.kitchenvault.generated.api.MenuPlanApiController;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanEntryDto;
 import fr.seblaporte.kitchenvault.generated.model.RecipeHistoryDto;
 import fr.seblaporte.kitchenvault.mapper.MealPlanMapper;
+import fr.seblaporte.kitchenvault.service.CookidooCalendarSyncService;
 import fr.seblaporte.kitchenvault.service.MealPlanService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,7 @@ class MenuPlanDelegateTest {
 
     @MockitoBean MealPlanService mealPlanService;
     @MockitoBean MealPlanMapper mealPlanMapper;
+    @MockitoBean CookidooCalendarSyncService cookidooCalendarSyncService;
 
     @Test
     void getWeekPlan_withValidMonday_returnsOk() throws Exception {

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, effect, inject, Renderer2, computed } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroSparkles, heroPlay } from '@ng-icons/heroicons/outline';
+import { heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown } from '@ng-icons/heroicons/outline';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, EMPTY, forkJoin, map, of, switchMap } from 'rxjs';
 import { MealSlotComponent } from './meal-slot/meal-slot.component';
@@ -55,7 +55,7 @@ interface WeekDay extends DayPlanDto {
   selector: 'app-menu-plan',
   standalone: true,
   imports: [CommonModule, NgIconComponent, MealSlotComponent, RecipePickerDialogComponent, ChatModalComponent, WeeklyPlanDrawerComponent],
-  viewProviders: [provideIcons({ heroSparkles, heroPlay })],
+  viewProviders: [provideIcons({ heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown })],
   template: `
     <!-- En-tête semaine -->
     <div class="flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-4 py-3 shadow-sm mb-4">
@@ -111,6 +111,57 @@ interface WeekDay extends DayPlanDto {
           <ng-icon name="heroSparkles" class="h-3.5 w-3.5" aria-hidden="true" />
           Planifier avec l'IA
         </button>
+
+        @if (syncDropdownOpen()) {
+          <div class="fixed inset-0 z-40" (click)="syncDropdownOpen.set(false)" aria-hidden="true"></div>
+        }
+        <!-- Split button Cookidoo sync -->
+        <div class="relative inline-flex">
+          <button
+            (click)="syncToCookidoo(false)"
+            [disabled]="syncing()"
+            class="inline-flex items-center gap-1.5 rounded-l-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
+            [class.border-green-400]="syncFeedback() === 'success'"
+            [class.text-green-600]="syncFeedback() === 'success'"
+            [class.dark:border-green-600]="syncFeedback() === 'success'"
+            aria-label="Synchroniser la semaine avec Cookidoo"
+          >
+            @if (syncing()) {
+              <svg class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+            } @else {
+              <ng-icon name="heroArrowUpOnSquare" class="h-3.5 w-3.5" aria-hidden="true" />
+            }
+            Cookidoo
+          </button>
+          <button
+            (click)="syncDropdownOpen.set(!syncDropdownOpen())"
+            [disabled]="syncing()"
+            class="inline-flex items-center rounded-r-lg border-t border-r border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-1.5 py-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
+            aria-label="Options de synchronisation Cookidoo"
+            aria-haspopup="true"
+            [attr.aria-expanded]="syncDropdownOpen()"
+          >
+            <ng-icon name="heroChevronDown" class="h-3 w-3" aria-hidden="true" />
+          </button>
+          @if (syncDropdownOpen()) {
+            <div
+              class="absolute right-0 top-full mt-1 z-50 min-w-max rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-lg py-1"
+              role="menu"
+            >
+              <button
+                (click)="syncToCookidoo(true)"
+                class="w-full text-left px-3 py-2 text-xs text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+                role="menuitem"
+              >
+                Écraser le planning existant
+              </button>
+            </div>
+          }
+        </div>
+
         <button
           (click)="suggestWeek()"
           [disabled]="loading()"
@@ -257,6 +308,9 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   chatContext = signal<ChatContext | null>(null);
   weeklyDrawerOpen = signal(false);
   selectionIds = signal<Set<string>>(new Set());
+  syncing = signal(false);
+  syncDropdownOpen = signal(false);
+  syncFeedback = signal<'success' | 'error' | null>(null);
   pickerDate = '';
   pickerMealType = '';
 
@@ -453,6 +507,25 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
 
   toISODateStr(d: Date): string {
     return toISODate(d);
+  }
+
+  syncToCookidoo(replace: boolean): void {
+    this.syncDropdownOpen.set(false);
+    this.syncing.set(true);
+    this.syncFeedback.set(null);
+    this.error.set(null);
+    this.menuPlanService.syncWeekToCookidoo(toISODate(this.weekStart()), replace)
+      .pipe(catchError((err: HttpErrorResponse) => {
+        this.syncFeedback.set('error');
+        this.error.set('Impossible de synchroniser avec Cookidoo.');
+        this.syncing.set(false);
+        return EMPTY;
+      }))
+      .subscribe(() => {
+        this.syncFeedback.set('success');
+        this.syncing.set(false);
+        setTimeout(() => this.syncFeedback.set(null), 3000);
+      });
   }
 
   loadWeekPlan(): void {

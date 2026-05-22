@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from .cookidoo_session import cookidoo_session
-from .routes import collections, recipes
+from .routes import collections, recipes, calendar
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +40,7 @@ app = FastAPI(
 
 app.include_router(collections.router)
 app.include_router(recipes.router)
+app.include_router(calendar.router)
 
 
 @app.get("/health", include_in_schema=False)

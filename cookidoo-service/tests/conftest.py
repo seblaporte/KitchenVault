@@ -22,6 +22,9 @@ def mock_cookidoo():
     mock.count_custom_collections = AsyncMock()
     mock.get_custom_collections = AsyncMock()
     mock.get_recipe_details = AsyncMock()
+    mock.get_recipes_in_calendar_week = AsyncMock()
+    mock.add_recipes_to_calendar = AsyncMock()
+    mock.remove_recipe_from_calendar = AsyncMock()
     return mock
 
 

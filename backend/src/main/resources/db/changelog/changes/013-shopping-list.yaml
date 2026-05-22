@@ -1,0 +1,193 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 013-create-shopping-list
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: shopping_list
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: consolidated_at
+                  type: timestamptz
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 013-create-shopping-list-recipe
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: shopping_list_recipe
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: shopping_list_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: recipe_id
+                  type: varchar(255)
+              - column:
+                  name: recipe_name_snapshot
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: recipe_id_snapshot
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: consolidated
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: added_at
+                  type: timestamptz
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 013-shopping-list-recipe-fk-list
+      author: seblaporte
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: shopping_list_id
+            baseTableName: shopping_list_recipe
+            constraintName: fk_shopping_list_recipe_list
+            onDelete: CASCADE
+            referencedColumnNames: id
+            referencedTableName: shopping_list
+
+  - changeSet:
+      id: 013-shopping-list-recipe-fk-recipe
+      author: seblaporte
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: recipe_id
+            baseTableName: shopping_list_recipe
+            constraintName: fk_shopping_list_recipe_recipe
+            onDelete: SET NULL
+            referencedColumnNames: id
+            referencedTableName: recipe
+
+  - changeSet:
+      id: 013-create-shopping-list-item
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: shopping_list_item
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: shopping_list_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantity
+                  type: varchar(255)
+              - column:
+                  name: category
+                  type: varchar(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: checked
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_recipe_ids
+                  type: jsonb
+                  defaultValue: "[]"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: custom
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sort_order
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 013-shopping-list-item-fk-list
+      author: seblaporte
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: shopping_list_id
+            baseTableName: shopping_list_item
+            constraintName: fk_shopping_list_item_list
+            onDelete: CASCADE
+            referencedColumnNames: id
+            referencedTableName: shopping_list
+
+  - changeSet:
+      id: 013-add-source-recipe-names-to-item
+      author: seblaporte
+      changes:
+        - addColumn:
+            tableName: shopping_list_item
+            columns:
+              - column:
+                  name: source_recipe_names
+                  type: jsonb
+                  defaultValue: "{}"

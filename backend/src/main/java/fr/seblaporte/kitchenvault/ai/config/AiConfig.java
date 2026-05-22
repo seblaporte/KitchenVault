@@ -11,6 +11,7 @@ import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import fr.seblaporte.kitchenvault.ai.agent.RecipeSuggestionAgent;
+import fr.seblaporte.kitchenvault.ai.agent.ShoppingListConsolidationAgent;
 import fr.seblaporte.kitchenvault.ai.agent.WeeklyMealPlanAgent;
 import fr.seblaporte.kitchenvault.ai.memory.PostgresChatMemoryStore;
 import fr.seblaporte.kitchenvault.config.AiProperties;
@@ -113,6 +114,13 @@ public class AiConfig {
                         .maxMessages(40)
                         .chatMemoryStore(chatMemoryStore)
                         .build())
+                .build();
+    }
+
+    @Bean
+    public ShoppingListConsolidationAgent shoppingListConsolidationAgent() {
+        return AgenticServices.agentBuilder(ShoppingListConsolidationAgent.class)
+                .chatModel(chatModel())
                 .build();
     }
 

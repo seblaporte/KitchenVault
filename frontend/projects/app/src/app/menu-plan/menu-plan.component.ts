@@ -8,7 +8,7 @@ import { MealSlotComponent } from './meal-slot/meal-slot.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
 import { ChatModalComponent } from './chat-modal/chat-modal.component';
 import { WeeklyPlanDrawerComponent } from './weekly-plan-drawer/weekly-plan-drawer.component';
-import { MenuPlanService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
+import { MenuPlanService, ShoppingListService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
 
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
@@ -180,9 +180,11 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="LUNCH"
                   label="Déjeuner"
+                  [inSelection]="day.lunch?.recipeId ? selectionIds().has(day.lunch!.recipeId!) : false"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
                   (chatRequested)="openChatForSlot($event)"
+                  (addToShoppingRequested)="onAddToShopping($event)"
                 />
               </div>
             }
@@ -201,9 +203,11 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="DINNER"
                   label="Dîner"
+                  [inSelection]="day.dinner?.recipeId ? selectionIds().has(day.dinner!.recipeId!) : false"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
                   (chatRequested)="openChatForSlot($event)"
+                  (addToShoppingRequested)="onAddToShopping($event)"
                 />
               </div>
             }
@@ -252,6 +256,7 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   pickerOpen = signal(false);
   chatContext = signal<ChatContext | null>(null);
   weeklyDrawerOpen = signal(false);
+  selectionIds = signal<Set<string>>(new Set());
   pickerDate = '';
   pickerMealType = '';
 
@@ -284,7 +289,7 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   private renderer = inject(Renderer2);
   private document = inject(DOCUMENT);
 
-  constructor(private menuPlanService: MenuPlanService) {
+  constructor(private menuPlanService: MenuPlanService, private shoppingListService: ShoppingListService) {
     effect(() => {
       if (this.weeklyDrawerOpen()) {
         this.renderer.addClass(this.document.body, 'drawer-open');
@@ -300,6 +305,27 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadWeekPlan();
+    this.loadSelectionIds();
+  }
+
+  private loadSelectionIds(): void {
+    this.shoppingListService.getShoppingList().subscribe({
+      next: list => {
+        const ids = new Set(list.recipes
+          .filter(r => r.recipeId != null)
+          .map(r => r.recipeId!));
+        this.selectionIds.set(ids);
+      }
+    });
+  }
+
+  onAddToShopping({ recipeId, recipeName }: { recipeId: string; recipeName: string }): void {
+    if (this.selectionIds().has(recipeId)) return;
+    this.shoppingListService.addRecipeToSelection(recipeId)
+      .pipe(catchError(() => EMPTY))
+      .subscribe(() => {
+        this.selectionIds.update(s => new Set([...s, recipeId]));
+      });
   }
 
   weekRangeLabel(): string {

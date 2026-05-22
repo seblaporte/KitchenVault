@@ -16,7 +16,7 @@ import { RecipesService, RecipeSummaryDto } from '@KitchenVault/api-client';
       aria-label="Sélectionner une recette"
       (click)="onBackdropClick($event)"
     >
-      <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl flex flex-col max-h-[80vh]" (click)="$event.stopPropagation()">
+      <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl flex flex-col max-h-[90dvh]" (click)="$event.stopPropagation()">
 
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 px-6 py-4">
@@ -44,7 +44,7 @@ import { RecipesService, RecipeSummaryDto } from '@KitchenVault/api-client';
               [(ngModel)]="searchText"
               (ngModelChange)="onSearchChange($event)"
               placeholder="Rechercher une recette…"
-              class="w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 py-2 pl-10 pr-4 text-sm text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:border-forest-400 focus:bg-white dark:focus:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-forest-200 dark:focus:ring-forest-700"
+              class="w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 py-2 pl-10 pr-4 text-base text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:border-forest-400 focus:bg-white dark:focus:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-forest-200 dark:focus:ring-forest-700"
               aria-label="Rechercher une recette"
             />
           </div>

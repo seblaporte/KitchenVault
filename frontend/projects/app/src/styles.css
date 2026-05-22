@@ -23,7 +23,12 @@
 
 body.drawer-open main {
   max-width: none;
-  padding-right: 400px;
+}
+
+@media (min-width: 640px) {
+  body.drawer-open main {
+    padding-right: 400px;
+  }
 }
 
 @keyframes toast-in {

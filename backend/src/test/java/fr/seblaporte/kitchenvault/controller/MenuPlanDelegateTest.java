@@ -150,6 +150,29 @@ class MenuPlanDelegateTest {
     }
 
     @Test
+    void syncWeekToCookidoo_withValidMonday_returns204() throws Exception {
+        mockMvc.perform(post("/api/v1/menu-plan/2026-05-18/cookidoo-sync"))
+                .andExpect(status().isNoContent());
+
+        verify(cookidooCalendarSyncService).syncWeek(LocalDate.of(2026, 5, 18), false);
+    }
+
+    @Test
+    void syncWeekToCookidoo_withNonMonday_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/menu-plan/2026-05-19/cookidoo-sync"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("weekStart must be a Monday"));
+    }
+
+    @Test
+    void syncWeekToCookidoo_withReplaceTrue_delegatesWithReplaceTrue() throws Exception {
+        mockMvc.perform(post("/api/v1/menu-plan/2026-05-18/cookidoo-sync").param("replace", "true"))
+                .andExpect(status().isNoContent());
+
+        verify(cookidooCalendarSyncService).syncWeek(LocalDate.of(2026, 5, 18), true);
+    }
+
+    @Test
     void getRecipeHistory_returnsHistory() throws Exception {
         MealPlanEntry entry = new MealPlanEntry();
         entry.setEntryDate(LocalDate.of(2024, 3, 15));

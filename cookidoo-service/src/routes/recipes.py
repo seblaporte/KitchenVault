@@ -83,6 +83,7 @@ async def get_recipe(recipe_id: str) -> RecipeDetailsResponse:
         )
 
     except CookidooAuthException as exc:
+        cookidoo_session.invalidate()
         logger.error("Authentication failure fetching recipe %s: %s", recipe_id, exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

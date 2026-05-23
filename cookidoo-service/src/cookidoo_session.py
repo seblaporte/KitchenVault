@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, UTC
+from pathlib import Path
 
 import aiohttp
 from cookidoo_api import (
@@ -10,71 +10,84 @@ from cookidoo_api import (
     CookidooAuthException,
     CookidooConfig,
     CookidooLocalizationConfig,
-    CookidooRequestException,
 )
 
 from .config import settings
 
 logger = logging.getLogger(__name__)
 
-_TOKEN_REFRESH_MARGIN_SECONDS = 60
-
 
 class CookidooSession:
-    """Singleton-like session holder. Manages auth token lifecycle."""
+    """Singleton-like session holder. Manages auth via session cookies."""
 
     def __init__(self) -> None:
         self._http_session: aiohttp.ClientSession | None = None
         self._cookidoo: Cookidoo | None = None
-        self._token_expires_at: datetime | None = None
+        self._authenticated = False
         self._lock = asyncio.Lock()
 
     async def _ensure_session(self) -> Cookidoo:
-        """Return an authenticated Cookidoo client, refreshing if needed."""
+        """Return an authenticated Cookidoo client."""
         async with self._lock:
             if self._http_session is None or self._http_session.closed:
-                self._http_session = aiohttp.ClientSession()
-                self._cookidoo = Cookidoo(
-                    self._http_session,
-                    cfg=CookidooConfig(
-                        localization=CookidooLocalizationConfig(
-                            country_code=settings.country_code,
-                            language=settings.language,
-                            url=f"https://cookidoo.{settings.country_code}/foundation/{settings.language}",
-                        ),
-                        email=settings.email,
-                        password=settings.password,
-                    ),
-                )
-                self._token_expires_at = None
-
+                await self._create_session()
+            elif not self._authenticated:
+                await self._login_and_save()
             assert self._cookidoo is not None
-
-            if self._needs_refresh():
-                await self._authenticate()
-
             return self._cookidoo
 
-    def _needs_refresh(self) -> bool:
-        if self._token_expires_at is None:
-            return True
-        margin = timedelta(seconds=_TOKEN_REFRESH_MARGIN_SECONDS)
-        return datetime.now(UTC) >= self._token_expires_at - margin
+    async def _create_session(self) -> None:
+        self._http_session = aiohttp.ClientSession(
+            cookie_jar=aiohttp.CookieJar(unsafe=True)
+        )
+        self._cookidoo = Cookidoo(
+            self._http_session,
+            cfg=CookidooConfig(
+                localization=CookidooLocalizationConfig(
+                    country_code=settings.country_code,
+                    language=settings.language,
+                    url=f"https://cookidoo.{settings.country_code}/foundation/{settings.language}",
+                ),
+                email=settings.email,
+                password=settings.password,
+            ),
+        )
+        self._authenticated = False
 
-    async def _authenticate(self) -> None:
+        cookies_path = Path(settings.cookies_file_path)
+        if cookies_path.exists():
+            try:
+                self._cookidoo.load_cookies(str(cookies_path))
+                self._authenticated = True
+                logger.info("Restored Cookidoo session from %s", cookies_path)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to load cookies from %s: %s — performing fresh login",
+                    cookies_path,
+                    exc,
+                )
+
+        if not self._authenticated:
+            await self._login_and_save()
+
+    async def _login_and_save(self) -> None:
         assert self._cookidoo is not None
+        logger.info("Logging into Cookidoo")
         try:
-            if self._token_expires_at is None:
-                logger.info("Logging into Cookidoo")
-                auth = await self._cookidoo.login()
-            else:
-                logger.info("Refreshing Cookidoo token")
-                auth = await self._cookidoo.refresh_token()
-            self._token_expires_at = datetime.now(UTC) + timedelta(seconds=auth.expires_in)
-            logger.info("Cookidoo authentication successful, token valid for %ds", auth.expires_in)
+            await self._cookidoo.login()
+            self._authenticated = True
+            cookies_path = Path(settings.cookies_file_path)
+            cookies_path.parent.mkdir(parents=True, exist_ok=True)
+            self._cookidoo.save_cookies(str(cookies_path))
+            logger.info("Saved Cookidoo cookies to %s", cookies_path)
         except CookidooAuthException as exc:
-            logger.error("Cookidoo authentication failed: %s", exc)
+            logger.error("Cookidoo login failed: %s", exc)
             raise
+
+    def invalidate(self) -> None:
+        """Mark session as unauthenticated — next get_client() will re-login."""
+        self._authenticated = False
+        logger.info("Cookidoo session invalidated — will re-login on next request")
 
     async def get_client(self) -> Cookidoo:
         return await self._ensure_session()

@@ -57,6 +57,7 @@ async def add_recipes_to_calendar(
         )
 
     except CookidooAuthException as exc:
+        cookidoo_session.invalidate()
         logger.error("Authentication failure adding recipes to calendar day %s: %s", day, exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

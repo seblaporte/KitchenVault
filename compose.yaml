@@ -35,6 +35,8 @@ services:
       COOKIDOO_PASSWORD: ${COOKIDOO_PASSWORD}
       COOKIDOO_COUNTRY_CODE: ${COOKIDOO_COUNTRY_CODE:-fr}
       COOKIDOO_LANGUAGE: ${COOKIDOO_LANGUAGE:-fr-FR}
+    volumes:
+      - cookidoo_data:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 10s
@@ -46,3 +48,4 @@ services:
 
 volumes:
   postgres_data:
+  cookidoo_data:

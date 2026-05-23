@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     password: str
     country_code: str = "fr"
     language: str = "fr-FR"
+    cookies_file_path: str = "/data/cookidoo_cookies.json"
 
 
 settings = Settings()

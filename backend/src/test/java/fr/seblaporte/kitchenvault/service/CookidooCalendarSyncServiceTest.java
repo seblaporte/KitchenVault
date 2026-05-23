@@ -54,8 +54,8 @@ class CookidooCalendarSyncServiceTest {
         service.syncWeek(MONDAY, false);
 
         verify(cookidooServiceClient, times(2)).addRecipesToCalendar(any(), any());
-        verify(cookidooServiceClient).addRecipesToCalendar(eq(MONDAY), any());
-        verify(cookidooServiceClient).addRecipesToCalendar(eq(TUESDAY), any());
+        verify(cookidooServiceClient).addRecipesToCalendar(eq("2025-05-19"), any());
+        verify(cookidooServiceClient).addRecipesToCalendar(eq("2025-05-20"), any());
     }
 
     @Test
@@ -68,7 +68,7 @@ class CookidooCalendarSyncServiceTest {
         service.syncWeek(MONDAY, false);
 
         ArgumentCaptor<AddRecipesToCalendarRequest> captor = ArgumentCaptor.forClass(AddRecipesToCalendarRequest.class);
-        verify(cookidooServiceClient).addRecipesToCalendar(eq(MONDAY), captor.capture());
+        verify(cookidooServiceClient).addRecipesToCalendar(eq("2025-05-19"), captor.capture());
 
         AddRecipesToCalendarRequest request = captor.getValue();
         assertThat(request.recipeIds()).containsExactlyInAnyOrder("r-1", "r-2");
@@ -92,7 +92,7 @@ class CookidooCalendarSyncServiceTest {
         service.syncWeek(MONDAY, true);
 
         ArgumentCaptor<AddRecipesToCalendarRequest> captor = ArgumentCaptor.forClass(AddRecipesToCalendarRequest.class);
-        verify(cookidooServiceClient).addRecipesToCalendar(eq(MONDAY), captor.capture());
+        verify(cookidooServiceClient).addRecipesToCalendar(eq("2025-05-19"), captor.capture());
 
         assertThat(captor.getValue().replace()).isTrue();
     }
@@ -112,7 +112,7 @@ class CookidooCalendarSyncServiceTest {
         service.syncWeek(MONDAY, false);
 
         ArgumentCaptor<AddRecipesToCalendarRequest> captor = ArgumentCaptor.forClass(AddRecipesToCalendarRequest.class);
-        verify(cookidooServiceClient, times(1)).addRecipesToCalendar(eq(MONDAY), captor.capture());
+        verify(cookidooServiceClient, times(1)).addRecipesToCalendar(eq("2025-05-19"), captor.capture());
 
         assertThat(captor.getValue().recipeIds()).containsExactly("r-1");
     }

@@ -6,6 +6,7 @@ import fr.seblaporte.kitchenvault.entity.MealPlanEntry;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,7 +34,7 @@ public class CookidooCalendarSyncService {
 
         for (Map.Entry<LocalDate, List<String>> dayEntry : byDate.entrySet()) {
             cookidooServiceClient.addRecipesToCalendar(
-                    dayEntry.getKey(),
+                    dayEntry.getKey().format(DateTimeFormatter.ISO_LOCAL_DATE),
                     new AddRecipesToCalendarRequest(dayEntry.getValue(), replace)
             );
         }

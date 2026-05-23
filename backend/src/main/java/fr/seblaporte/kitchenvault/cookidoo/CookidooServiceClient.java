@@ -9,7 +9,8 @@ import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
-import java.time.LocalDate;
+import org.springframework.http.ResponseEntity;
+
 import java.util.List;
 
 @HttpExchange
@@ -22,5 +23,5 @@ public interface CookidooServiceClient {
     CookidooRecipeDetails getRecipeById(@PathVariable String id);
 
     @PostExchange("/calendar/{date}/recipes")
-    void addRecipesToCalendar(@PathVariable LocalDate date, @RequestBody AddRecipesToCalendarRequest request);
+    ResponseEntity<Void> addRecipesToCalendar(@PathVariable String date, @RequestBody AddRecipesToCalendarRequest request);
 }

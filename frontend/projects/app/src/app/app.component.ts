@@ -13,7 +13,7 @@ import { ToastComponent } from './shared/toast/toast.component';
   template: `
     <div class="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
       <!-- Navigation desktop -->
-      <nav class="border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900" aria-label="Navigation principale">
+      <nav class="sticky top-0 z-30 border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900" style="padding-top: env(safe-area-inset-top)" aria-label="Navigation principale">
         <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div class="flex h-14 sm:h-16 items-center justify-between">
             <div class="flex items-center">

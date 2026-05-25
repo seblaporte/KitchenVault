@@ -26,6 +26,7 @@ import { MealPlanEntryDto } from '@KitchenVault/api-client';
           @if (entry.recipeId) {
             <a
               [routerLink]="['/recipes', entry.recipeId]"
+              [queryParams]="{ from: 'menu' }"
               (click)="$event.stopPropagation()"
               class="block text-xs font-medium text-stone-800 dark:text-stone-200 hover:text-forest-600 dark:hover:text-forest-400 line-clamp-2 leading-snug transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
             >{{ entry.recipeName }}</a>

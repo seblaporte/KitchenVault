@@ -301,6 +301,7 @@ export class RecipeDetailComponent implements OnInit {
   error = signal<string | null>(null);
   historyDates = signal<string[]>([]);
   readonly backLabel = signal<'Recettes' | 'Menu'>('Recettes');
+  private backWeekStart: string | null = null;
 
   private readonly nutritionLabels: Record<string, string> = {
     protein: 'Protéines',
@@ -326,6 +327,7 @@ export class RecipeDetailComponent implements OnInit {
   ngOnInit(): void {
     if (this.route.snapshot.queryParamMap.get('from') === 'menu') {
       this.backLabel.set('Menu');
+      this.backWeekStart = this.route.snapshot.queryParamMap.get('weekStart');
     }
     this.http
       .get<RecipeDetail>(`${environment.apiUrl}/api/v1/recipes/${this.id()}`)
@@ -364,6 +366,11 @@ export class RecipeDetailComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate([this.backLabel() === 'Menu' ? '/menu' : '/recipes']);
+    if (this.backLabel() === 'Menu') {
+      const extras = this.backWeekStart ? { queryParams: { weekStart: this.backWeekStart } } : {};
+      this.router.navigate(['/menu'], extras);
+    } else {
+      this.router.navigate(['/recipes']);
+    }
   }
 }

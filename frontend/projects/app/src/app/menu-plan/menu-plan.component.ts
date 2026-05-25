@@ -8,6 +8,7 @@ import { MealSlotComponent } from './meal-slot/meal-slot.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
 import { ChatModalComponent } from './chat-modal/chat-modal.component';
 import { WeeklyPlanDrawerComponent } from './weekly-plan-drawer/weekly-plan-drawer.component';
+import { ActivatedRoute } from '@angular/router';
 import { MenuPlanService, ShoppingListService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
 import { ToastService } from '../shared/toast/toast.service';
 
@@ -232,6 +233,7 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="LUNCH"
                   label="Déjeuner"
+                  [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.lunch?.recipeId ? selectionIds().has(day.lunch!.recipeId!) : false"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
@@ -246,6 +248,7 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="DINNER"
                   label="Dîner"
+                  [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.dinner?.recipeId ? selectionIds().has(day.dinner!.recipeId!) : false"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
@@ -300,6 +303,7 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="LUNCH"
                   label="Déjeuner"
+                  [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.lunch?.recipeId ? selectionIds().has(day.lunch!.recipeId!) : false"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
@@ -323,6 +327,7 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="DINNER"
                   label="Dîner"
+                  [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.dinner?.recipeId ? selectionIds().has(day.dinner!.recipeId!) : false"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
@@ -410,7 +415,7 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
 
   private renderer = inject(Renderer2);
   private document = inject(DOCUMENT);
-
+  private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
 
   constructor(private menuPlanService: MenuPlanService, private shoppingListService: ShoppingListService) {
@@ -441,6 +446,8 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    const ws = this.route.snapshot.queryParamMap.get('weekStart');
+    if (ws) this.weekStart.set(getMondayOf(new Date(ws + 'T00:00:00')));
     this.loadWeekPlan();
     this.loadSelectionIds();
   }

@@ -202,13 +202,16 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   triggerSync(): void {
     if (this.isSyncing()) return;
+    this.isSyncing.set(true);
 
     this.http.post<SyncRun>(`${this.basePath}/api/v1/sync`, {}).subscribe({
       next: run => {
         this.latestSync.set(run);
-        this.isSyncing.set(true);
       },
-      error: err => console.error('Sync trigger failed', err),
+      error: err => {
+        this.isSyncing.set(false);
+        console.error('Sync trigger failed', err);
+      },
     });
   }
 

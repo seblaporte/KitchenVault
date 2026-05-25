@@ -17,7 +17,7 @@ def _make_collection(
     description: str | None = "Description",
     recipes: list | None = None,
 ) -> CookidooCollection:
-    chapter_recipes = recipes or [
+    chapter_recipes = recipes if recipes is not None else [
         CookidooChapterRecipe(id="r-1", name="Recette 1", total_time=1800),
         CookidooChapterRecipe(id="r-2", name="Recette 2", total_time=3600),
     ]

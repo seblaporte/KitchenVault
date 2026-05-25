@@ -56,6 +56,7 @@ async def get_collections() -> list[CollectionResponse]:
         return all_collections
 
     except CookidooAuthException as exc:
+        cookidoo_session.invalidate()
         logger.error("Authentication failure fetching collections: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -50,6 +50,26 @@ class NutritionGroupResponse(BaseModel):
     recipe_nutritions: list[RecipeNutritionResponse]
 
 
+class AddRecipesToCalendarRequest(BaseModel):
+    recipe_ids: list[str]
+    replace: bool = False
+
+
+class CalendarDayRecipeResponse(BaseModel):
+    id: str
+    name: str
+    total_time: int
+    thumbnail: str | None
+    image: str | None
+    url: str
+
+
+class CalendarDayResponse(BaseModel):
+    id: str
+    title: str
+    recipes: list[CalendarDayRecipeResponse]
+
+
 class RecipeDetailsResponse(BaseModel):
     id: str
     name: str

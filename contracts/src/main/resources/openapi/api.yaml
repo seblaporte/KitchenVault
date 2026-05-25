@@ -483,6 +483,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorDto"
 
+  /api/v1/menu-plan/{weekStart}/cookidoo-sync:
+    post:
+      tags: [menu-plan]
+      operationId: syncWeekToCookidoo
+      summary: Synchroniser la semaine planifiée vers le planning Cookidoo
+      parameters:
+        - name: weekStart
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: replace
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "204":
+          description: Semaine synchronisée avec succès
+        "400":
+          description: weekStart n'est pas un lundi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service Cookidoo indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
   # ─── Liste de courses ────────────────────────────────────────────────────────
 
   /api/v1/shopping-list:

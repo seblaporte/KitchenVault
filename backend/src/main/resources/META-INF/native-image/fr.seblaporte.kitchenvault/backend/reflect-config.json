@@ -87,6 +87,13 @@
   },
 
   {
+    "name": "fr.seblaporte.kitchenvault.cookidoo.model.AddRecipesToCalendarRequest",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+
+  {
     "name": "fr.seblaporte.kitchenvault.cookidoo.model.CookidooRecipeDetails",
     "allDeclaredFields": true,
     "allDeclaredConstructors": true,

@@ -2,11 +2,12 @@ import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart } from '@ng-icons/heroicons/outline';
+import { ToastComponent } from './shared/toast/toast.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIconComponent, ToastComponent],
   providers: [provideIcons({ heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart })],
   template: `
     <div class="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
@@ -86,6 +87,7 @@ import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroS
         <router-outlet />
       </main>
     </div>
+    <app-toast />
   `,
 })
 export class AppComponent implements OnInit {

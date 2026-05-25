@@ -7,6 +7,7 @@ import fr.seblaporte.kitchenvault.generated.api.MenuPlanApiController;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanEntryDto;
 import fr.seblaporte.kitchenvault.generated.model.RecipeHistoryDto;
 import fr.seblaporte.kitchenvault.mapper.MealPlanMapper;
+import fr.seblaporte.kitchenvault.service.CookidooCalendarSyncService;
 import fr.seblaporte.kitchenvault.service.MealPlanService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,7 @@ class MenuPlanDelegateTest {
 
     @MockitoBean MealPlanService mealPlanService;
     @MockitoBean MealPlanMapper mealPlanMapper;
+    @MockitoBean CookidooCalendarSyncService cookidooCalendarSyncService;
 
     @Test
     void getWeekPlan_withValidMonday_returnsOk() throws Exception {
@@ -145,6 +147,29 @@ class MenuPlanDelegateTest {
                                 {"entries":[{"date":"2026-05-05","mealType":"DINNER","recipeId":"unknown"}]}
                                 """))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void syncWeekToCookidoo_withValidMonday_returns204() throws Exception {
+        mockMvc.perform(post("/api/v1/menu-plan/2026-05-18/cookidoo-sync"))
+                .andExpect(status().isNoContent());
+
+        verify(cookidooCalendarSyncService).syncWeek(LocalDate.of(2026, 5, 18), false);
+    }
+
+    @Test
+    void syncWeekToCookidoo_withNonMonday_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/menu-plan/2026-05-19/cookidoo-sync"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("weekStart must be a Monday"));
+    }
+
+    @Test
+    void syncWeekToCookidoo_withReplaceTrue_delegatesWithReplaceTrue() throws Exception {
+        mockMvc.perform(post("/api/v1/menu-plan/2026-05-18/cookidoo-sync").param("replace", "true"))
+                .andExpect(status().isNoContent());
+
+        verify(cookidooCalendarSyncService).syncWeek(LocalDate.of(2026, 5, 18), true);
     }
 
     @Test

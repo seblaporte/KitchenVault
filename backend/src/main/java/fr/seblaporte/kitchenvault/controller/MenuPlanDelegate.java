@@ -12,6 +12,7 @@ import fr.seblaporte.kitchenvault.generated.model.MealType;
 import fr.seblaporte.kitchenvault.generated.model.MenuPlanDto;
 import fr.seblaporte.kitchenvault.generated.model.RecipeHistoryDto;
 import fr.seblaporte.kitchenvault.mapper.MealPlanMapper;
+import fr.seblaporte.kitchenvault.service.CookidooCalendarSyncService;
 import fr.seblaporte.kitchenvault.service.MealPlanService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -30,10 +31,13 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
 
     private final MealPlanService mealPlanService;
     private final MealPlanMapper mealPlanMapper;
+    private final CookidooCalendarSyncService cookidooCalendarSyncService;
 
-    public MenuPlanDelegate(MealPlanService mealPlanService, MealPlanMapper mealPlanMapper) {
+    public MenuPlanDelegate(MealPlanService mealPlanService, MealPlanMapper mealPlanMapper,
+                            CookidooCalendarSyncService cookidooCalendarSyncService) {
         this.mealPlanService = mealPlanService;
         this.mealPlanMapper = mealPlanMapper;
+        this.cookidooCalendarSyncService = cookidooCalendarSyncService;
     }
 
     @Override
@@ -115,6 +119,15 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
         dto.setRecipeId(recipeId);
         dto.setDates(entries.stream().map(MealPlanEntry::getEntryDate).toList());
         return ResponseEntity.ok(dto);
+    }
+
+    @Override
+    public ResponseEntity<Void> syncWeekToCookidoo(LocalDate weekStart, Boolean replace) {
+        if (weekStart.getDayOfWeek() != DayOfWeek.MONDAY) {
+            throw new InvalidWeekStartException("weekStart must be a Monday");
+        }
+        cookidooCalendarSyncService.syncWeek(weekStart, Boolean.TRUE.equals(replace));
+        return ResponseEntity.noContent().build();
     }
 
     private fr.seblaporte.kitchenvault.entity.MealType toEntityMealType(MealType mealType) {

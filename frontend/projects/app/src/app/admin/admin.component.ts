@@ -1,7 +1,7 @@
 import { Component, Inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { catchError, interval, of, Subscription, switchMap, startWith } from 'rxjs';
+import { catchError, EMPTY, interval, of, Subscription, switchMap, startWith } from 'rxjs';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroArrowPath } from '@ng-icons/heroicons/outline';
 import { BASE_PATH } from '@KitchenVault/api-client';
@@ -223,7 +223,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           this.http.get<SyncRun>(`${this.basePath}/api/v1/sync/latest`).pipe(
             catchError(err => {
               if (err.status === 404) return of(null);
-              throw err;
+              return EMPTY;
             })
           )
         )

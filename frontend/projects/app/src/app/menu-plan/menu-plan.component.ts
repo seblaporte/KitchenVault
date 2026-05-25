@@ -192,12 +192,14 @@ interface WeekDay extends DayPlanDto {
       <!-- Vue mobile : cartes verticales par jour (swipe pour changer de semaine) -->
       <div
         class="sm:hidden space-y-3"
+        data-testid="mobile-calendar"
         (touchstart)="onTouchStart($event)"
         (touchend)="onTouchEnd($event)"
       >
         @for (day of weekDays(); track day.date) {
           <div
             class="rounded-xl border bg-white dark:bg-stone-950 shadow-sm overflow-hidden"
+            data-testid="day-card"
             [ngClass]="day.isToday ? 'border-amber-300 dark:border-amber-700' : 'border-stone-200 dark:border-stone-800'"
           >
             <!-- En-tête du jour -->
@@ -258,7 +260,7 @@ interface WeekDay extends DayPlanDto {
       </div>
 
       <!-- Vue desktop : grille 7 colonnes -->
-      <div class="hidden sm:block rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 shadow-sm overflow-hidden">
+      <div class="hidden sm:block rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 shadow-sm overflow-hidden" data-testid="desktop-calendar">
         <div class="overflow-x-auto">
           <div class="grid min-w-[880px]" style="grid-template-columns: 72px repeat(7, minmax(130px, 1fr))">
 

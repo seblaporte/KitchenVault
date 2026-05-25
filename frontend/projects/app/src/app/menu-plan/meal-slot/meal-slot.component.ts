@@ -26,6 +26,7 @@ import { MealPlanEntryDto } from '@KitchenVault/api-client';
           @if (entry.recipeId) {
             <a
               [routerLink]="['/recipes', entry.recipeId]"
+              [queryParams]="{ from: 'menu', weekStart: weekStart }"
               (click)="$event.stopPropagation()"
               class="block text-xs font-medium text-stone-800 dark:text-stone-200 hover:text-forest-600 dark:hover:text-forest-400 line-clamp-2 leading-snug transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
             >{{ entry.recipeName }}</a>
@@ -44,7 +45,7 @@ import { MealPlanEntryDto } from '@KitchenVault/api-client';
         </div>
         <button
           (click)="$event.stopPropagation(); onRemove()"
-          class="absolute top-1.5 right-1.5 w-6 h-6 rounded-md bg-black/40 text-white/70 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all backdrop-blur-sm cursor-pointer"
+          class="absolute top-1.5 right-1.5 w-6 h-6 rounded-md bg-black/40 text-white/70 flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all backdrop-blur-sm cursor-pointer"
           aria-label="Supprimer ce repas"
         >
           <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -57,7 +58,7 @@ import { MealPlanEntryDto } from '@KitchenVault/api-client';
             class="absolute top-1.5 left-1.5 h-6 px-2 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all backdrop-blur-sm cursor-pointer"
             [ngClass]="inSelection
               ? 'bg-forest-600 text-white border border-forest-700 shadow-sm opacity-100'
-              : 'bg-black/40 text-white/70 opacity-0 group-hover:opacity-100 hover:bg-forest-600 hover:text-white'"
+              : 'bg-black/40 text-white/70 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-forest-600 hover:text-white'"
             [title]="inSelection ? 'Recette dans la sélection' : 'Ajouter à la liste de courses'"
             [attr.aria-label]="inSelection ? 'Recette dans la sélection' : 'Ajouter à la liste de courses'"
           >
@@ -84,7 +85,7 @@ import { MealPlanEntryDto } from '@KitchenVault/api-client';
         </button>
         <button
           (click)="$event.stopPropagation(); onChatRequested()"
-          class="absolute bottom-1.5 right-1.5 z-10 w-6 h-6 rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-400 dark:text-stone-500 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:border-forest-400 hover:text-forest-600 dark:hover:text-forest-400 transition-all cursor-pointer"
+          class="absolute bottom-1.5 right-1.5 z-10 w-6 h-6 rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-400 dark:text-stone-500 flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 hover:border-forest-400 hover:text-forest-600 dark:hover:text-forest-400 transition-all cursor-pointer"
           [attr.aria-label]="'Suggérer une recette IA pour ' + label"
         >
           <ng-icon name="heroSparkles" class="h-3 w-3" aria-hidden="true" />
@@ -99,6 +100,7 @@ export class MealSlotComponent {
   @Input({ required: true }) mealType!: string;
   @Input({ required: true }) label!: string;
   @Input() inSelection: boolean = false;
+  @Input() weekStart: string = '';
 
   @Output() addRequested = new EventEmitter<{ date: string; mealType: string }>();
   @Output() removeRequested = new EventEmitter<{ date: string; mealType: string }>();

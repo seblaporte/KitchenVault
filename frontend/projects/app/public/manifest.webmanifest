@@ -1,0 +1,10 @@
+{
+  "name": "KitchenVault",
+  "short_name": "KitchenVault",
+  "description": "Planificateur de repas et liste de courses",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#2D6A4F",
+  "lang": "fr"
+}

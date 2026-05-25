@@ -1,10 +1,12 @@
 import { Component, input, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MenuPlanService } from '@KitchenVault/api-client';
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { heroArrowLeft } from '@ng-icons/heroicons/outline';
 
 interface Ingredient {
   id: string;
@@ -56,19 +58,18 @@ interface RecipeDetail {
 @Component({
   selector: 'app-recipe-detail',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NgIconComponent],
+  providers: [provideIcons({ heroArrowLeft })],
   template: `
     <div class="space-y-6">
       <!-- Retour -->
       <button
         (click)="goBack()"
         class="inline-flex items-center gap-1.5 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
-        aria-label="Retour à la liste des recettes"
+        [attr.aria-label]="backLabel() === 'Menu' ? 'Retour à la planification' : 'Retour à la liste des recettes'"
       >
-        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Recettes
+        <ng-icon name="heroArrowLeft" class="h-4 w-4" aria-hidden="true" />
+        {{ backLabel() }}
       </button>
 
       <!-- Chargement -->
@@ -299,6 +300,8 @@ export class RecipeDetailComponent implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
   historyDates = signal<string[]>([]);
+  readonly backLabel = signal<'Recettes' | 'Menu'>('Recettes');
+  private backWeekStart: string | null = null;
 
   private readonly nutritionLabels: Record<string, string> = {
     protein: 'Protéines',
@@ -317,10 +320,15 @@ export class RecipeDetailComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private router: Router,
+    private route: ActivatedRoute,
     private menuPlanService: MenuPlanService,
   ) {}
 
   ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('from') === 'menu') {
+      this.backLabel.set('Menu');
+      this.backWeekStart = this.route.snapshot.queryParamMap.get('weekStart');
+    }
     this.http
       .get<RecipeDetail>(`${environment.apiUrl}/api/v1/recipes/${this.id()}`)
       .pipe(
@@ -358,6 +366,11 @@ export class RecipeDetailComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/recipes']);
+    if (this.backLabel() === 'Menu') {
+      const extras = this.backWeekStart ? { queryParams: { weekStart: this.backWeekStart } } : {};
+      this.router.navigate(['/menu'], extras);
+    } else {
+      this.router.navigate(['/recipes']);
+    }
   }
 }

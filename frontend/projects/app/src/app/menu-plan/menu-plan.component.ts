@@ -8,6 +8,7 @@ import { MealSlotComponent } from './meal-slot/meal-slot.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
 import { ChatModalComponent } from './chat-modal/chat-modal.component';
 import { WeeklyPlanDrawerComponent } from './weekly-plan-drawer/weekly-plan-drawer.component';
+import { ActivatedRoute } from '@angular/router';
 import { MenuPlanService, ShoppingListService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
 import { ToastService } from '../shared/toast/toast.service';
 
@@ -187,9 +188,82 @@ interface WeekDay extends DayPlanDto {
       <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 mb-4" role="alert">{{ error() }}</div>
     }
 
-    <!-- Grille calendrier 2D -->
+    <!-- Grille calendrier -->
     @if (!loading() && weekPlan()) {
-      <div class="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 shadow-sm overflow-hidden">
+      <!-- Vue mobile : cartes verticales par jour (swipe pour changer de semaine) -->
+      <div
+        class="sm:hidden space-y-3"
+        data-testid="mobile-calendar"
+        (touchstart)="onTouchStart($event)"
+        (touchend)="onTouchEnd($event)"
+      >
+        @for (day of weekDays(); track day.date) {
+          <div
+            class="rounded-xl border bg-white dark:bg-stone-950 shadow-sm overflow-hidden"
+            data-testid="day-card"
+            [ngClass]="day.isToday ? 'border-amber-300 dark:border-amber-700' : 'border-stone-200 dark:border-stone-800'"
+          >
+            <!-- En-tête du jour -->
+            <div
+              class="flex items-center gap-2 px-3 py-2 border-b border-stone-200 dark:border-stone-800"
+              [ngClass]="day.isToday ? 'bg-amber-50 dark:bg-amber-950/20' : 'bg-stone-50 dark:bg-stone-900'"
+            >
+              <span
+                class="text-xs font-bold uppercase tracking-wide"
+                [ngClass]="day.isToday ? 'text-amber-500' : 'text-stone-500 dark:text-stone-400'"
+              >{{ day.abbr }}</span>
+              <span
+                class="text-lg font-bold leading-none"
+                [ngClass]="day.isToday ? 'text-amber-500' : 'text-stone-800 dark:text-stone-200'"
+              >{{ day.num }}</span>
+              <span
+                class="text-xs"
+                [ngClass]="day.isToday ? 'text-amber-400' : 'text-stone-400 dark:text-stone-500'"
+              >{{ day.month }}</span>
+              @if (day.isToday) {
+                <span class="ml-auto text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 rounded-full">Aujourd'hui</span>
+              }
+            </div>
+            <!-- Créneaux déjeuner + dîner côte à côte -->
+            <div class="grid grid-cols-2 gap-2 p-2">
+              <div>
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500 mb-1.5 px-0.5">Déj.</p>
+                <app-meal-slot
+                  [entry]="day.lunch"
+                  [date]="day.date"
+                  mealType="LUNCH"
+                  label="Déjeuner"
+                  [weekStart]="toISODateStr(weekStart())"
+                  [inSelection]="day.lunch?.recipeId ? selectionIds().has(day.lunch!.recipeId!) : false"
+                  (addRequested)="openPicker($event)"
+                  (removeRequested)="handleRemove($event)"
+                  (chatRequested)="openChatForSlot($event)"
+                  (addToShoppingRequested)="onAddToShopping($event)"
+                />
+              </div>
+              <div>
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500 mb-1.5 px-0.5">Dîner</p>
+                <app-meal-slot
+                  [entry]="day.dinner"
+                  [date]="day.date"
+                  mealType="DINNER"
+                  label="Dîner"
+                  [weekStart]="toISODateStr(weekStart())"
+                  [inSelection]="day.dinner?.recipeId ? selectionIds().has(day.dinner!.recipeId!) : false"
+                  (addRequested)="openPicker($event)"
+                  (removeRequested)="handleRemove($event)"
+                  (chatRequested)="openChatForSlot($event)"
+                  (addToShoppingRequested)="onAddToShopping($event)"
+                />
+              </div>
+            </div>
+          </div>
+        }
+        <p class="text-center text-xs text-stone-400 dark:text-stone-500 py-2 select-none">← Glissez pour changer de semaine →</p>
+      </div>
+
+      <!-- Vue desktop : grille 7 colonnes -->
+      <div class="hidden sm:block rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 shadow-sm overflow-hidden" data-testid="desktop-calendar">
         <div class="overflow-x-auto">
           <div class="grid min-w-[880px]" style="grid-template-columns: 72px repeat(7, minmax(130px, 1fr))">
 
@@ -229,6 +303,7 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="LUNCH"
                   label="Déjeuner"
+                  [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.lunch?.recipeId ? selectionIds().has(day.lunch!.recipeId!) : false"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
@@ -252,6 +327,7 @@ interface WeekDay extends DayPlanDto {
                   [date]="day.date"
                   mealType="DINNER"
                   label="Dîner"
+                  [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.dinner?.recipeId ? selectionIds().has(day.dinner!.recipeId!) : false"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
@@ -339,7 +415,7 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
 
   private renderer = inject(Renderer2);
   private document = inject(DOCUMENT);
-
+  private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
 
   constructor(private menuPlanService: MenuPlanService, private shoppingListService: ShoppingListService) {
@@ -352,11 +428,26 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
     });
   }
 
+  private touchStartX = 0;
+
+  onTouchStart(event: TouchEvent): void {
+    this.touchStartX = event.touches[0].clientX;
+  }
+
+  onTouchEnd(event: TouchEvent): void {
+    const dx = event.changedTouches[0].clientX - this.touchStartX;
+    if (Math.abs(dx) > 60) {
+      if (dx < 0) this.nextWeek(); else this.prevWeek();
+    }
+  }
+
   ngOnDestroy(): void {
     this.renderer.removeClass(this.document.body, 'drawer-open');
   }
 
   ngOnInit(): void {
+    const ws = this.route.snapshot.queryParamMap.get('weekStart');
+    if (ws) this.weekStart.set(getMondayOf(new Date(ws + 'T00:00:00')));
     this.loadWeekPlan();
     this.loadSelectionIds();
   }

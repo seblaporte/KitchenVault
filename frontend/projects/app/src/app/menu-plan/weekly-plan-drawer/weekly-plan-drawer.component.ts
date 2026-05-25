@@ -28,7 +28,7 @@ interface DrawerMessage {
   viewProviders: [provideIcons({ heroSparkles, heroXMark, heroPaperAirplane, heroCheck })],
   template: `
     <div
-      class="fixed right-0 top-0 z-40 flex h-screen w-[400px] flex-col border-l border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-2xl animate-slide-in"
+      class="fixed right-0 top-0 z-40 flex h-[100dvh] w-full sm:w-[400px] flex-col border-l border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-2xl animate-slide-in"
     >
       <!-- En-tête commun à toutes les phases -->
       <div class="shrink-0 flex items-center gap-3 px-5 py-4 border-b border-stone-200 dark:border-stone-700">
@@ -195,7 +195,7 @@ interface DrawerMessage {
               [disabled]="loading()"
               (keydown.enter)="onEnterKey($event)"
               placeholder="Votre message…"
-              class="flex-1 resize-none rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 px-3 py-2 text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:border-forest-400 dark:focus:border-forest-600 transition-colors disabled:opacity-50"
+              class="flex-1 resize-none rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 px-3 py-2 text-base text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:border-forest-400 dark:focus:border-forest-600 transition-colors disabled:opacity-50"
               aria-label="Votre message"
             ></textarea>
             <button

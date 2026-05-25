@@ -60,69 +60,77 @@ interface WeekDay extends DayPlanDto {
   viewProviders: [provideIcons({ heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown })],
   template: `
     <!-- En-tête semaine -->
-    <div class="flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-4 py-3 shadow-sm mb-4">
+    <div class="sticky top-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] sm:top-[calc(4rem+env(safe-area-inset-top)+0.5rem)] z-20 flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-4 py-3 shadow-sm mb-4">
       <h1 class="text-base font-semibold tracking-tight text-stone-900 dark:text-stone-100">Menu de la semaine</h1>
       <span class="text-xs font-medium text-stone-500 dark:text-stone-400 bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-full px-2.5 py-0.5">{{ weekRangeLabel() }}</span>
 
-      <div class="flex items-center gap-1">
-        <button
-          (click)="prevWeek()"
-          class="w-7 h-7 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 flex items-center justify-center hover:border-stone-300 dark:hover:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
-          aria-label="Semaine précédente"
-        >
-          <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <button
-          (click)="goToToday()"
-          class="h-7 px-2.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-300 dark:hover:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
-          aria-label="Revenir à la semaine courante"
-        >Auj.</button>
-        <button
-          (click)="nextWeek()"
-          class="w-7 h-7 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 flex items-center justify-center hover:border-stone-300 dark:hover:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
-          aria-label="Semaine suivante"
-        >
-          <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
+      <!-- Navigation + progression : ligne dédiée pleine largeur -->
+      <div class="w-full flex items-center gap-4">
+        <!-- Moitié gauche : navigation semaine -->
+        <div class="flex-1 flex items-stretch rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 overflow-hidden">
+          <button
+            (click)="prevWeek()"
+            class="flex-1 h-10 flex items-center justify-center text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
+            aria-label="Semaine précédente"
+          >
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div class="w-px bg-stone-200 dark:bg-stone-700 self-stretch"></div>
+          <button
+            (click)="goToToday()"
+            class="flex-1 h-10 flex items-center justify-center text-sm font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500 whitespace-nowrap"
+            aria-label="Revenir à la semaine courante"
+          >
+            <span class="sm:hidden">Auj.</span>
+            <span class="hidden sm:inline">Aujourd'hui</span>
+          </button>
+          <div class="w-px bg-stone-200 dark:bg-stone-700 self-stretch"></div>
+          <button
+            (click)="nextWeek()"
+            class="flex-1 h-10 flex items-center justify-center text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
+            aria-label="Semaine suivante"
+          >
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
 
-      @if (!loading() && weekPlan()) {
-        <div class="flex items-center gap-2 w-24">
-          <div class="flex-1 h-1 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+        <!-- Moitié droite : barre de progression -->
+        <div class="flex-1 flex items-center gap-3">
+          <div class="flex-1 h-2 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
             <div
               class="h-full bg-forest-500 rounded-full transition-all duration-300"
               [style.width.%]="(filledSlots() / totalSlots()) * 100"
             ></div>
           </div>
-          <span class="text-xs tabular-nums text-stone-400 dark:text-stone-500 shrink-0">{{ filledSlots() }}/{{ totalSlots() }}</span>
+          <span class="text-sm font-medium tabular-nums text-stone-500 dark:text-stone-400 shrink-0">{{ filledSlots() }}/{{ totalSlots() }}</span>
         </div>
-      }
+      </div>
 
-      <div class="ml-auto flex items-center gap-2">
+      <div class="w-full sm:w-auto sm:ml-auto flex items-center gap-2">
         <button
           (click)="weeklyDrawerOpen.set(true)"
           [class.ring-2]="weeklyDrawerOpen()"
           [class.ring-forest-500]="weeklyDrawerOpen()"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-600"
+          class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-600"
           aria-label="Planifier la semaine avec l'IA"
         >
           <ng-icon name="heroSparkles" class="h-3.5 w-3.5" aria-hidden="true" />
-          Planifier avec l'IA
+          Planifier
         </button>
 
         @if (syncDropdownOpen()) {
           <div class="fixed inset-0 z-40" (click)="syncDropdownOpen.set(false)" aria-hidden="true"></div>
         }
         <!-- Split button Cookidoo sync -->
-        <div class="relative inline-flex">
+        <div class="flex-1 sm:flex-none relative flex">
           <button
             (click)="syncToCookidoo(false)"
             [disabled]="syncing()"
-            class="inline-flex items-center gap-1.5 rounded-l-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
+            class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-l-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
             aria-label="Synchroniser la semaine avec Cookidoo"
           >
             @if (syncing()) {
@@ -138,7 +146,7 @@ interface WeekDay extends DayPlanDto {
           <button
             (click)="syncDropdownOpen.set(!syncDropdownOpen())"
             [disabled]="syncing()"
-            class="inline-flex items-center rounded-r-lg border-t border-r border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-1.5 py-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
+            class="shrink-0 inline-flex items-center rounded-r-lg border-t border-r border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-1.5 py-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
             aria-label="Options de synchronisation Cookidoo"
             aria-haspopup="true"
             [attr.aria-expanded]="syncDropdownOpen()"
@@ -164,7 +172,7 @@ interface WeekDay extends DayPlanDto {
         <button
           (click)="suggestWeek()"
           [disabled]="loading()"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
+          class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
           aria-label="Suggérer des recettes aléatoires pour la semaine"
         >
           <ng-icon name="heroPlay" class="h-3.5 w-3.5" aria-hidden="true" />

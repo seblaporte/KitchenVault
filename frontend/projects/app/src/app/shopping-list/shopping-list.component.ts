@@ -1,5 +1,5 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, computed, signal, inject, Renderer2 } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
@@ -48,10 +48,20 @@ const CONSOLIDATION_STEPS = [
   standalone: true,
   imports: [CommonModule, FormsModule, NgIconComponent],
   providers: [provideIcons({ heroSparkles, heroTrash, heroChevronDown, heroXMark, heroCheck, heroShoppingCart, heroEnvelope })],
+  styles: [`
+    :host {
+      display: block;
+      height: calc(100dvh - 4.5rem - env(safe-area-inset-top));
+    }
+    @media (min-width: 640px) {
+      :host { height: calc(100dvh - 6rem - env(safe-area-inset-top)); }
+    }
+  `],
   template: `
-    <div class="flex flex-col min-h-0">
-      <!-- ── Header sticky ─────────────────────────────────────────────── -->
-      <div class="sticky top-0 z-10 bg-stone-50 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800 px-6 py-4 flex flex-wrap items-center gap-3">
+    <div class="flex flex-col h-full">
+      <!-- ── Header fixe ──────────────────────────────────────────────── -->
+      <div class="shrink-0 bg-stone-50 dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800 px-6 py-4 flex flex-wrap items-center gap-3 transition-shadow duration-200"
+           [class.shadow-md]="isScrolled()">
         <h1 class="text-xl font-bold tracking-tight text-stone-900 dark:text-stone-100">Liste de courses</h1>
 
         <!-- Onglets segmentés -->
@@ -181,6 +191,9 @@ const CONSOLIDATION_STEPS = [
         </div>
       </div>
 
+      <!-- ── Zone scrollable ──────────────────────────────────────────────── -->
+      <div class="flex-1 min-h-0 overflow-y-auto pb-20 sm:pb-0" (scroll)="onContentScroll($event)">
+
       <!-- ── Loading global ─────────────────────────────────────────────── -->
       @if (loading()) {
         <div class="flex items-center justify-center py-20">
@@ -304,7 +317,7 @@ const CONSOLIDATION_STEPS = [
             </div>
 
             <!-- Sidebar Sélection -->
-            <div class="flex flex-col gap-4 lg:sticky lg:top-[73px]">
+            <div class="flex flex-col gap-4 lg:sticky lg:top-6">
               <div class="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-700 p-4 flex flex-col gap-3">
                 <div class="text-[10.5px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500">Sélection · étape 1/2</div>
                 <p class="text-[12.5px] text-stone-500 dark:text-stone-400 leading-relaxed">
@@ -531,7 +544,7 @@ const CONSOLIDATION_STEPS = [
             </div>
 
             <!-- Sidebar Consolidée IA -->
-            <div class="flex flex-col gap-4 lg:sticky lg:top-[73px]">
+            <div class="flex flex-col gap-4 lg:sticky lg:top-6">
               @if ((shoppingList()?.recipes?.length ?? 0) > 0) {
                 <div class="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-700 p-4 flex flex-col gap-3">
                   <div class="text-[10.5px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500">
@@ -563,10 +576,12 @@ const CONSOLIDATION_STEPS = [
 
         </div>
       }
+
+      </div><!-- fin zone scrollable -->
     </div>
   `,
 })
-export class ShoppingListComponent implements OnInit {
+export class ShoppingListComponent implements OnInit, OnDestroy {
   readonly consolidationSteps = CONSOLIDATION_STEPS;
 
   shoppingList = signal<ShoppingListDto | null>(null);
@@ -578,6 +593,7 @@ export class ShoppingListComponent implements OnInit {
   expandedFusions = signal<Set<string>>(new Set());
   loadingIngredients = signal<Set<string>>(new Set());
   ingredientsCache = signal<Map<string, IngredientGroupDto[]>>(new Map());
+  isScrolled = signal(false);
 
   isStale = computed(() => {
     const list = this.shoppingList();
@@ -633,13 +649,21 @@ export class ShoppingListComponent implements OnInit {
 
   anyExpanded = computed(() => this.expandedRecipes().size > 0);
 
+  private renderer = inject(Renderer2);
+  private document = inject(DOCUMENT);
+
   constructor(
     private shoppingListService: ShoppingListService,
     private recipesService: RecipesService,
   ) {}
 
   ngOnInit(): void {
+    this.renderer.addClass(this.document.body, 'shopping-active');
     this.loadShoppingList();
+  }
+
+  ngOnDestroy(): void {
+    this.renderer.removeClass(this.document.body, 'shopping-active');
   }
 
   private loadShoppingList(): void {
@@ -794,6 +818,10 @@ export class ShoppingListComponent implements OnInit {
     if (nameFromItem) return nameFromItem;
     const recipe = this.shoppingList()?.recipes.find(r => r.recipeIdSnapshot === recipeId || r.recipeId === recipeId);
     return recipe?.recipeName ?? recipeId;
+  }
+
+  onContentScroll(event: Event): void {
+    this.isScrolled.set((event.target as HTMLElement).scrollTop > 0);
   }
 
   formatDate(isoDate: string): string {

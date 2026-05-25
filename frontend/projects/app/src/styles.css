@@ -21,6 +21,10 @@
   --color-brand: var(--color-forest-600);
 }
 
+body.shopping-active {
+  overflow: hidden;
+}
+
 body.drawer-open main {
   max-width: none;
 }

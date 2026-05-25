@@ -9,6 +9,7 @@ import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picke
 import { ChatModalComponent } from './chat-modal/chat-modal.component';
 import { WeeklyPlanDrawerComponent } from './weekly-plan-drawer/weekly-plan-drawer.component';
 import { MenuPlanService, ShoppingListService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
+import { ToastService } from '../shared/toast/toast.service';
 
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
@@ -121,9 +122,6 @@ interface WeekDay extends DayPlanDto {
             (click)="syncToCookidoo(false)"
             [disabled]="syncing()"
             class="inline-flex items-center gap-1.5 rounded-l-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
-            [class.border-green-400]="syncFeedback() === 'success'"
-            [class.text-green-600]="syncFeedback() === 'success'"
-            [class.dark:border-green-600]="syncFeedback() === 'success'"
             aria-label="Synchroniser la semaine avec Cookidoo"
           >
             @if (syncing()) {
@@ -310,7 +308,6 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   selectionIds = signal<Set<string>>(new Set());
   syncing = signal(false);
   syncDropdownOpen = signal(false);
-  syncFeedback = signal<'success' | 'error' | null>(null);
   pickerDate = '';
   pickerMealType = '';
 
@@ -342,6 +339,8 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
 
   private renderer = inject(Renderer2);
   private document = inject(DOCUMENT);
+
+  private toast = inject(ToastService);
 
   constructor(private menuPlanService: MenuPlanService, private shoppingListService: ShoppingListService) {
     effect(() => {
@@ -512,19 +511,15 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   syncToCookidoo(replace: boolean): void {
     this.syncDropdownOpen.set(false);
     this.syncing.set(true);
-    this.syncFeedback.set(null);
-    this.error.set(null);
     this.menuPlanService.syncWeekToCookidoo(toISODate(this.weekStart()), replace)
-      .pipe(catchError((err: HttpErrorResponse) => {
-        this.syncFeedback.set('error');
-        this.error.set('Impossible de synchroniser avec Cookidoo.');
+      .pipe(catchError((_err: HttpErrorResponse) => {
         this.syncing.set(false);
+        this.toast.show({ type: 'error', title: 'Échec de la synchronisation', message: 'Vérifiez votre connexion à Cookidoo.' });
         return EMPTY;
       }))
       .subscribe(() => {
-        this.syncFeedback.set('success');
         this.syncing.set(false);
-        setTimeout(() => this.syncFeedback.set(null), 3000);
+        this.toast.show({ type: 'success', title: 'Synchronisé avec Cookidoo', message: 'Le planning a bien été envoyé.' });
       });
   }
 

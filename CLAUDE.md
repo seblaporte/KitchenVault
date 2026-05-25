@@ -210,6 +210,19 @@ body.drawer-open main { max-width: none; padding-right: 400px; }
 | `ai.ovh-embedding.api-key` | — | OVH AI Endpoints API key (embeddings) |
 | `ai.ovh-embedding.model-name` | — | Embedding model name |
 
+## Toast notifications (frontend)
+
+`ToastService` (`app/shared/toast/toast.service.ts`) is the single point for transient user feedback. Inject it in any component and call `toast.show({ type, title, message? })`. The `ToastComponent` is mounted globally in `app.component.ts` — do **not** add it to individual feature components.
+
+```ts
+// Usage example
+private toast = inject(ToastService);
+this.toast.show({ type: 'success', title: 'Opération réussie', message: 'Détail optionnel.' });
+this.toast.show({ type: 'error', title: 'Échec', message: 'Message d\'erreur.' });
+```
+
+Reserved for one-shot action feedback (sync, save, delete confirmations). Persistent errors (loading failures, form validation) use inline banners with `role="alert"`.
+
 ## Documentation
 
 Full technical documentation (architecture, data model, API reference, sync flow) is in `docs/` and built with Antora + asciidoctor-kroki. Diagrams are PlantUML/ERD as code inside `[kroki,plantuml,svg]` blocks.

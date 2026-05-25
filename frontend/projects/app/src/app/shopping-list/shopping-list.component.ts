@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
-  heroSparkles, heroTrash, heroChevronDown, heroXMark, heroCheck, heroShoppingCart,
+  heroSparkles, heroTrash, heroChevronDown, heroXMark, heroCheck, heroShoppingCart, heroEnvelope,
 } from '@ng-icons/heroicons/outline';
 import { catchError, EMPTY } from 'rxjs';
 import {
@@ -47,7 +47,7 @@ const CONSOLIDATION_STEPS = [
   selector: 'app-shopping-list',
   standalone: true,
   imports: [CommonModule, FormsModule, NgIconComponent],
-  providers: [provideIcons({ heroSparkles, heroTrash, heroChevronDown, heroXMark, heroCheck, heroShoppingCart })],
+  providers: [provideIcons({ heroSparkles, heroTrash, heroChevronDown, heroXMark, heroCheck, heroShoppingCart, heroEnvelope })],
   template: `
     <div class="flex flex-col min-h-0">
       <!-- ── Header sticky ─────────────────────────────────────────────── -->
@@ -168,6 +168,14 @@ const CONSOLIDATION_STEPS = [
                 <ng-icon name="heroSparkles" class="h-3.5 w-3.5" aria-hidden="true" />
                 Relancer
               </button>
+            }
+            @if (emailExportUrl()) {
+              <a [href]="emailExportUrl()" data-testid="email-export-btn"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-[13px] font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
+              >
+                <ng-icon name="heroEnvelope" class="h-3.5 w-3.5" aria-hidden="true" />
+                <span class="hidden sm:inline">Envoyer par email</span>
+              </a>
             }
           }
         </div>
@@ -591,6 +599,24 @@ export class ShoppingListComponent implements OnInit {
       .filter(([cat]) => map.has(cat))
       .sort(([, a], [, b]) => a.order - b.order)
       .map(([cat, meta]) => ({ cat, label: meta.label, emoji: meta.emoji, items: map.get(cat)! }));
+  });
+
+  emailExportUrl = computed((): string => {
+    const groups = this.groupedItems();
+    if (!groups.length) return '';
+    const date = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const lines: string[] = [`Liste de courses — ${date}`, ''];
+    for (const group of groups) {
+      lines.push(`${group.emoji} ${group.label}`);
+      for (const item of group.items) {
+        const qty = item.quantity ? ` — ${item.quantity}` : '';
+        lines.push(`• ${item.name}${qty}`);
+      }
+      lines.push('');
+    }
+    const subject = encodeURIComponent(`Liste de courses — ${date}`);
+    const body = encodeURIComponent(lines.join('\n'));
+    return `mailto:?subject=${subject}&body=${body}`;
   });
 
   uncheckedCount = computed(() => (this.shoppingList()?.items ?? []).filter(i => !i.checked).length);

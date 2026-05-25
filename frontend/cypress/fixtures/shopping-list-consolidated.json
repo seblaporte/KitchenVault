@@ -1,0 +1,35 @@
+{
+  "recipes": [
+    {
+      "id": "sel-1",
+      "recipeId": "r-1",
+      "recipeName": "Poulet rôti",
+      "recipeIdSnapshot": "snap-1",
+      "consolidated": true,
+      "addedAt": "2026-05-25T10:00:00Z"
+    }
+  ],
+  "items": [
+    {
+      "id": "i-1",
+      "name": "Carottes",
+      "quantity": "500g",
+      "category": "PRODUCE",
+      "checked": false,
+      "sourceRecipeIds": ["r-1"],
+      "custom": false,
+      "createdAt": "2026-05-25T10:00:00Z"
+    },
+    {
+      "id": "i-2",
+      "name": "Poulet",
+      "quantity": "1kg",
+      "category": "MEAT",
+      "checked": false,
+      "sourceRecipeIds": ["r-1"],
+      "custom": false,
+      "createdAt": "2026-05-25T10:00:00Z"
+    }
+  ],
+  "consolidatedAt": "2026-05-25T10:00:00Z"
+}

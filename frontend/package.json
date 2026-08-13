@@ -11,7 +11,7 @@
     "e2e": "cypress run",
     "e2e:open": "cypress open",
     "e2e:ci": "cypress run --browser electron --headless",
-    "e2e:gif": "(cypress run --env captureSteps=true || true) && node scripts/generate-gifs.mjs"
+    "e2e:video": "(cypress run --env captureSteps=true || true) && node scripts/generate-videos.mjs"
   },
   "private": true,
   "dependencies": {

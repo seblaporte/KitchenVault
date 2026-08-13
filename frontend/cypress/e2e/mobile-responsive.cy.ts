@@ -4,6 +4,26 @@ function interceptMenuPlan(fixture = 'week-plan-empty.json') {
   return cy.intercept({ method: 'GET', pathname: '/api/v1/menu-plan' }, { fixture }).as('weekPlan');
 }
 
+// Semaine (lundi → dimanche) contenant la date système du jour, générée dynamiquement
+// pour que le test de mise en évidence du jour courant ne devienne pas obsolète.
+function currentWeekPlan() {
+  const today = new Date();
+  const monday = new Date(today);
+  const day = monday.getDay();
+  monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return { date: `${y}-${m}-${dd}`, lunch: null, dinner: null };
+  });
+
+  return { days };
+}
+
 function interceptCommonApis() {
   cy.intercept('GET', '**/api/v1/shopping-list', { body: { recipes: [], items: [] } });
 }
@@ -53,7 +73,8 @@ describe('Responsive mobile — iPhone 14', () => {
     });
 
     it('met en surbrillance l\'onglet actif', () => {
-      cy.get('nav[aria-label="Navigation mobile"] a[aria-label="Administration"]')
+      // '/' redirige vers '/menu' (voir app.routes.ts) : c'est cet onglet qui doit être actif.
+      cy.get('nav[aria-label="Navigation mobile"] a[aria-label="Menu"]')
         .should('have.class', 'text-forest-600');
     });
   });
@@ -78,6 +99,12 @@ describe('Responsive mobile — iPhone 14', () => {
     });
 
     it('met en évidence le jour courant', () => {
+      // Écrase le plan de la semaine (statique, non liée à "aujourd'hui") par une
+      // semaine construite dynamiquement pour contenir la date système du jour.
+      cy.intercept({ method: 'GET', pathname: '/api/v1/menu-plan' }, { body: currentWeekPlan() }).as('weekPlanToday');
+      cy.visit('/menu');
+      cy.wait('@weekPlanToday');
+
       cy.get('[data-testid="day-card"]').contains('Aujourd\'hui').should('exist');
     });
 

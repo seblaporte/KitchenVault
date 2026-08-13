@@ -1,0 +1,68 @@
+{
+  "servers": [
+    {
+      "name": "postgres",
+      "description": "PostgreSQL 17 database (via Podman)",
+      "type": "docker",
+      "command": "podman compose up -d postgres",
+      "cwd": ".",
+      "port": 5432,
+      "stopCommand": "podman compose stop postgres"
+    },
+    {
+      "name": "pgadmin",
+      "description": "pgAdmin web UI (via Podman)",
+      "type": "docker",
+      "command": "podman compose up -d pgadmin",
+      "cwd": ".",
+      "port": 5050,
+      "url": "http://localhost:5050",
+      "stopCommand": "podman compose stop pgadmin",
+      "dependsOn": ["postgres"]
+    },
+    {
+      "name": "cookidoo-service",
+      "description": "FastAPI Python microservice — proxy vers l'API Cookidoo",
+      "type": "docker",
+      "command": "podman compose up -d cookidoo-service",
+      "cwd": ".",
+      "port": 8001,
+      "url": "http://localhost:8001/health",
+      "stopCommand": "podman compose stop cookidoo-service",
+      "dependsOn": [],
+      "env": {
+        "COOKIDOO_EMAIL": "${COOKIDOO_EMAIL}",
+        "COOKIDOO_PASSWORD": "${COOKIDOO_PASSWORD}",
+        "COOKIDOO_COUNTRY_CODE": "fr",
+        "COOKIDOO_LANGUAGE": "fr-FR"
+      }
+    },
+    {
+      "name": "backend",
+      "description": "Spring Boot 3.4.4 backend — API REST (Java 25, virtual threads)",
+      "type": "maven",
+      "command": "./mvnw spring-boot:run -pl backend",
+      "cwd": ".",
+      "port": 8080,
+      "url": "http://localhost:8080/swagger-ui.html",
+      "stopCommand": null,
+      "dependsOn": ["postgres", "cookidoo-service"]
+    },
+    {
+      "name": "frontend",
+      "description": "Angular 21 frontend (ng serve avec génération OpenAPI)",
+      "type": "npm",
+      "command": "npm run generate:api && ng serve",
+      "cwd": "frontend",
+      "port": 4200,
+      "url": "http://localhost:4200",
+      "stopCommand": null,
+      "dependsOn": ["backend"]
+    }
+  ],
+  "groups": {
+    "all": ["postgres", "pgadmin", "cookidoo-service", "backend", "frontend"],
+    "infra": ["postgres", "pgadmin", "cookidoo-service"],
+    "dev": ["postgres", "cookidoo-service", "backend", "frontend"]
+  }
+}

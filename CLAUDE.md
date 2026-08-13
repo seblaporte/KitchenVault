@@ -56,6 +56,12 @@ podman compose up -d postgres        # Start only PostgreSQL
 podman compose stop cookidoo-service
 ```
 
+### Devcontainer (Codespaces / VS Code / IntelliJ Gateway)
+
+`.devcontainer/` provides a ready-to-use environment (Java 25, Node 22, Python 3.12, Maven) that reuses root `compose.yaml` and adds an `app` service. `postgres` and `cookidoo-service` auto-start (`pgadmin` is opt-in). Testcontainers works via the `docker-outside-of-docker` feature. Heavy setup (`mvn install contracts`, `npm ci`, `generate:api`, pip install) runs in `onCreateCommand` so it's cached by Codespaces prebuilds; only `.env` bootstrap runs in `postCreateCommand`.
+
+`postStartCommand` runs `.devcontainer/scripts/start-dev.sh` on every container (re)start: it opens a `kitchenvault` tmux session with a `backend` window (`mvn spring-boot:run -pl backend -Dspring-boot.run.profiles=devcontainer`, JDWP listening on `5005`, `suspend=n`) and a `frontend` window (`ng serve --host 0.0.0.0`). Spring Boot DevTools gives hot reload on save; Angular's dev server gives live reload — no manual restart needed for either. Attach with `tmux attach -t kitchenvault`. A shared debug-attach config ships in the repo for both IDEs: `.vscode/launch.json` ("Attach to Backend (5005)") and `.idea/runConfigurations/Attach_Backend_5005.xml` ("Attach: Backend (5005)") — both are targeted exceptions to the otherwise-gitignored `.vscode/`/`.idea/` directories. Full walkthrough (Codespaces secrets, IntelliJ Gateway steps, pgAdmin on-demand) in `docs/modules/ROOT/pages/getting-started.adoc`.
+
 ## Architecture
 
 ### Multi-module layout

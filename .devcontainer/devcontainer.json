@@ -1,0 +1,73 @@
+{
+  "name": "KitchenVault",
+  "dockerComposeFile": ["../compose.yaml", "docker-compose.yml"],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "runServices": ["postgres", "cookidoo-service", "app"],
+  "remoteUser": "vscode",
+
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "25",
+      "jdkDistro": "tem",
+      "installMaven": "true",
+      "mavenVersion": "3.9.9"
+    },
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12", "installTools": true },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "version": "latest",
+      "moby": true,
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "username": "vscode",
+      "userUid": "automatic",
+      "userGid": "automatic"
+    }
+  },
+
+  "forwardPorts": [4200, 8080, 8001, 5432, 5005],
+  "portsAttributes": {
+    "4200": { "label": "Angular dev server", "onAutoForward": "notify" },
+    "8080": { "label": "Spring Boot backend", "onAutoForward": "notify" },
+    "8001": { "label": "cookidoo-service (FastAPI)", "onAutoForward": "silent" },
+    "5432": { "label": "PostgreSQL", "onAutoForward": "silent" },
+    "5050": { "label": "pgAdmin (à la demande)", "onAutoForward": "ignore" },
+    "5005": { "label": "Backend debug (JDWP)", "onAutoForward": "silent" }
+  },
+
+  "onCreateCommand": "bash .devcontainer/scripts/on-create.sh",
+  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+  "postStartCommand": "bash .devcontainer/scripts/start-dev.sh",
+  "postAttachCommand": "bash .devcontainer/scripts/post-attach.sh",
+
+  "secrets": {
+    "OVH_AI_ENDPOINTS_ACCESS_TOKEN": {
+      "description": "OVH AI Endpoints access token (LLM + embeddings for the weekly meal planner)."
+    },
+    "COOKIDOO_EMAIL": {
+      "description": "Cookidoo account email, used by cookidoo-service to sync recipes."
+    },
+    "COOKIDOO_PASSWORD": {
+      "description": "Cookidoo account password."
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "angular.ng-template",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-python.python",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml"
+      ]
+    }
+  }
+}

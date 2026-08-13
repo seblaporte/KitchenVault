@@ -6,6 +6,16 @@ import ffmpegPath from 'ffmpeg-static';
 const videosDir = join(import.meta.dirname, '..', 'cypress', 'videos');
 const outputDir = join(import.meta.dirname, '..', '..', 'docs', 'modules', 'ROOT', 'assets', 'images', 'e2e');
 
+// Un test Cypress s'exécute en quelques secondes, bien trop vite pour être suivi à l'œil.
+// Plutôt qu'un échantillonnage à fps fixe, on ne retient que les frames où l'image change
+// significativement (détection de scène ffmpeg) et on les affiche chacune pendant FRAME_DELAY_SECONDS,
+// ce qui donne un GIF "pas à pas" lisible quelle que soit la vitesse réelle du test.
+const SCENE_THRESHOLD = 0.15;
+const FRAME_DELAY_SECONDS = 0.7;
+const GIF_WIDTH = 960;
+
+const selectFilter = `select='eq(n,0)+gt(scene,${SCENE_THRESHOLD})',setpts=N/(${1 / FRAME_DELAY_SECONDS}*TB),scale=${GIF_WIDTH}:-1:flags=lanczos`;
+
 if (!existsSync(videosDir)) {
   console.error(`Aucun dossier de vidéos trouvé: ${videosDir}`);
   console.error('Lancez d\'abord "npm run e2e:gif" avec le frontend démarré (npm start).');
@@ -32,7 +42,7 @@ for (const video of videos) {
   execFileSync(ffmpegPath, [
     '-y',
     '-i', inputPath,
-    '-vf', 'fps=10,scale=960:-1:flags=lanczos,palettegen',
+    '-vf', `${selectFilter},palettegen=stats_mode=diff`,
     palettePath,
   ]);
 
@@ -40,7 +50,8 @@ for (const video of videos) {
     '-y',
     '-i', inputPath,
     '-i', palettePath,
-    '-filter_complex', 'fps=10,scale=960:-1:flags=lanczos[x];[x][1:v]paletteuse',
+    '-lavfi', `${selectFilter}[x];[x][1:v]paletteuse=dither=bayer`,
+    '-vsync', 'vfr',
     gifPath,
   ]);
 

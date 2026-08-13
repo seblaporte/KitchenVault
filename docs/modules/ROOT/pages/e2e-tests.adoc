@@ -12,7 +12,7 @@ npm start          # dans un terminal, laisser tourner (http://localhost:4200)
 npm run e2e:gif     # dans un second terminal
 ----
 
-La commande enregistre une vidéo par spec Cypress (`cypress/videos/*.mp4`), puis les convertit en GIF via `ffmpeg` (palette 2-passes) directement dans `docs/modules/ROOT/assets/images/e2e/`.
+Chaque commande d'action Cypress (clic, saisie, navigation...) déclenche automatiquement un screenshot (voir `cypress/support/e2e.ts`), stocké par spec dans `cypress/screenshots/`. Ces images sont ensuite assemblées en GIF via `ffmpeg` (palette 2-passes, une image affichée ~0.9s) directement dans `docs/modules/ROOT/assets/images/e2e/`.
 
 == Chargement de l'application
 

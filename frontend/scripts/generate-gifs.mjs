@@ -1,7 +1,9 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import ffmpegPath from 'ffmpeg-static';
+import sharp from 'sharp';
 
 const screenshotsDir = join(import.meta.dirname, '..', 'cypress', 'screenshots');
 const outputDir = join(import.meta.dirname, '..', '..', 'docs', 'modules', 'ROOT', 'assets', 'images', 'e2e');
@@ -12,6 +14,9 @@ const outputDir = join(import.meta.dirname, '..', '..', 'docs', 'modules', 'ROOT
 // depuis une vidéo continue (peu fiable : bruit d'animation, changements localisés manqués).
 const FRAME_DELAY_SECONDS = 0.9;
 const GIF_WIDTH = 960;
+const BANNER_HEIGHT = 44;
+const BANNER_BACKGROUND = '#111827';
+const MAX_SCENARIO_LENGTH = 110;
 
 if (!existsSync(screenshotsDir)) {
   console.error(`Aucun dossier de screenshots trouvé: ${screenshotsDir}`);
@@ -30,6 +35,34 @@ if (specDirs.length === 0) {
   process.exit(1);
 }
 
+function escapeXml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function truncate(text) {
+  return text.length > MAX_SCENARIO_LENGTH ? `${text.slice(0, MAX_SCENARIO_LENGTH - 1)}…` : text;
+}
+
+async function composeLabeledFrame(sourcePath, scenario, destPath) {
+  const resized = sharp(sourcePath).resize({ width: GIF_WIDTH });
+  const { height } = await resized.metadata();
+  const banner = Buffer.from(`
+    <svg width="${GIF_WIDTH}" height="${BANNER_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+      <text x="16" y="${BANNER_HEIGHT / 2 + 6}" font-family="sans-serif" font-size="18" fill="#f9fafb">${escapeXml(truncate(scenario))}</text>
+    </svg>
+  `);
+
+  await resized
+    .extend({ top: BANNER_HEIGHT, bottom: 0, left: 0, right: 0, background: BANNER_BACKGROUND })
+    .composite([{ input: banner, top: 0, left: 0 }])
+    .toFile(destPath);
+}
+
 for (const specDir of specDirs) {
   const specName = specDir.replace(/\.cy\.ts$/, '');
   const specPath = join(screenshotsDir, specDir);
@@ -46,27 +79,38 @@ for (const specDir of specDirs) {
     continue;
   }
 
-  const concatListPath = join(outputDir, `${specName}.concat.txt`);
-  const concatLines = steps.map((file) => {
-    const absPath = join(specPath, file).replace(/'/g, "'\\''");
-    return `file '${absPath}'\nduration ${FRAME_DELAY_SECONDS}`;
-  });
-  // Quirk ffmpeg concat demuxer : la durée de la dernière entrée est ignorée, il faut répéter le fichier.
-  const lastAbsPath = join(specPath, steps[steps.length - 1]).replace(/'/g, "'\\''");
-  concatLines.push(`file '${lastAbsPath}'`);
-  writeFileSync(concatListPath, concatLines.join('\n'));
-
-  const palettePath = join(outputDir, `${specName}.palette.png`);
-  const gifPath = join(outputDir, `${specName}.gif`);
+  const manifestPath = join(specPath, 'manifest.json');
+  const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : [];
+  const scenarioByFile = new Map(manifest.map((entry) => [entry.file, entry.scenario]));
 
   console.log(`Génération de ${specName}.gif (${steps.length} étapes)...`);
+
+  const tempDir = mkdtempSync(join(tmpdir(), `kv-gif-${specName}-`));
+  const labeledPaths = [];
+  for (const file of steps) {
+    const scenario = scenarioByFile.get(file) ?? '';
+    const destPath = join(tempDir, file);
+    await composeLabeledFrame(join(specPath, file), scenario, destPath);
+    labeledPaths.push(destPath);
+  }
+
+  const concatListPath = join(tempDir, 'concat.txt');
+  const concatLines = labeledPaths.map((path) => `file '${path.replace(/'/g, "'\\''")}'\nduration ${FRAME_DELAY_SECONDS}`);
+  // Quirk ffmpeg concat demuxer : la durée de la dernière entrée est ignorée, il faut répéter le fichier.
+  concatLines.push(`file '${labeledPaths[labeledPaths.length - 1].replace(/'/g, "'\\''")}'`);
+  writeFileSync(concatListPath, concatLines.join('\n'));
+
+  const palettePath = join(tempDir, 'palette.png');
+  const gifPath = join(outputDir, `${specName}.gif`);
 
   const inputArgs = ['-f', 'concat', '-safe', '0', '-i', concatListPath];
 
   execFileSync(ffmpegPath, [
     '-y',
     ...inputArgs,
-    '-vf', `scale=${GIF_WIDTH}:-1:flags=lanczos,palettegen=stats_mode=diff`,
+    '-vf', 'palettegen=stats_mode=diff',
+    '-update', '1',
+    '-frames:v', '1',
     palettePath,
   ]);
 
@@ -74,14 +118,13 @@ for (const specDir of specDirs) {
     '-y',
     ...inputArgs,
     '-i', palettePath,
-    '-lavfi', `scale=${GIF_WIDTH}:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer`,
+    '-lavfi', '[0:v][1:v]paletteuse=dither=bayer',
     '-vsync', 'vfr',
-    '-frames:v', String(steps.length), // le concat demuxer répète le dernier fichier pour lui donner sa durée, sans que ça compte comme une frame en plus
+    '-frames:v', String(labeledPaths.length), // le concat demuxer répète le dernier fichier pour lui donner sa durée, sans que ça compte comme une frame en plus
     gifPath,
   ]);
 
-  rmSync(palettePath);
-  rmSync(concatListPath);
+  rmSync(tempDir, { recursive: true });
 }
 
 console.log(`${specDirs.length} GIF(s) généré(s) dans ${outputDir}`);

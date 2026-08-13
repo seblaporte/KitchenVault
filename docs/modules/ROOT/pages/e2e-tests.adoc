@@ -12,7 +12,7 @@ npm start          # dans un terminal, laisser tourner (http://localhost:4200)
 npm run e2e:gif     # dans un second terminal
 ----
 
-Chaque commande d'action Cypress (clic, saisie, navigation...) déclenche automatiquement un screenshot (voir `cypress/support/e2e.ts`), stocké par spec dans `cypress/screenshots/`. Ces images sont ensuite assemblées en GIF via `ffmpeg` (palette 2-passes, une image affichée ~0.9s) directement dans `docs/modules/ROOT/assets/images/e2e/`.
+Chaque commande d'action Cypress (clic, saisie, navigation...) déclenche automatiquement un screenshot (voir `cypress/support/e2e.ts`), stocké par spec dans `cypress/screenshots/`. Un point rouge marque l'élément cliqué/saisi, et un bandeau en haut de l'image indique le scénario (`describe`/`it`) en cours — un même GIF pouvant enchaîner plusieurs scénarios d'une même spec. Ces images sont ensuite assemblées en GIF via `sharp` (bandeau) puis `ffmpeg` (palette 2-passes, une image affichée ~0.9s) directement dans `docs/modules/ROOT/assets/images/e2e/`.
 
 == Chargement de l'application
 

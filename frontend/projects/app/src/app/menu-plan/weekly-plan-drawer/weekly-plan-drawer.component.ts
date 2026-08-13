@@ -14,6 +14,7 @@ import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroSparkles, heroXMark, heroPaperAirplane, heroCheck } from '@ng-icons/heroicons/outline';
 import { MarkdownComponent } from 'ngx-markdown';
 import { WeekConstraintFormComponent } from './week-constraint-form/week-constraint-form.component';
+import { randomUUID } from '../../shared/uuid';
 
 interface DrawerMessage {
   role: 'user' | 'ai';
@@ -254,7 +255,7 @@ export class WeeklyPlanDrawerComponent implements OnChanges, OnDestroy {
   error = signal<string | null>(null);
   inputText = '';
 
-  private sessionId = crypto.randomUUID();
+  private sessionId = randomUUID();
   private planModified = false;
   private genTimer?: ReturnType<typeof setTimeout>;
 
@@ -427,7 +428,7 @@ export class WeeklyPlanDrawerComponent implements OnChanges, OnDestroy {
 
   private resetSession(): void {
     clearTimeout(this.genTimer);
-    this.sessionId = crypto.randomUUID();
+    this.sessionId = randomUUID();
     this.phase.set('form');
     this.genStep.set(0);
     this.messages.set([]);

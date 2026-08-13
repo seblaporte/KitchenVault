@@ -2,6 +2,7 @@ package fr.seblaporte.kitchenvault.controller;
 
 import fr.seblaporte.kitchenvault.exception.InvalidWeekStartException;
 import fr.seblaporte.kitchenvault.generated.model.ErrorDto;
+import fr.seblaporte.kitchenvault.service.MealPlanService;
 import fr.seblaporte.kitchenvault.service.ShoppingListService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,14 @@ public class GlobalExceptionHandler {
         ErrorDto error = new ErrorDto();
         error.setMessage(ex.getMessage());
         return ResponseEntity.unprocessableEntity().body(error);
+    }
+
+    @ExceptionHandler(MealPlanService.SlotOccupiedException.class)
+    public ResponseEntity<ErrorDto> handleSlotOccupied(MealPlanService.SlotOccupiedException ex) {
+        log.warn("Slot occupied: {}", ex.getMessage());
+        ErrorDto error = new ErrorDto();
+        error.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     @ExceptionHandler(RestClientException.class)

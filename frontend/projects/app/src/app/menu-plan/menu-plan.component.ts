@@ -1,15 +1,15 @@
-import { Component, OnInit, OnDestroy, signal, effect, inject, Renderer2, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, signal, effect, inject, Renderer2, computed } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown } from '@ng-icons/heroicons/outline';
+import { heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown, heroArrowsRightLeft, heroXMark } from '@ng-icons/heroicons/outline';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, EMPTY, forkJoin, map, of, switchMap } from 'rxjs';
-import { MealSlotComponent } from './meal-slot/meal-slot.component';
+import { MealSlotComponent, HeldMode } from './meal-slot/meal-slot.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
 import { ChatModalComponent } from './chat-modal/chat-modal.component';
 import { WeeklyPlanDrawerComponent } from './weekly-plan-drawer/weekly-plan-drawer.component';
 import { ActivatedRoute } from '@angular/router';
-import { MenuPlanService, ShoppingListService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto } from '@KitchenVault/api-client';
+import { MenuPlanService, ShoppingListService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto, MealPlanEntryDto } from '@KitchenVault/api-client';
 import { ToastService } from '../shared/toast/toast.service';
 
 function getMondayOf(date: Date): Date {
@@ -53,11 +53,18 @@ interface WeekDay extends DayPlanDto {
   month: string;
 }
 
+interface HeldMeal {
+  date: string;
+  mealType: MealType;
+  recipeId: string;
+  recipeName: string;
+}
+
 @Component({
   selector: 'app-menu-plan',
   standalone: true,
   imports: [CommonModule, NgIconComponent, MealSlotComponent, RecipePickerDialogComponent, ChatModalComponent, WeeklyPlanDrawerComponent],
-  viewProviders: [provideIcons({ heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown })],
+  viewProviders: [provideIcons({ heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown, heroArrowsRightLeft, heroXMark })],
   template: `
     <!-- En-tête semaine -->
     <div class="sticky top-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] sm:top-[calc(4rem+env(safe-area-inset-top)+0.5rem)] z-20 flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-4 py-3 shadow-sm mb-4">
@@ -112,7 +119,7 @@ interface WeekDay extends DayPlanDto {
 
       <div class="w-full sm:w-auto sm:ml-auto flex items-center gap-2">
         <button
-          (click)="weeklyDrawerOpen.set(true)"
+          (click)="openWeeklyDrawer()"
           [class.ring-2]="weeklyDrawerOpen()"
           [class.ring-forest-500]="weeklyDrawerOpen()"
           class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-600"
@@ -181,6 +188,24 @@ interface WeekDay extends DayPlanDto {
       </div>
     </div>
 
+    <!-- Bandeau mode déplacement -->
+    @if (heldMeal(); as held) {
+      <div class="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-4 py-2.5 mb-4">
+        <span class="inline-flex items-center gap-2 rounded-full border border-amber-300 dark:border-amber-700 bg-white dark:bg-stone-900 pl-1.5 pr-3 py-1">
+          <ng-icon name="heroArrowsRightLeft" class="h-3.5 w-3.5 text-amber-500 shrink-0" aria-hidden="true" />
+          <span class="text-xs font-medium text-stone-800 dark:text-stone-200 max-w-[220px] truncate">{{ held.recipeName }}</span>
+        </span>
+        <span class="text-xs text-amber-700 dark:text-amber-400 flex-1">Naviguez entre les semaines puis cliquez le créneau cible</span>
+        <button
+          (click)="cancelHold()"
+          class="inline-flex items-center gap-1 rounded-lg border border-amber-300 dark:border-amber-700 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer"
+        >
+          <ng-icon name="heroXMark" class="h-3 w-3" aria-hidden="true" />
+          Annuler
+        </button>
+      </div>
+    }
+
     <!-- Chargement -->
     @if (loading()) {
       <div class="flex items-center justify-center py-16">
@@ -243,10 +268,13 @@ interface WeekDay extends DayPlanDto {
                   label="Déjeuner"
                   [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.lunch?.recipeId ? selectionIds().has(day.lunch!.recipeId!) : false"
+                  [heldMode]="heldModeFor(day.date, 'LUNCH', !!day.lunch)"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
                   (chatRequested)="openChatForSlot($event)"
                   (addToShoppingRequested)="onAddToShopping($event)"
+                  (moveRequested)="handleMoveRequested($event)"
+                  (placeRequested)="handlePlaceRequested($event)"
                 />
               </div>
               <div>
@@ -258,10 +286,13 @@ interface WeekDay extends DayPlanDto {
                   label="Dîner"
                   [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.dinner?.recipeId ? selectionIds().has(day.dinner!.recipeId!) : false"
+                  [heldMode]="heldModeFor(day.date, 'DINNER', !!day.dinner)"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
                   (chatRequested)="openChatForSlot($event)"
                   (addToShoppingRequested)="onAddToShopping($event)"
+                  (moveRequested)="handleMoveRequested($event)"
+                  (placeRequested)="handlePlaceRequested($event)"
                 />
               </div>
             </div>
@@ -313,10 +344,13 @@ interface WeekDay extends DayPlanDto {
                   label="Déjeuner"
                   [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.lunch?.recipeId ? selectionIds().has(day.lunch!.recipeId!) : false"
+                  [heldMode]="heldModeFor(day.date, 'LUNCH', !!day.lunch)"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
                   (chatRequested)="openChatForSlot($event)"
                   (addToShoppingRequested)="onAddToShopping($event)"
+                  (moveRequested)="handleMoveRequested($event)"
+                  (placeRequested)="handlePlaceRequested($event)"
                 />
               </div>
             }
@@ -337,10 +371,13 @@ interface WeekDay extends DayPlanDto {
                   label="Dîner"
                   [weekStart]="toISODateStr(weekStart())"
                   [inSelection]="day.dinner?.recipeId ? selectionIds().has(day.dinner!.recipeId!) : false"
+                  [heldMode]="heldModeFor(day.date, 'DINNER', !!day.dinner)"
                   (addRequested)="openPicker($event)"
                   (removeRequested)="handleRemove($event)"
                   (chatRequested)="openChatForSlot($event)"
                   (addToShoppingRequested)="onAddToShopping($event)"
+                  (moveRequested)="handleMoveRequested($event)"
+                  (placeRequested)="handlePlaceRequested($event)"
                 />
               </div>
             }
@@ -392,6 +429,7 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   selectionIds = signal<Set<string>>(new Set());
   syncing = signal(false);
   syncDropdownOpen = signal(false);
+  heldMeal = signal<HeldMeal | null>(null);
   pickerDate = '';
   pickerMealType = '';
 
@@ -508,7 +546,78 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
     this.loadWeekPlan();
   }
 
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    this.cancelHold();
+  }
+
+  heldModeFor(date: string, mealType: MealType, hasEntry: boolean): HeldMode {
+    const held = this.heldMeal();
+    if (!held) return 'none';
+    if (held.date === date && held.mealType === mealType) return 'source';
+    return hasEntry ? 'target-swap' : 'target-empty';
+  }
+
+  handleMoveRequested(event: { date: string; mealType: string }): void {
+    const entry = this.entryAt(event.date, event.mealType as MealType);
+    if (!entry?.recipeId) return;
+    this.heldMeal.set({
+      date: event.date,
+      mealType: event.mealType as MealType,
+      recipeId: entry.recipeId,
+      recipeName: entry.recipeName ?? '',
+    });
+  }
+
+  cancelHold(): void {
+    this.heldMeal.set(null);
+  }
+
+  handlePlaceRequested(event: { date: string; mealType: string }): void {
+    const held = this.heldMeal();
+    if (!held) return;
+    const targetMealType = event.mealType as MealType;
+    const targetEntry = this.entryAt(event.date, targetMealType);
+
+    this.heldMeal.set(null);
+
+    const onError = () => {
+      this.toast.show({ type: 'error', title: 'Échec du déplacement', message: 'Vérifiez le planning et réessayez.' });
+      this.loadWeekPlan();
+    };
+    const onSuccess = (message: string) => {
+      this.toast.show({ type: 'success', title: message });
+      this.loadWeekPlan();
+    };
+
+    if (targetEntry?.recipeId) {
+      this.menuPlanService.upsertBulkEntries({
+        entries: [
+          { date: event.date, mealType: targetMealType, recipeId: held.recipeId },
+          { date: held.date, mealType: held.mealType, recipeId: targetEntry.recipeId },
+        ],
+      })
+        .pipe(catchError(() => { onError(); return EMPTY; }))
+        .subscribe(() => onSuccess('Recettes échangées'));
+    } else {
+      this.menuPlanService.relocateEntry(held.date, held.mealType, { date: event.date, mealType: targetMealType })
+        .pipe(catchError(() => { onError(); return EMPTY; }))
+        .subscribe(() => onSuccess('Recette déplacée'));
+    }
+  }
+
+  private entryAt(date: string, mealType: MealType): MealPlanEntryDto | null | undefined {
+    const day = this.weekPlan()?.days.find(d => d.date === date);
+    return mealType === MealType.LUNCH ? day?.lunch : day?.dinner;
+  }
+
+  openWeeklyDrawer(): void {
+    this.cancelHold();
+    this.weeklyDrawerOpen.set(true);
+  }
+
   openPicker(event: { date: string; mealType: string }): void {
+    this.cancelHold();
     this.pickerDate = event.date;
     this.pickerMealType = event.mealType;
     this.pickerOpen.set(true);
@@ -580,6 +689,7 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   }
 
   openChatForSlot(event: { date: string; mealType: string; label: string }): void {
+    this.cancelHold();
     this.chatContext.set({
       context: 'slot',
       weekStart: toISODate(this.weekStart()),

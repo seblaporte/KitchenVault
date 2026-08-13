@@ -98,6 +98,67 @@ class MealPlanServiceTest {
     }
 
     @Test
+    void relocateEntry_targetFree_movesEntryInPlace() {
+        LocalDate target = MONDAY.plusDays(1);
+        MealPlanEntry entry = new MealPlanEntry();
+        entry.setEntryDate(MONDAY);
+        entry.setMealType(MealType.LUNCH);
+
+        when(mealPlanEntryRepository.findByEntryDateAndMealType(MONDAY, MealType.LUNCH)).thenReturn(Optional.of(entry));
+        when(mealPlanEntryRepository.findByEntryDateAndMealType(target, MealType.DINNER)).thenReturn(Optional.empty());
+        when(mealPlanEntryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        MealPlanEntry result = mealPlanService.relocateEntry(MONDAY, MealType.LUNCH, target, MealType.DINNER);
+
+        assertThat(result).isSameAs(entry);
+        assertThat(result.getEntryDate()).isEqualTo(target);
+        assertThat(result.getMealType()).isEqualTo(MealType.DINNER);
+        verify(mealPlanEntryRepository).save(entry);
+        verify(mealPlanEntryRepository, never()).delete(any(MealPlanEntry.class));
+    }
+
+    @Test
+    void relocateEntry_sourceEmpty_throwsNoSuchElementException() {
+        when(mealPlanEntryRepository.findByEntryDateAndMealType(MONDAY, MealType.LUNCH)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> mealPlanService.relocateEntry(MONDAY, MealType.LUNCH, MONDAY, MealType.DINNER))
+                .isInstanceOf(NoSuchElementException.class);
+
+        verify(mealPlanEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void relocateEntry_targetOccupied_throwsSlotOccupiedException() {
+        LocalDate target = MONDAY.plusDays(1);
+        MealPlanEntry source = new MealPlanEntry();
+        source.setEntryDate(MONDAY);
+        source.setMealType(MealType.LUNCH);
+        MealPlanEntry occupyingTarget = new MealPlanEntry();
+
+        when(mealPlanEntryRepository.findByEntryDateAndMealType(MONDAY, MealType.LUNCH)).thenReturn(Optional.of(source));
+        when(mealPlanEntryRepository.findByEntryDateAndMealType(target, MealType.DINNER)).thenReturn(Optional.of(occupyingTarget));
+
+        assertThatThrownBy(() -> mealPlanService.relocateEntry(MONDAY, MealType.LUNCH, target, MealType.DINNER))
+                .isInstanceOf(MealPlanService.SlotOccupiedException.class);
+
+        verify(mealPlanEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void relocateEntry_sameSlot_isNoOpAndReturnsEntryUnchanged() {
+        MealPlanEntry entry = new MealPlanEntry();
+        entry.setEntryDate(MONDAY);
+        entry.setMealType(MealType.LUNCH);
+
+        when(mealPlanEntryRepository.findByEntryDateAndMealType(MONDAY, MealType.LUNCH)).thenReturn(Optional.of(entry));
+
+        MealPlanEntry result = mealPlanService.relocateEntry(MONDAY, MealType.LUNCH, MONDAY, MealType.LUNCH);
+
+        assertThat(result).isSameAs(entry);
+        verify(mealPlanEntryRepository, never()).save(any());
+    }
+
+    @Test
     void suggest_withNoRecentRecipes_callsFindRandomRecipes() {
         List<Recipe> recipes = List.of(makeRecipe("r-1", "Tarte"), makeRecipe("r-2", "Quiche"));
         when(mealPlanEntryRepository.findRecentRecipeIds(any(), any())).thenReturn(List.of());

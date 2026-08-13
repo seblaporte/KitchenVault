@@ -6,6 +6,7 @@ import { ChatService, MealType, MenuPlanService, RecipeSummaryDto } from '@Kitch
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { MarkdownComponent } from 'ngx-markdown';
 import { heroPhoto } from '@ng-icons/heroicons/outline';
+import { randomUUID } from '../../shared/uuid';
 
 interface ChatMessage {
   role: 'user' | 'ai';
@@ -179,7 +180,7 @@ export class ChatModalComponent implements OnInit {
   error = signal<string | null>(null);
   inputText = '';
 
-  private sessionId = crypto.randomUUID();
+  private sessionId = randomUUID();
   private planModified = false;
 
   constructor(private chatService: ChatService, private menuPlanService: MenuPlanService) {}

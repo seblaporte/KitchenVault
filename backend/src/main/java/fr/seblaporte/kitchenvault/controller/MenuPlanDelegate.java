@@ -7,6 +7,7 @@ import fr.seblaporte.kitchenvault.generated.api.MenuPlanApiDelegate;
 import fr.seblaporte.kitchenvault.generated.model.DayPlanDto;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanBulkRequest;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanEntryDto;
+import fr.seblaporte.kitchenvault.generated.model.MealPlanRelocateDto;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanUpsertDto;
 import fr.seblaporte.kitchenvault.generated.model.MealType;
 import fr.seblaporte.kitchenvault.generated.model.MenuPlanDto;
@@ -89,6 +90,18 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
     public ResponseEntity<Void> removeEntry(LocalDate date, MealType mealType) {
         mealPlanService.removeEntry(date, toEntityMealType(mealType));
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<MealPlanEntryDto> relocateEntry(LocalDate date, MealType mealType, MealPlanRelocateDto mealPlanRelocateDto) {
+        try {
+            MealPlanEntry entry = mealPlanService.relocateEntry(
+                    date, toEntityMealType(mealType),
+                    mealPlanRelocateDto.getDate(), toEntityMealType(mealPlanRelocateDto.getMealType()));
+            return ResponseEntity.ok(mealPlanMapper.toEntryDto(entry));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @Override

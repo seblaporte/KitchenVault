@@ -1,0 +1,69 @@
+= Parcours utilisateurs (tests E2E)
+:description: GIFs animés générés depuis les tests Cypress, illustrant les principaux parcours utilisateurs
+
+Cette page présente les principaux parcours utilisateurs de KitchenVault sous forme de GIF animé, générés directement depuis les tests Cypress du frontend (`frontend/cypress/e2e/`). Chaque GIF correspond à un fichier de spec et illustre l'ensemble des scénarios qu'il couvre.
+
+== Régénérer les GIFs
+
+[source,bash]
+----
+cd frontend
+npm start          # dans un terminal, laisser tourner (http://localhost:4200)
+npm run e2e:gif     # dans un second terminal
+----
+
+La commande enregistre une vidéo par spec Cypress (`cypress/videos/*.mp4`), puis les convertit en GIF via `ffmpeg` (palette 2-passes) directement dans `docs/modules/ROOT/assets/images/e2e/`.
+
+== Chargement de l'application
+
+Bootstrap de l'application et rendu initial de la page d'administration.
+
+image::e2e/app-loads.gif[]
+
+== Navigation principale
+
+Navigation entre les sections Administration, Recettes et Menu.
+
+image::e2e/navigation.gif[]
+
+== Parcours des recettes
+
+Navigation par collections et accès au détail d'une recette.
+
+image::e2e/recipes-browse.gif[]
+
+== Recherche et filtres de recettes
+
+Recherche textuelle, filtres par collection et par temps total, réinitialisation des filtres.
+
+image::e2e/recipes-search.gif[]
+
+== Détail d'une recette
+
+Affichage des informations d'une recette, retour à la liste, gestion d'une recette introuvable.
+
+image::e2e/recipe-detail.gif[]
+
+== Planning de la semaine
+
+Consultation du planning hebdomadaire, ajout et suggestion de recettes sur un créneau.
+
+image::e2e/menu-plan.gif[]
+
+== Liste de courses et export email
+
+Consultation de la liste consolidée et export par email.
+
+image::e2e/shopping-list.gif[]
+
+== Administration et synchronisation
+
+Statistiques de la base et déclenchement d'une synchronisation Cookidoo.
+
+image::e2e/admin.gif[]
+
+== Interface mobile
+
+Barre de navigation mobile et vue cartes du planning de la semaine (viewport iPhone 14).
+
+image::e2e/mobile-responsive.gif[]

@@ -6,3 +6,4 @@
 * xref:sync.adoc[Synchronisation Cookidoo]
 * xref:ai.adoc[Assistant IA culinaire]
 * xref:frontend.adoc[Interface Angular]
+* xref:e2e-tests.adoc[Parcours utilisateurs (E2E)]

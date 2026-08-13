@@ -80,31 +80,33 @@ export type HeldMode = 'none' | 'source' | 'target-empty' | 'target-swap';
             </svg>
           </button>
           @if (entry.recipeId) {
-            <button
-              (click)="$event.stopPropagation(); onAddToShopping()"
-              class="absolute top-1.5 left-1.5 h-6 px-2 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all backdrop-blur-sm cursor-pointer"
-              [ngClass]="inSelection
-                ? 'bg-forest-600 text-white border border-forest-700 shadow-sm opacity-100'
-                : 'bg-black/40 text-white/70 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-forest-600 hover:text-white'"
-              [title]="inSelection ? 'Recette dans la sélection' : 'Ajouter à la liste de courses'"
-              [attr.aria-label]="inSelection ? 'Recette dans la sélection' : 'Ajouter à la liste de courses'"
-            >
-              @if (inSelection) {
-                <ng-icon name="heroCheck" class="h-2.5 w-2.5" aria-hidden="true" />
-              } @else {
-                <ng-icon name="heroShoppingCart" class="h-3 w-3" aria-hidden="true" />
-              }
-              Liste
-            </button>
-            <button
-              (click)="$event.stopPropagation(); onMove()"
-              class="absolute bottom-1.5 left-1.5 h-6 px-2 rounded-md text-[11px] font-medium flex items-center gap-1 bg-black/40 text-white/70 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-amber-500 hover:text-white transition-all backdrop-blur-sm cursor-pointer"
-              title="Déplacer cette recette"
-              aria-label="Déplacer cette recette"
-            >
-              <ng-icon name="heroArrowsRightLeft" class="h-3 w-3" aria-hidden="true" />
-              Déplacer
-            </button>
+            <div class="absolute top-1.5 left-1.5 flex flex-col items-start gap-1">
+              <button
+                (click)="$event.stopPropagation(); onAddToShopping()"
+                class="h-6 px-2 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all backdrop-blur-sm cursor-pointer"
+                [ngClass]="inSelection
+                  ? 'bg-forest-600 text-white border border-forest-700 shadow-sm opacity-100'
+                  : 'bg-black/40 text-white/70 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-forest-600 hover:text-white'"
+                [title]="inSelection ? 'Recette dans la sélection' : 'Ajouter à la liste de courses'"
+                [attr.aria-label]="inSelection ? 'Recette dans la sélection' : 'Ajouter à la liste de courses'"
+              >
+                @if (inSelection) {
+                  <ng-icon name="heroCheck" class="h-2.5 w-2.5" aria-hidden="true" />
+                } @else {
+                  <ng-icon name="heroShoppingCart" class="h-3 w-3" aria-hidden="true" />
+                }
+                Liste
+              </button>
+              <button
+                (click)="$event.stopPropagation(); onMove()"
+                class="h-6 px-2 rounded-md text-[11px] font-medium flex items-center gap-1 bg-black/40 text-white/70 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-amber-500 hover:text-white transition-all backdrop-blur-sm cursor-pointer"
+                title="Déplacer cette recette"
+                aria-label="Déplacer cette recette"
+              >
+                <ng-icon name="heroArrowsRightLeft" class="h-3 w-3" aria-hidden="true" />
+                Déplacer
+              </button>
+            </div>
           }
         }
       </div>

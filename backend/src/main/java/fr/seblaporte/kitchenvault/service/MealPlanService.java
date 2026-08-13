@@ -63,6 +63,30 @@ public class MealPlanService {
                 .ifPresent(mealPlanEntryRepository::delete);
     }
 
+    @Transactional
+    public MealPlanEntry relocateEntry(LocalDate sourceDate, MealType sourceMealType,
+                                        LocalDate targetDate, MealType targetMealType) {
+        MealPlanEntry entry = mealPlanEntryRepository.findByEntryDateAndMealType(sourceDate, sourceMealType)
+                .orElseThrow(() -> new NoSuchElementException("Aucune recette au créneau source"));
+
+        if (sourceDate.equals(targetDate) && sourceMealType == targetMealType) {
+            return entry;
+        }
+
+        mealPlanEntryRepository.findByEntryDateAndMealType(targetDate, targetMealType)
+                .ifPresent(existing -> { throw new SlotOccupiedException("Le créneau cible est déjà occupé"); });
+
+        entry.setEntryDate(targetDate);
+        entry.setMealType(targetMealType);
+        return mealPlanEntryRepository.save(entry);
+    }
+
+    public static class SlotOccupiedException extends RuntimeException {
+        public SlotOccupiedException(String message) {
+            super(message);
+        }
+    }
+
     public List<MealPlanEntry> getRecipeHistory(String recipeId, int limit) {
         return mealPlanEntryRepository.findByRecipeIdOrderByEntryDateDesc(recipeId, PageRequest.of(0, limit));
     }

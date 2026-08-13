@@ -75,7 +75,7 @@ describe('MenuPlanComponent — mode Attraper (déplacer une recette)', () => {
     expect(component.heldMeal()).toBeNull();
   });
 
-  it('handlePlaceRequested vers un créneau vide envoie upsertEntry puis removeEntry et affiche un toast de succès', () => {
+  it('handlePlaceRequested vers un créneau vide envoie un seul relocateEntry (PATCH atomique) et affiche un toast de succès', () => {
     const { component, httpMock, toast } = setup();
     component.handleMoveRequested({ date: '2026-06-08', mealType: 'LUNCH' });
 
@@ -83,17 +83,29 @@ describe('MenuPlanComponent — mode Attraper (déplacer une recette)', () => {
 
     expect(component.heldMeal()).toBeNull();
 
-    const upsertReq = httpMock.expectOne(r => r.method === 'PUT' && r.url.includes('/api/v1/menu-plan/entries/2026-06-10/LUNCH'));
-    expect(upsertReq.request.body).toEqual({ recipeId: 'r-1' });
-    upsertReq.flush({ recipeId: 'r-1', recipeName: 'Pasta' });
-
-    const removeReq = httpMock.expectOne(r => r.method === 'DELETE' && r.url.includes('/api/v1/menu-plan/entries/2026-06-08/LUNCH'));
-    removeReq.flush(null, { status: 204, statusText: 'No Content' });
+    const relocateReq = httpMock.expectOne(r => r.method === 'PATCH' && r.url.includes('/api/v1/menu-plan/entries/2026-06-08/LUNCH'));
+    expect(relocateReq.request.body).toEqual({ date: '2026-06-10', mealType: 'LUNCH' });
+    relocateReq.flush({ recipeId: 'r-1', recipeName: 'Pasta' });
 
     // handlePlaceRequested recharge le planning après succès
     httpMock.expectOne(r => r.method === 'GET' && r.url.includes('/api/v1/menu-plan')).flush(weekPlan);
 
     expect(toast.current()).toEqual(jasmine.objectContaining({ type: 'success', title: 'Recette déplacée' }));
+  });
+
+  it('handlePlaceRequested vers un créneau vide affiche un toast d\'échec si relocateEntry échoue, sans doublon', () => {
+    const { component, httpMock, toast } = setup();
+    component.handleMoveRequested({ date: '2026-06-08', mealType: 'LUNCH' });
+
+    component.handlePlaceRequested({ date: '2026-06-10', mealType: 'LUNCH' });
+
+    const relocateReq = httpMock.expectOne(r => r.method === 'PATCH' && r.url.includes('/api/v1/menu-plan/entries/2026-06-08/LUNCH'));
+    relocateReq.flush(null, { status: 500, statusText: 'Server Error' });
+
+    // Un seul appel de mutation a été fait : pas de fenêtre de duplication possible.
+    httpMock.expectOne(r => r.method === 'GET' && r.url.includes('/api/v1/menu-plan')).flush(weekPlan);
+
+    expect(toast.current()).toEqual(jasmine.objectContaining({ type: 'error', title: 'Échec du déplacement' }));
   });
 
   it('handlePlaceRequested vers un créneau occupé envoie un seul upsertBulkEntries (échange) et affiche un toast dédié', () => {

@@ -600,11 +600,8 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
         .pipe(catchError(() => { onError(); return EMPTY; }))
         .subscribe(() => onSuccess('Recettes échangées'));
     } else {
-      this.menuPlanService.upsertEntry(event.date, targetMealType, { recipeId: held.recipeId })
-        .pipe(
-          switchMap(() => this.menuPlanService.removeEntry(held.date, held.mealType)),
-          catchError(() => { onError(); return EMPTY; })
-        )
+      this.menuPlanService.relocateEntry(held.date, held.mealType, { date: event.date, mealType: targetMealType })
+        .pipe(catchError(() => { onError(); return EMPTY; }))
         .subscribe(() => onSuccess('Recette déplacée'));
     }
   }

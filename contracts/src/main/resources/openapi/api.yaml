@@ -415,6 +415,47 @@ paths:
       responses:
         "204":
           description: Créneau supprimé (ou inexistant)
+    patch:
+      tags: [menu-plan]
+      operationId: relocateEntry
+      summary: Déplacer la recette de ce créneau vers un autre créneau
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: mealType
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/MealType"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanRelocateDto"
+      responses:
+        "200":
+          description: Recette déplacée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntryDto"
+        "404":
+          description: Aucune recette au créneau source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "409":
+          description: Le créneau cible est déjà occupé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
 
   /api/v1/menu-plan/suggestions:
     get:
@@ -1043,6 +1084,16 @@ components:
       properties:
         recipeId:
           type: string
+
+    MealPlanRelocateDto:
+      type: object
+      required: [date, mealType]
+      properties:
+        date:
+          type: string
+          format: date
+        mealType:
+          $ref: "#/components/schemas/MealType"
 
     MealPlanBulkRequest:
       type: object

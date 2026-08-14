@@ -81,7 +81,20 @@ async def add_recipes_to_calendar(
             )
             if calendar_day is not None:
                 for recipe in calendar_day.recipes:
-                    await client.remove_recipe_from_calendar(day, recipe.id)
+                    try:
+                        await client.remove_recipe_from_calendar(day, recipe.id)
+                    except TypeError as exc:
+                        # Bug connu de cookidoo_api==0.17.2 : en retirant la dernière
+                        # recette d'un jour, Cookidoo renvoie "recipes": null au lieu
+                        # de [] dans la réponse de confirmation, ce que
+                        # cookidoo_calendar_day_from_json ne gère pas. La suppression a
+                        # déjà réussi (l'erreur survient après raise_for_status(), en
+                        # parsant la réponse) : sans risque d'ignorer.
+                        if "NoneType" not in str(exc):
+                            raise
+
+        if not body.recipe_ids:
+            return CalendarDayResponse(id=day.isoformat(), title=day.isoformat(), recipes=[])
 
         result = await client.add_recipes_to_calendar(day, body.recipe_ids)
 

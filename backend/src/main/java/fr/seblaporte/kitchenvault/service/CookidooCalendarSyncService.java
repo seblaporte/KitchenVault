@@ -32,10 +32,17 @@ public class CookidooCalendarSyncService {
                         Collectors.mapping(MealPlanEntry::getRecipeIdSnapshot, Collectors.toList())
                 ));
 
-        for (Map.Entry<LocalDate, List<String>> dayEntry : byDate.entrySet()) {
+        // En mode "écraser", il faut repasser sur les 7 jours de la semaine (y compris ceux
+        // devenus vides côté KitchenVault) pour que le microservice purge aussi ces jours sur
+        // Cookidoo. Sinon les jours retirés du plan gardent leurs anciennes recettes.
+        List<LocalDate> datesToSync = replace
+                ? weekStart.datesUntil(weekStart.plusDays(7)).toList()
+                : List.copyOf(byDate.keySet());
+
+        for (LocalDate date : datesToSync) {
             cookidooServiceClient.addRecipesToCalendar(
-                    dayEntry.getKey().format(DateTimeFormatter.ISO_LOCAL_DATE),
-                    new AddRecipesToCalendarRequest(dayEntry.getValue(), replace)
+                    date.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                    new AddRecipesToCalendarRequest(byDate.getOrDefault(date, List.of()), replace)
             );
         }
     }

@@ -7,6 +7,7 @@ import fr.seblaporte.kitchenvault.generated.api.MenuPlanApiController;
 import fr.seblaporte.kitchenvault.generated.model.MealPlanEntryDto;
 import fr.seblaporte.kitchenvault.generated.model.RecipeHistoryDto;
 import fr.seblaporte.kitchenvault.mapper.MealPlanMapper;
+import fr.seblaporte.kitchenvault.service.CookidooCalendarPullService;
 import fr.seblaporte.kitchenvault.service.CookidooCalendarSyncService;
 import fr.seblaporte.kitchenvault.service.MealPlanService;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ class MenuPlanDelegateTest {
     @MockitoBean MealPlanService mealPlanService;
     @MockitoBean MealPlanMapper mealPlanMapper;
     @MockitoBean CookidooCalendarSyncService cookidooCalendarSyncService;
+    @MockitoBean CookidooCalendarPullService cookidooCalendarPullService;
 
     @Test
     void getWeekPlan_withValidMonday_returnsOk() throws Exception {
@@ -170,6 +172,107 @@ class MenuPlanDelegateTest {
                 .andExpect(status().isNoContent());
 
         verify(cookidooCalendarSyncService).syncWeek(LocalDate.of(2026, 5, 18), true);
+    }
+
+    @Test
+    void pullWeekFromCookidoo_withValidMonday_returns204() throws Exception {
+        mockMvc.perform(post("/api/v1/menu-plan/2026-05-18/cookidoo-pull"))
+                .andExpect(status().isNoContent());
+
+        verify(cookidooCalendarPullService).pullWeek(LocalDate.of(2026, 5, 18));
+    }
+
+    @Test
+    void pullWeekFromCookidoo_withNonMonday_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/menu-plan/2026-05-19/cookidoo-pull"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("weekStart must be a Monday"));
+    }
+
+    @Test
+    void addUndefinedEntry_withValidRecipe_returnsOk() throws Exception {
+        Recipe recipe = new Recipe("r-1");
+        recipe.setName("Tarte");
+        MealPlanEntry entry = new MealPlanEntry();
+        entry.setEntryDate(LocalDate.of(2024, 4, 1));
+        entry.setMealType(MealType.UNDEFINED);
+        entry.setRecipe(recipe);
+        entry.setRecipeNameSnapshot("Tarte");
+
+        MealPlanEntryDto dto = new MealPlanEntryDto("Tarte");
+        dto.setRecipeId("r-1");
+
+        when(mealPlanService.addUndefinedEntry(LocalDate.of(2024, 4, 1), "r-1")).thenReturn(entry);
+        when(mealPlanMapper.toEntryDto(entry)).thenReturn(dto);
+
+        mockMvc.perform(post("/api/v1/menu-plan/entries/2024-04-01/undefined")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recipeId\":\"r-1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recipeName").value("Tarte"));
+    }
+
+    @Test
+    void addUndefinedEntry_recipeNotFound_returns404() throws Exception {
+        when(mealPlanService.addUndefinedEntry(any(), any()))
+                .thenThrow(new NoSuchElementException());
+
+        mockMvc.perform(post("/api/v1/menu-plan/entries/2024-04-01/undefined")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recipeId\":\"unknown\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void addUndefinedEntry_alreadyPlannedThatDay_returns409() throws Exception {
+        when(mealPlanService.addUndefinedEntry(any(), any()))
+                .thenThrow(new MealPlanService.SlotOccupiedException("Cette recette est déjà planifiée ce jour-là"));
+
+        mockMvc.perform(post("/api/v1/menu-plan/entries/2024-04-01/undefined")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recipeId\":\"r-1\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void removeUndefinedEntry_always_returns204() throws Exception {
+        mockMvc.perform(delete("/api/v1/menu-plan/entries/undefined/42"))
+                .andExpect(status().isNoContent());
+
+        verify(mealPlanService).removeUndefinedEntryById(42L);
+    }
+
+    @Test
+    void relocateUndefinedEntry_validRequest_returnsOk() throws Exception {
+        Recipe recipe = new Recipe("r-1");
+        recipe.setName("Tarte");
+        MealPlanEntry entry = new MealPlanEntry();
+        entry.setEntryDate(LocalDate.of(2026, 5, 19));
+        entry.setMealType(MealType.LUNCH);
+        entry.setRecipe(recipe);
+        entry.setRecipeNameSnapshot("Tarte");
+
+        MealPlanEntryDto dto = new MealPlanEntryDto("Tarte");
+
+        when(mealPlanService.relocateUndefinedEntry(42L, LocalDate.of(2026, 5, 19), MealType.LUNCH)).thenReturn(entry);
+        when(mealPlanMapper.toEntryDto(entry)).thenReturn(dto);
+
+        mockMvc.perform(patch("/api/v1/menu-plan/entries/undefined/42/relocate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"date\":\"2026-05-19\",\"mealType\":\"LUNCH\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recipeName").value("Tarte"));
+    }
+
+    @Test
+    void relocateUndefinedEntry_unknownId_returns404() throws Exception {
+        when(mealPlanService.relocateUndefinedEntry(any(), any(), any()))
+                .thenThrow(new NoSuchElementException());
+
+        mockMvc.perform(patch("/api/v1/menu-plan/entries/undefined/999/relocate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"date\":\"2026-05-19\",\"mealType\":\"LUNCH\"}"))
+                .andExpect(status().isNotFound());
     }
 
     @Test

@@ -26,6 +26,52 @@ def _make_recipe(recipe_id: str = "recipe-1", name: str = "Tarte aux pommes") ->
     )
 
 
+def test_get_calendar_week(client, patch_session):
+    """GET /calendar/week/{day} returns the week's planned recipes."""
+    day1 = _make_calendar_day("2024-01-15", [_make_recipe("recipe-1")])
+    day2 = _make_calendar_day("2024-01-16", [_make_recipe("recipe-2"), _make_recipe("recipe-3")])
+    patch_session.get_recipes_in_calendar_week.return_value = [day1, day2]
+
+    response = client.get("/calendar/week/2024-01-15")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["id"] == "2024-01-15"
+    assert len(data[0]["recipes"]) == 1
+    assert data[1]["id"] == "2024-01-16"
+    assert len(data[1]["recipes"]) == 2
+    patch_session.get_recipes_in_calendar_week.assert_called_once()
+
+
+def test_get_calendar_week_empty(client, patch_session):
+    """GET /calendar/week/{day} returns an empty list when nothing is planned."""
+    patch_session.get_recipes_in_calendar_week.return_value = []
+
+    response = client.get("/calendar/week/2024-01-15")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_get_calendar_week_auth_error(client, patch_session):
+    """CookidooAuthException is mapped to HTTP 401."""
+    patch_session.get_recipes_in_calendar_week.side_effect = CookidooAuthException("Unauthorized")
+
+    response = client.get("/calendar/week/2024-01-15")
+
+    assert response.status_code == 401
+
+
+def test_get_calendar_week_request_error(client, patch_session):
+    """CookidooRequestException is mapped to HTTP 502."""
+    patch_session.get_recipes_in_calendar_week.side_effect = CookidooRequestException("Timeout")
+
+    response = client.get("/calendar/week/2024-01-15")
+
+    assert response.status_code == 502
+
+
 def test_add_recipes_no_replace(client, patch_session):
     """POST with replace=false calls add_recipes_to_calendar directly and returns 200."""
     result_day = _make_calendar_day("2024-01-15", [_make_recipe("recipe-1")])

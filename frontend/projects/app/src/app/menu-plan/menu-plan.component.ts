@@ -8,7 +8,7 @@ import { MealSlotComponent, HeldMode } from './meal-slot/meal-slot.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
 import { ChatModalComponent } from './chat-modal/chat-modal.component';
 import { WeeklyPlanDrawerComponent } from './weekly-plan-drawer/weekly-plan-drawer.component';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MenuPlanService, ShoppingListService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto, MealPlanEntryDto } from '@KitchenVault/api-client';
 import { ToastService } from '../shared/toast/toast.service';
 
@@ -33,7 +33,7 @@ function emptyWeekPlan(monday: Date): MenuPlanDto {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(d.getDate() + i);
-    days.push({ date: toISODate(d) });
+    days.push({ date: toISODate(d), undefinedMeals: [] });
   }
   return { days };
 }
@@ -58,12 +58,14 @@ interface HeldMeal {
   mealType: MealType;
   recipeId: string;
   recipeName: string;
+  /** Set only when the held source is a "Non défini" entry — identifies it since date+mealType isn't unique for that category. */
+  sourceId?: number;
 }
 
 @Component({
   selector: 'app-menu-plan',
   standalone: true,
-  imports: [CommonModule, NgIconComponent, MealSlotComponent, RecipePickerDialogComponent, ChatModalComponent, WeeklyPlanDrawerComponent],
+  imports: [CommonModule, RouterLink, NgIconComponent, MealSlotComponent, RecipePickerDialogComponent, ChatModalComponent, WeeklyPlanDrawerComponent],
   viewProviders: [provideIcons({ heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown, heroArrowsRightLeft, heroXMark })],
   template: `
     <!-- En-tête semaine -->
@@ -171,6 +173,14 @@ interface HeldMeal {
                 role="menuitem"
               >
                 Écraser le planning existant
+              </button>
+              <div class="my-1 border-t border-stone-200 dark:border-stone-700"></div>
+              <button
+                (click)="pullFromCookidoo()"
+                class="w-full text-left px-3 py-2 text-xs text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+                role="menuitem"
+              >
+                Récupérer depuis Cookidoo
               </button>
             </div>
           }
@@ -296,6 +306,12 @@ interface HeldMeal {
                 />
               </div>
             </div>
+            @if (day.undefinedMeals.length > 0) {
+              <div class="px-2 pb-2">
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500 mb-1.5 px-0.5">Indéfini</p>
+                <ng-container *ngTemplateOutlet="undefinedChips; context: { $implicit: day }" />
+              </div>
+            }
           </div>
         }
         <p class="text-center text-xs text-stone-400 dark:text-stone-500 py-2 select-none">← Glissez pour changer de semaine →</p>
@@ -382,10 +398,74 @@ interface HeldMeal {
               </div>
             }
 
+            <!-- Ligne 4 : label Non défini + cellules (uniquement si au moins un jour en contient) -->
+            @if (hasUndefinedMeals()) {
+              <div class="flex items-center px-3 py-3 pb-4 border-t border-stone-200 dark:border-stone-800">
+                <span class="text-[10px] font-semibold uppercase tracking-widest text-stone-400 dark:text-stone-600 whitespace-nowrap select-none">Indéfini</span>
+              </div>
+              @for (day of weekDays(); track day.date) {
+                <div
+                  class="p-2.5 pb-4 border-l border-t border-stone-200 dark:border-stone-800 min-w-0"
+                  [ngClass]="day.isToday ? 'bg-amber-50/50 dark:bg-amber-950/10' : ''"
+                >
+                  @if (day.undefinedMeals.length > 0) {
+                    <ng-container *ngTemplateOutlet="undefinedChips; context: { $implicit: day }" />
+                  }
+                </div>
+              }
+            }
+
           </div>
         </div>
       </div>
     }
+
+    <!-- Puces "Non défini" (partagé desktop + mobile) -->
+    <ng-template #undefinedChips let-day>
+      <div class="flex flex-wrap gap-1.5 min-w-0 w-full">
+        @for (entry of day.undefinedMeals; track entry.id) {
+          <div
+            class="group relative flex items-start gap-1 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 pl-1 pr-1 py-1 max-w-full transition-all sm:hover:-translate-y-0.5 sm:hover:border-stone-300 dark:sm:hover:border-stone-600 sm:hover:shadow-md"
+            [class.opacity-30]="heldMeal()?.sourceId === entry.id"
+            [class.pointer-events-none]="heldMeal()?.sourceId === entry.id"
+          >
+            <div class="w-5 h-5 rounded-full bg-stone-100 dark:bg-stone-800 overflow-hidden flex items-center justify-center shrink-0">
+              @if (entry.recipeThumbnailUrl) {
+                <img [src]="entry.recipeThumbnailUrl" [alt]="entry.recipeName" class="w-full h-full object-cover" loading="lazy" />
+              } @else {
+                <svg class="h-2.5 w-2.5 text-stone-300 dark:text-stone-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              }
+            </div>
+            @if (entry.recipeId) {
+              <a
+                [routerLink]="['/recipes', entry.recipeId]"
+                class="text-[11px] font-medium text-stone-700 dark:text-stone-300 line-clamp-2 break-words hover:text-forest-600 dark:hover:text-forest-400 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
+              >{{ entry.recipeName }}</a>
+            } @else {
+              <span class="text-[11px] font-medium text-stone-400 dark:text-stone-500 italic line-clamp-2 break-words">{{ entry.recipeName }}</span>
+            }
+            <button
+              (click)="handleMoveUndefinedRequested(day.date, entry)"
+              class="w-4 h-4 shrink-0 rounded-full flex items-center justify-center text-stone-400 dark:text-stone-500 sm:opacity-0 sm:group-hover:opacity-100 hover:text-amber-600 dark:hover:text-amber-400 transition-all cursor-pointer"
+              aria-label="Déplacer cette recette"
+              title="Déplacer"
+            >
+              <ng-icon name="heroArrowsRightLeft" class="h-2.5 w-2.5" aria-hidden="true" />
+            </button>
+            <button
+              (click)="handleRemoveUndefined(entry.id!)"
+              class="w-4 h-4 shrink-0 rounded-full flex items-center justify-center text-stone-400 dark:text-stone-500 sm:opacity-0 sm:group-hover:opacity-100 hover:text-red-500 transition-all cursor-pointer"
+              aria-label="Supprimer cette recette"
+              title="Supprimer"
+            >
+              <ng-icon name="heroXMark" class="h-2.5 w-2.5" aria-hidden="true" />
+            </button>
+          </div>
+        }
+      </div>
+    </ng-template>
 
     <!-- Drawer de planification IA hebdomadaire (fixed, viewport) -->
     <app-weekly-plan-drawer
@@ -458,6 +538,8 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   );
 
   totalSlots = computed(() => (this.weekPlan()?.days.length ?? 7) * 2);
+
+  hasUndefinedMeals = computed(() => this.weekDays().some(d => d.undefinedMeals.length > 0));
 
   private renderer = inject(Renderer2);
   private document = inject(DOCUMENT);
@@ -573,6 +655,26 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
     this.heldMeal.set(null);
   }
 
+  handleMoveUndefinedRequested(date: string, entry: MealPlanEntryDto): void {
+    if (entry.id == null) return;
+    this.heldMeal.set({
+      date,
+      mealType: MealType.UNDEFINED,
+      recipeId: entry.recipeId ?? '',
+      recipeName: entry.recipeName ?? '',
+      sourceId: entry.id,
+    });
+  }
+
+  handleRemoveUndefined(id: number): void {
+    this.menuPlanService.removeUndefinedEntry(id)
+      .pipe(catchError(() => {
+        this.error.set('Impossible de supprimer cette recette.');
+        return EMPTY;
+      }))
+      .subscribe(() => this.loadWeekPlan());
+  }
+
   handlePlaceRequested(event: { date: string; mealType: string }): void {
     const held = this.heldMeal();
     if (!held) return;
@@ -589,6 +691,13 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
       this.toast.show({ type: 'success', title: message });
       this.loadWeekPlan();
     };
+
+    if (held.sourceId != null) {
+      this.menuPlanService.relocateUndefinedEntry(held.sourceId, { date: event.date, mealType: targetMealType })
+        .pipe(catchError(() => { onError(); return EMPTY; }))
+        .subscribe(() => onSuccess(targetEntry?.recipeId ? 'Recettes échangées' : 'Recette déplacée'));
+      return;
+    }
 
     if (targetEntry?.recipeId) {
       this.menuPlanService.upsertBulkEntries({
@@ -729,6 +838,22 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
       .subscribe(() => {
         this.syncing.set(false);
         this.toast.show({ type: 'success', title: 'Synchronisé avec Cookidoo', message: 'Le planning a bien été envoyé.' });
+      });
+  }
+
+  pullFromCookidoo(): void {
+    this.syncDropdownOpen.set(false);
+    this.syncing.set(true);
+    this.menuPlanService.pullWeekFromCookidoo(toISODate(this.weekStart()))
+      .pipe(catchError((_err: HttpErrorResponse) => {
+        this.syncing.set(false);
+        this.toast.show({ type: 'error', title: 'Échec de la récupération', message: 'Vérifiez votre connexion à Cookidoo.' });
+        return EMPTY;
+      }))
+      .subscribe(() => {
+        this.syncing.set(false);
+        this.toast.show({ type: 'success', title: 'Récupéré depuis Cookidoo', message: 'Le planning a été mis à jour.' });
+        this.loadWeekPlan();
       });
   }
 

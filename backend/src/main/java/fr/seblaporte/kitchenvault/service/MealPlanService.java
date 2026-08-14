@@ -48,6 +48,34 @@ public class MealPlanService {
     }
 
     @Transactional
+    public MealPlanEntry addUndefinedEntry(LocalDate date, String recipeId) {
+        Recipe recipe = recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new NoSuchElementException("Recipe not found: " + recipeId));
+
+        boolean alreadyPlanned = mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                date, List.of(MealType.UNDEFINED, MealType.LUNCH, MealType.DINNER), recipeId);
+        if (alreadyPlanned) {
+            throw new SlotOccupiedException("Cette recette est déjà planifiée ce jour-là");
+        }
+
+        MealPlanEntry entry = new MealPlanEntry();
+        entry.setEntryDate(date);
+        entry.setMealType(MealType.UNDEFINED);
+        entry.setRecipe(recipe);
+        entry.setRecipeNameSnapshot(recipe.getName());
+        entry.setRecipeIdSnapshot(recipe.getId());
+
+        return mealPlanEntryRepository.save(entry);
+    }
+
+    @Transactional
+    public void removeUndefinedEntryById(Long id) {
+        mealPlanEntryRepository.findById(id)
+                .filter(entry -> entry.getMealType() == MealType.UNDEFINED)
+                .ifPresent(mealPlanEntryRepository::delete);
+    }
+
+    @Transactional
     public List<MealPlanEntry> upsertBulk(List<MealPlanBulkEntryDto> entries) {
         return entries.stream()
                 .map(e -> upsertEntry(
@@ -79,6 +107,26 @@ public class MealPlanService {
         entry.setEntryDate(targetDate);
         entry.setMealType(targetMealType);
         return mealPlanEntryRepository.save(entry);
+    }
+
+    @Transactional
+    public MealPlanEntry relocateUndefinedEntry(Long sourceId, LocalDate targetDate, MealType targetMealType) {
+        MealPlanEntry source = mealPlanEntryRepository.findById(sourceId)
+                .filter(entry -> entry.getMealType() == MealType.UNDEFINED)
+                .orElseThrow(() -> new NoSuchElementException("Aucune recette « Non défini » avec cet identifiant"));
+
+        LocalDate sourceDate = source.getEntryDate();
+
+        mealPlanEntryRepository.findByEntryDateAndMealType(targetDate, targetMealType)
+                .ifPresent(existing -> {
+                    existing.setEntryDate(sourceDate);
+                    existing.setMealType(MealType.UNDEFINED);
+                    mealPlanEntryRepository.saveAndFlush(existing);
+                });
+
+        source.setEntryDate(targetDate);
+        source.setMealType(targetMealType);
+        return mealPlanEntryRepository.save(source);
     }
 
     public static class SlotOccupiedException extends RuntimeException {

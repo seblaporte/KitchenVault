@@ -126,6 +126,20 @@ class MealPlanEntryRepositoryIT {
         assertThat(result.get(0).getEntryDate()).isEqualTo(LocalDate.of(2024, 1, 5));
     }
 
+    @Test
+    void existsByEntryDateAndMealTypeInAndRecipeIdSnapshot_matchesAnyListedMealType() {
+        Recipe recipe = saveRecipe("r-1", "Tarte");
+        LocalDate date = LocalDate.of(2024, 4, 1);
+        mealPlanEntryRepository.save(makeEntry(date, MealType.DINNER, recipe));
+
+        assertThat(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                date, List.of(MealType.LUNCH, MealType.DINNER, MealType.UNDEFINED), "r-1")).isTrue();
+        assertThat(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                date, List.of(MealType.LUNCH), "r-1")).isFalse();
+        assertThat(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                date.plusDays(1), List.of(MealType.LUNCH, MealType.DINNER, MealType.UNDEFINED), "r-1")).isFalse();
+    }
+
     private Recipe saveRecipe(String id, String name) {
         Recipe recipe = new Recipe(id);
         recipe.setName(name);

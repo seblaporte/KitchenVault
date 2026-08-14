@@ -145,7 +145,7 @@ public class SyncService {
         }
     }
 
-    private void upsertRecipe(CookidooRecipeDetails details) {
+    void upsertRecipe(CookidooRecipeDetails details) {
         Recipe recipe = recipeRepository.findById(details.id())
                 .orElseGet(() -> new Recipe(details.id()));
 

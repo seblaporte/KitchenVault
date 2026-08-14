@@ -79,6 +79,44 @@ class MealPlanServiceTest {
     }
 
     @Test
+    void addUndefinedEntry_notAlreadyPlanned_createsEntry() {
+        Recipe recipe = makeRecipe("r-1", "Tarte aux pommes");
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                MONDAY, List.of(MealType.UNDEFINED, MealType.LUNCH, MealType.DINNER), "r-1")).thenReturn(false);
+        when(mealPlanEntryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        MealPlanEntry result = mealPlanService.addUndefinedEntry(MONDAY, "r-1");
+
+        assertThat(result.getMealType()).isEqualTo(MealType.UNDEFINED);
+        assertThat(result.getRecipeIdSnapshot()).isEqualTo("r-1");
+        verify(mealPlanEntryRepository).save(any());
+    }
+
+    @Test
+    void addUndefinedEntry_alreadyPlannedThatDay_throwsSlotOccupiedException() {
+        Recipe recipe = makeRecipe("r-1", "Tarte aux pommes");
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                MONDAY, List.of(MealType.UNDEFINED, MealType.LUNCH, MealType.DINNER), "r-1")).thenReturn(true);
+
+        assertThatThrownBy(() -> mealPlanService.addUndefinedEntry(MONDAY, "r-1"))
+                .isInstanceOf(MealPlanService.SlotOccupiedException.class);
+
+        verify(mealPlanEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void addUndefinedEntry_recipeNotFound_throwsNoSuchElementException() {
+        when(recipeRepository.findById("unknown")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> mealPlanService.addUndefinedEntry(MONDAY, "unknown"))
+                .isInstanceOf(NoSuchElementException.class);
+
+        verify(mealPlanEntryRepository, never()).save(any());
+    }
+
+    @Test
     void removeEntry_existingEntry_deletesIt() {
         MealPlanEntry entry = new MealPlanEntry();
         when(mealPlanEntryRepository.findByEntryDateAndMealType(MONDAY, MealType.DINNER)).thenReturn(Optional.of(entry));
@@ -155,6 +193,78 @@ class MealPlanServiceTest {
         MealPlanEntry result = mealPlanService.relocateEntry(MONDAY, MealType.LUNCH, MONDAY, MealType.LUNCH);
 
         assertThat(result).isSameAs(entry);
+        verify(mealPlanEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void relocateUndefinedEntry_targetFree_movesSourceInPlace() {
+        LocalDate target = MONDAY.plusDays(1);
+        MealPlanEntry source = new MealPlanEntry();
+        source.setId(10L);
+        source.setEntryDate(MONDAY);
+        source.setMealType(MealType.UNDEFINED);
+
+        when(mealPlanEntryRepository.findById(10L)).thenReturn(Optional.of(source));
+        when(mealPlanEntryRepository.findByEntryDateAndMealType(target, MealType.DINNER)).thenReturn(Optional.empty());
+        when(mealPlanEntryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        MealPlanEntry result = mealPlanService.relocateUndefinedEntry(10L, target, MealType.DINNER);
+
+        assertThat(result).isSameAs(source);
+        assertThat(result.getEntryDate()).isEqualTo(target);
+        assertThat(result.getMealType()).isEqualTo(MealType.DINNER);
+        verify(mealPlanEntryRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void relocateUndefinedEntry_targetOccupied_displacesExistingEntryToUndefinedAtSourceDate() {
+        LocalDate target = MONDAY.plusDays(1);
+        MealPlanEntry source = new MealPlanEntry();
+        source.setId(10L);
+        source.setEntryDate(MONDAY);
+        source.setMealType(MealType.UNDEFINED);
+
+        MealPlanEntry occupying = new MealPlanEntry();
+        occupying.setId(20L);
+        occupying.setEntryDate(target);
+        occupying.setMealType(MealType.DINNER);
+
+        when(mealPlanEntryRepository.findById(10L)).thenReturn(Optional.of(source));
+        when(mealPlanEntryRepository.findByEntryDateAndMealType(target, MealType.DINNER)).thenReturn(Optional.of(occupying));
+        when(mealPlanEntryRepository.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(mealPlanEntryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        MealPlanEntry result = mealPlanService.relocateUndefinedEntry(10L, target, MealType.DINNER);
+
+        assertThat(result.getEntryDate()).isEqualTo(target);
+        assertThat(result.getMealType()).isEqualTo(MealType.DINNER);
+        assertThat(occupying.getEntryDate()).isEqualTo(MONDAY);
+        assertThat(occupying.getMealType()).isEqualTo(MealType.UNDEFINED);
+        verify(mealPlanEntryRepository).saveAndFlush(occupying);
+        verify(mealPlanEntryRepository).save(source);
+    }
+
+    @Test
+    void relocateUndefinedEntry_unknownId_throwsNoSuchElementException() {
+        when(mealPlanEntryRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> mealPlanService.relocateUndefinedEntry(99L, MONDAY, MealType.LUNCH))
+                .isInstanceOf(NoSuchElementException.class);
+
+        verify(mealPlanEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void relocateUndefinedEntry_sourceNotUndefined_throwsNoSuchElementException() {
+        MealPlanEntry source = new MealPlanEntry();
+        source.setId(10L);
+        source.setEntryDate(MONDAY);
+        source.setMealType(MealType.LUNCH);
+        when(mealPlanEntryRepository.findById(10L)).thenReturn(Optional.of(source));
+
+        assertThatThrownBy(() -> mealPlanService.relocateUndefinedEntry(10L, MONDAY, MealType.DINNER))
+                .isInstanceOf(NoSuchElementException.class);
+
         verify(mealPlanEntryRepository, never()).save(any());
     }
 

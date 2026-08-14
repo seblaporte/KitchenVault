@@ -13,6 +13,7 @@ import fr.seblaporte.kitchenvault.generated.model.MealType;
 import fr.seblaporte.kitchenvault.generated.model.MenuPlanDto;
 import fr.seblaporte.kitchenvault.generated.model.RecipeHistoryDto;
 import fr.seblaporte.kitchenvault.mapper.MealPlanMapper;
+import fr.seblaporte.kitchenvault.service.CookidooCalendarPullService;
 import fr.seblaporte.kitchenvault.service.CookidooCalendarSyncService;
 import fr.seblaporte.kitchenvault.service.MealPlanService;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -33,12 +33,15 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
     private final MealPlanService mealPlanService;
     private final MealPlanMapper mealPlanMapper;
     private final CookidooCalendarSyncService cookidooCalendarSyncService;
+    private final CookidooCalendarPullService cookidooCalendarPullService;
 
     public MenuPlanDelegate(MealPlanService mealPlanService, MealPlanMapper mealPlanMapper,
-                            CookidooCalendarSyncService cookidooCalendarSyncService) {
+                            CookidooCalendarSyncService cookidooCalendarSyncService,
+                            CookidooCalendarPullService cookidooCalendarPullService) {
         this.mealPlanService = mealPlanService;
         this.mealPlanMapper = mealPlanMapper;
         this.cookidooCalendarSyncService = cookidooCalendarSyncService;
+        this.cookidooCalendarPullService = cookidooCalendarPullService;
     }
 
     @Override
@@ -48,25 +51,33 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
         }
 
         List<MealPlanEntry> entries = mealPlanService.getWeekPlan(weekStart);
-        Map<LocalDate, Map<fr.seblaporte.kitchenvault.entity.MealType, MealPlanEntry>> byDateAndType = entries.stream()
+        Map<LocalDate, Map<fr.seblaporte.kitchenvault.entity.MealType, List<MealPlanEntry>>> byDateAndType = entries.stream()
                 .collect(Collectors.groupingBy(
                         MealPlanEntry::getEntryDate,
-                        Collectors.toMap(MealPlanEntry::getMealType, Function.identity())
+                        Collectors.groupingBy(MealPlanEntry::getMealType)
                 ));
 
         List<DayPlanDto> days = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
             LocalDate date = weekStart.plusDays(i);
-            Map<fr.seblaporte.kitchenvault.entity.MealType, MealPlanEntry> dayEntries =
+            Map<fr.seblaporte.kitchenvault.entity.MealType, List<MealPlanEntry>> dayEntries =
                     byDateAndType.getOrDefault(date, Map.of());
 
-            DayPlanDto day = new DayPlanDto(date);
-            for (fr.seblaporte.kitchenvault.entity.MealType mt : fr.seblaporte.kitchenvault.entity.MealType.values()) {
-                MealPlanEntry entry = dayEntries.get(mt);
-                MealPlanEntryDto dto = entry != null ? mealPlanMapper.toEntryDto(entry) : null;
+            List<MealPlanEntryDto> undefinedMeals = dayEntries
+                    .getOrDefault(fr.seblaporte.kitchenvault.entity.MealType.UNDEFINED, List.of())
+                    .stream()
+                    .map(mealPlanMapper::toEntryDto)
+                    .toList();
+
+            DayPlanDto day = new DayPlanDto(date, undefinedMeals);
+            for (fr.seblaporte.kitchenvault.entity.MealType mt :
+                    List.of(fr.seblaporte.kitchenvault.entity.MealType.LUNCH, fr.seblaporte.kitchenvault.entity.MealType.DINNER)) {
+                List<MealPlanEntry> slot = dayEntries.get(mt);
+                MealPlanEntryDto dto = slot != null && !slot.isEmpty() ? mealPlanMapper.toEntryDto(slot.get(0)) : null;
                 switch (mt) {
                     case LUNCH -> day.setLunch(dto);
                     case DINNER -> day.setDinner(dto);
+                    default -> throw new IllegalStateException("Unexpected meal type: " + mt);
                 }
             }
             days.add(day);
@@ -74,6 +85,44 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
 
         MenuPlanDto dto = new MenuPlanDto(days);
         return ResponseEntity.ok(dto);
+    }
+
+    @Override
+    public ResponseEntity<MealPlanEntryDto> addUndefinedEntry(LocalDate date, MealPlanUpsertDto mealPlanUpsertDto) {
+        try {
+            MealPlanEntry entry = mealPlanService.addUndefinedEntry(date, mealPlanUpsertDto.getRecipeId());
+            return ResponseEntity.ok(mealPlanMapper.toEntryDto(entry));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+        // MealPlanService.SlotOccupiedException (recette déjà planifiée ce jour-là) propage vers
+        // GlobalExceptionHandler, qui répond 409.
+    }
+
+    @Override
+    public ResponseEntity<Void> removeUndefinedEntry(Long id) {
+        mealPlanService.removeUndefinedEntryById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<MealPlanEntryDto> relocateUndefinedEntry(Long id, MealPlanRelocateDto mealPlanRelocateDto) {
+        try {
+            MealPlanEntry entry = mealPlanService.relocateUndefinedEntry(
+                    id, mealPlanRelocateDto.getDate(), toEntityMealType(mealPlanRelocateDto.getMealType()));
+            return ResponseEntity.ok(mealPlanMapper.toEntryDto(entry));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Override
+    public ResponseEntity<Void> pullWeekFromCookidoo(LocalDate weekStart) {
+        if (weekStart.getDayOfWeek() != DayOfWeek.MONDAY) {
+            throw new InvalidWeekStartException("weekStart must be a Monday");
+        }
+        cookidooCalendarPullService.pullWeek(weekStart);
+        return ResponseEntity.noContent().build();
     }
 
     @Override

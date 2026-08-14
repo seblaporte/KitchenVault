@@ -25,3 +25,5 @@ databaseChangeLog:
       file: db/changelog/changes/012-session-cleanup-index.yaml
   - include:
       file: db/changelog/changes/013-shopping-list.yaml
+  - include:
+      file: db/changelog/changes/014-meal-plan-undefined-category.yaml

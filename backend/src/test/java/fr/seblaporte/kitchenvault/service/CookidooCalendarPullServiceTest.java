@@ -103,6 +103,24 @@ class CookidooCalendarPullServiceTest {
     }
 
     @Test
+    void pullWeek_recipeAlreadyPlannedAsLunchOrDinner_skipsEntirely() {
+        CookidooCalendarDayRecipe recipe = cookidooRecipe("r-1");
+        CookidooCalendarDay day = new CookidooCalendarDay("2025-05-19", "Day", List.of(recipe));
+        when(cookidooServiceClient.getCalendarWeek("2025-05-19")).thenReturn(List.of(day));
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeAndRecipeIdSnapshot(MONDAY, MealType.UNDEFINED, "r-1"))
+                .thenReturn(false);
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                MONDAY, List.of(MealType.LUNCH, MealType.DINNER), "r-1"))
+                .thenReturn(true);
+
+        service.pullWeek(MONDAY);
+
+        verifyNoInteractions(recipeRepository, syncService);
+        verify(cookidooServiceClient, never()).getRecipeById(any());
+        verify(mealPlanService, never()).addUndefinedEntry(any(), any());
+    }
+
+    @Test
     void pullWeek_emptyWeek_noEntriesAdded() {
         when(cookidooServiceClient.getCalendarWeek("2025-05-19")).thenReturn(List.of());
 

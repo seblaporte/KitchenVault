@@ -308,7 +308,7 @@ interface HeldMeal {
             </div>
             @if (day.undefinedMeals.length > 0) {
               <div class="px-2 pb-2">
-                <p class="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500 mb-1.5 px-0.5">Non défini</p>
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500 mb-1.5 px-0.5">Indéfini</p>
                 <ng-container *ngTemplateOutlet="undefinedChips; context: { $implicit: day }" />
               </div>
             }
@@ -401,11 +401,11 @@ interface HeldMeal {
             <!-- Ligne 4 : label Non défini + cellules (uniquement si au moins un jour en contient) -->
             @if (hasUndefinedMeals()) {
               <div class="flex items-center px-3 py-3 pb-4 border-t border-stone-200 dark:border-stone-800">
-                <span class="text-[10px] font-semibold uppercase tracking-widest text-stone-400 dark:text-stone-600 whitespace-nowrap select-none">Non défini</span>
+                <span class="text-[10px] font-semibold uppercase tracking-widest text-stone-400 dark:text-stone-600 whitespace-nowrap select-none">Indéfini</span>
               </div>
               @for (day of weekDays(); track day.date) {
                 <div
-                  class="p-2.5 pb-4 border-l border-t border-stone-200 dark:border-stone-800"
+                  class="p-2.5 pb-4 border-l border-t border-stone-200 dark:border-stone-800 min-w-0"
                   [ngClass]="day.isToday ? 'bg-amber-50/50 dark:bg-amber-950/10' : ''"
                 >
                   @if (day.undefinedMeals.length > 0) {
@@ -422,10 +422,10 @@ interface HeldMeal {
 
     <!-- Puces "Non défini" (partagé desktop + mobile) -->
     <ng-template #undefinedChips let-day>
-      <div class="flex flex-wrap gap-1.5">
+      <div class="flex flex-wrap gap-1.5 min-w-0 w-full">
         @for (entry of day.undefinedMeals; track entry.id) {
           <div
-            class="group relative inline-flex items-center gap-1 rounded-full border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 pl-1 pr-1 py-1 max-w-[150px]"
+            class="group relative flex items-start gap-1 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 pl-1 pr-1 py-1 max-w-full transition-all sm:hover:-translate-y-0.5 sm:hover:border-stone-300 dark:sm:hover:border-stone-600 sm:hover:shadow-md"
             [class.opacity-30]="heldMeal()?.sourceId === entry.id"
             [class.pointer-events-none]="heldMeal()?.sourceId === entry.id"
           >
@@ -441,10 +441,10 @@ interface HeldMeal {
             @if (entry.recipeId) {
               <a
                 [routerLink]="['/recipes', entry.recipeId]"
-                class="text-[11px] font-medium text-stone-700 dark:text-stone-300 truncate hover:text-forest-600 dark:hover:text-forest-400 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
+                class="text-[11px] font-medium text-stone-700 dark:text-stone-300 line-clamp-2 break-words hover:text-forest-600 dark:hover:text-forest-400 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500 rounded"
               >{{ entry.recipeName }}</a>
             } @else {
-              <span class="text-[11px] font-medium text-stone-400 dark:text-stone-500 italic truncate">{{ entry.recipeName }}</span>
+              <span class="text-[11px] font-medium text-stone-400 dark:text-stone-500 italic line-clamp-2 break-words">{{ entry.recipeName }}</span>
             }
             <button
               (click)="handleMoveUndefinedRequested(day.date, entry)"

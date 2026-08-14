@@ -64,6 +64,12 @@ public class CookidooCalendarPullService {
             return;
         }
 
+        boolean alreadyPlanned = mealPlanEntryRepository
+                .existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(date, List.of(MealType.LUNCH, MealType.DINNER), recipe.id());
+        if (alreadyPlanned) {
+            return;
+        }
+
         if (recipeRepository.findById(recipe.id()).isEmpty()) {
             syncService.upsertRecipe(cookidooServiceClient.getRecipeById(recipe.id()));
         }

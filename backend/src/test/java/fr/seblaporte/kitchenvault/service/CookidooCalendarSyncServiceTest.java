@@ -98,6 +98,42 @@ class CookidooCalendarSyncServiceTest {
     }
 
     @Test
+    void syncWeek_withReplaceTrue_syncsAllSevenDaysIncludingEmptyOnes() {
+        MealPlanEntry lunch = entry(MONDAY, MealType.LUNCH, "r-1");
+        when(mealPlanService.getWeekPlan(MONDAY)).thenReturn(List.of(lunch));
+
+        service.syncWeek(MONDAY, true);
+
+        verify(cookidooServiceClient, times(7)).addRecipesToCalendar(any(), any());
+        for (int i = 0; i < 7; i++) {
+            verify(cookidooServiceClient).addRecipesToCalendar(eq(MONDAY.plusDays(i).toString()), any());
+        }
+    }
+
+    @Test
+    void syncWeek_withReplaceTrue_sendsEmptyRecipeListForDaysWithoutEntries() {
+        MealPlanEntry lunch = entry(MONDAY, MealType.LUNCH, "r-1");
+        when(mealPlanService.getWeekPlan(MONDAY)).thenReturn(List.of(lunch));
+
+        service.syncWeek(MONDAY, true);
+
+        ArgumentCaptor<AddRecipesToCalendarRequest> captor = ArgumentCaptor.forClass(AddRecipesToCalendarRequest.class);
+        verify(cookidooServiceClient).addRecipesToCalendar(eq(TUESDAY.toString()), captor.capture());
+
+        assertThat(captor.getValue().recipeIds()).isEmpty();
+        assertThat(captor.getValue().replace()).isTrue();
+    }
+
+    @Test
+    void syncWeek_replaceTrue_emptyWeek_stillClearsAllSevenDays() {
+        when(mealPlanService.getWeekPlan(MONDAY)).thenReturn(List.of());
+
+        service.syncWeek(MONDAY, true);
+
+        verify(cookidooServiceClient, times(7)).addRecipesToCalendar(any(), any());
+    }
+
+    @Test
     void syncWeek_entriesWithBlankRecipeId_filtered() {
         MealPlanEntry valid = entry(MONDAY, MealType.LUNCH, "r-1");
         MealPlanEntry blankId = entry(MONDAY, MealType.DINNER, "   ");

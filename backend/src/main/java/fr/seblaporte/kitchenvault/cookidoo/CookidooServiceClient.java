@@ -1,6 +1,7 @@
 package fr.seblaporte.kitchenvault.cookidoo;
 
 import fr.seblaporte.kitchenvault.cookidoo.model.AddRecipesToCalendarRequest;
+import fr.seblaporte.kitchenvault.cookidoo.model.CookidooCalendarDay;
 import fr.seblaporte.kitchenvault.cookidoo.model.CookidooCollection;
 import fr.seblaporte.kitchenvault.cookidoo.model.CookidooRecipeDetails;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,4 +25,7 @@ public interface CookidooServiceClient {
 
     @PostExchange("/calendar/{date}/recipes")
     ResponseEntity<Void> addRecipesToCalendar(@PathVariable String date, @RequestBody AddRecipesToCalendarRequest request);
+
+    @GetExchange("/calendar/week/{day}")
+    List<CookidooCalendarDay> getCalendarWeek(@PathVariable String day);
 }

@@ -14,6 +14,51 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.get(
+    "/calendar/week/{day}",
+    response_model=list[CalendarDayResponse],
+    summary="Get the planned recipes for the calendar week containing a day",
+    description="Returns the recipes planned on Cookidoo for each day of the week containing `day`.",
+)
+async def get_calendar_week(day: date) -> list[CalendarDayResponse]:
+    try:
+        client = await cookidoo_session.get_client()
+        calendar_week = await client.get_recipes_in_calendar_week(day)
+
+        return [
+            CalendarDayResponse(
+                id=calendar_day.id,
+                title=calendar_day.title,
+                recipes=[
+                    CalendarDayRecipeResponse(
+                        id=r.id,
+                        name=r.name,
+                        total_time=r.total_time,
+                        thumbnail=r.thumbnail,
+                        image=r.image,
+                        url=r.url,
+                    )
+                    for r in calendar_day.recipes
+                ],
+            )
+            for calendar_day in calendar_week
+        ]
+
+    except CookidooAuthException as exc:
+        cookidoo_session.invalidate()
+        logger.error("Authentication failure reading calendar week for day %s: %s", day, exc)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Cookidoo authentication failed",
+        ) from exc
+    except CookidooRequestException as exc:
+        logger.error("Request failure reading calendar week for day %s: %s", day, exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Cookidoo API request failed",
+        ) from exc
+
+
 @router.post(
     "/calendar/{day}/recipes",
     response_model=CalendarDayResponse,

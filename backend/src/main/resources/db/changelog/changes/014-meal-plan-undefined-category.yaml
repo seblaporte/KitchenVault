@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: 014-meal-plan-entry-check-meal-type-undefined
+      author: seblaporte
+      changes:
+        - sql:
+            sql: "ALTER TABLE meal_plan_entry DROP CONSTRAINT chk_meal_plan_entry_meal_type"
+        - sql:
+            sql: "ALTER TABLE meal_plan_entry ADD CONSTRAINT chk_meal_plan_entry_meal_type CHECK (meal_type IN ('LUNCH', 'DINNER', 'UNDEFINED'))"
+
+  - changeSet:
+      id: 014-meal-plan-entry-unique-date-type-partial
+      author: seblaporte
+      changes:
+        - dropUniqueConstraint:
+            tableName: meal_plan_entry
+            constraintName: uq_meal_plan_entry_date_type
+        - sql:
+            sql: "CREATE UNIQUE INDEX uq_meal_plan_entry_date_type ON meal_plan_entry(entry_date, meal_type) WHERE meal_type IN ('LUNCH', 'DINNER')"
+      rollback:
+        - sql:
+            sql: "DROP INDEX uq_meal_plan_entry_date_type"
+        - addUniqueConstraint:
+            tableName: meal_plan_entry
+            columnNames: entry_date, meal_type
+            constraintName: uq_meal_plan_entry_date_type

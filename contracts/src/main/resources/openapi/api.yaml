@@ -558,6 +558,121 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorDto"
 
+  /api/v1/menu-plan/{weekStart}/cookidoo-pull:
+    post:
+      tags: [menu-plan]
+      operationId: pullWeekFromCookidoo
+      summary: Récupérer les recettes planifiées sur Cookidoo pour la semaine
+      description: |
+        Importe les recettes planifiées sur Cookidoo pour la semaine dans la catégorie "Non défini".
+        N'écrase jamais les créneaux Déjeuner/Dîner existants.
+      parameters:
+        - name: weekStart
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "204":
+          description: Semaine récupérée avec succès
+        "400":
+          description: weekStart n'est pas un lundi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service Cookidoo indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/menu-plan/entries/{date}/undefined:
+    post:
+      tags: [menu-plan]
+      operationId: addUndefinedEntry
+      summary: Ajouter une recette dans la catégorie "Non défini" d'un jour
+      description: Crée une nouvelle entrée, sans remplacer les entrées déjà présentes ce jour-là.
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanUpsertDto"
+      responses:
+        "200":
+          description: Entrée créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntryDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/menu-plan/entries/undefined/{id}:
+    delete:
+      tags: [menu-plan]
+      operationId: removeUndefinedEntry
+      summary: Supprimer une entrée de la catégorie "Non défini" (idempotent)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Entrée supprimée (ou inexistante)
+
+  /api/v1/menu-plan/entries/undefined/{id}/relocate:
+    patch:
+      tags: [menu-plan]
+      operationId: relocateUndefinedEntry
+      summary: Déplacer une recette de la catégorie "Non défini" vers un créneau Déjeuner/Dîner
+      description: |
+        Si le créneau cible est déjà occupé, la recette qui s'y trouve bascule dans la catégorie
+        "Non défini" à la date d'origine de la source (échange), plutôt que d'être rejetée.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanRelocateDto"
+      responses:
+        "200":
+          description: Recette déplacée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntryDto"
+        "404":
+          description: Aucune entrée "Non défini" avec cet identifiant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
   # ─── Liste de courses ────────────────────────────────────────────────────────
 
   /api/v1/shopping-list:
@@ -1031,7 +1146,7 @@ components:
 
     MealType:
       type: string
-      enum: [LUNCH, DINNER]
+      enum: [LUNCH, DINNER, UNDEFINED]
 
     MenuPlanDto:
       type: object
@@ -1044,7 +1159,7 @@ components:
 
     DayPlanDto:
       type: object
-      required: [date]
+      required: [date, undefinedMeals]
       properties:
         date:
           type: string
@@ -1057,6 +1172,10 @@ components:
           allOf:
             - $ref: "#/components/schemas/MealPlanEntryDto"
           nullable: true
+        undefinedMeals:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealPlanEntryDto"
 
     MealPlanEntryDto:
       type: object

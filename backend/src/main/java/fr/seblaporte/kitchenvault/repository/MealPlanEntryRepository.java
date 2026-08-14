@@ -16,7 +16,16 @@ public interface MealPlanEntryRepository extends JpaRepository<MealPlanEntry, Lo
     @Query("SELECT e FROM MealPlanEntry e LEFT JOIN FETCH e.recipe WHERE e.entryDate BETWEEN :from AND :to ORDER BY e.entryDate ASC, e.mealType ASC")
     List<MealPlanEntry> findWeekPlan(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
-    Optional<MealPlanEntry> findByEntryDateAndMealType(LocalDate date, MealType mealType);
+    @Query("SELECT e FROM MealPlanEntry e LEFT JOIN FETCH e.recipe WHERE e.entryDate = :date AND e.mealType = :mealType")
+    Optional<MealPlanEntry> findByEntryDateAndMealType(@Param("date") LocalDate date, @Param("mealType") MealType mealType);
+
+    @Query("SELECT e FROM MealPlanEntry e LEFT JOIN FETCH e.recipe WHERE e.entryDate = :date AND e.mealType = :mealType ORDER BY e.id ASC")
+    List<MealPlanEntry> findAllByEntryDateAndMealType(@Param("date") LocalDate date, @Param("mealType") MealType mealType);
+
+    @Query("SELECT e FROM MealPlanEntry e LEFT JOIN FETCH e.recipe WHERE e.id = :id")
+    Optional<MealPlanEntry> findById(@Param("id") Long id);
+
+    boolean existsByEntryDateAndMealTypeAndRecipeIdSnapshot(LocalDate date, MealType mealType, String recipeIdSnapshot);
 
     @Query("SELECT e FROM MealPlanEntry e LEFT JOIN FETCH e.recipe WHERE e.recipeIdSnapshot = :recipeId ORDER BY e.entryDate DESC")
     List<MealPlanEntry> findByRecipeIdOrderByEntryDateDesc(@Param("recipeId") String recipeId, Pageable pageable);

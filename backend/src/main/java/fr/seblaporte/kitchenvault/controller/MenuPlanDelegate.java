@@ -95,6 +95,8 @@ public class MenuPlanDelegate implements MenuPlanApiDelegate {
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         }
+        // MealPlanService.SlotOccupiedException (recette déjà planifiée ce jour-là) propage vers
+        // GlobalExceptionHandler, qui répond 409.
     }
 
     @Override

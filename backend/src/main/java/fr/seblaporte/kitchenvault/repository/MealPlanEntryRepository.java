@@ -25,8 +25,6 @@ public interface MealPlanEntryRepository extends JpaRepository<MealPlanEntry, Lo
     @Query("SELECT e FROM MealPlanEntry e LEFT JOIN FETCH e.recipe WHERE e.id = :id")
     Optional<MealPlanEntry> findById(@Param("id") Long id);
 
-    boolean existsByEntryDateAndMealTypeAndRecipeIdSnapshot(LocalDate date, MealType mealType, String recipeIdSnapshot);
-
     boolean existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(LocalDate date, List<MealType> mealTypes, String recipeIdSnapshot);
 
     @Query("SELECT e FROM MealPlanEntry e LEFT JOIN FETCH e.recipe WHERE e.recipeIdSnapshot = :recipeId ORDER BY e.entryDate DESC")

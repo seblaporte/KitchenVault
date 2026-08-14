@@ -79,6 +79,44 @@ class MealPlanServiceTest {
     }
 
     @Test
+    void addUndefinedEntry_notAlreadyPlanned_createsEntry() {
+        Recipe recipe = makeRecipe("r-1", "Tarte aux pommes");
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                MONDAY, List.of(MealType.UNDEFINED, MealType.LUNCH, MealType.DINNER), "r-1")).thenReturn(false);
+        when(mealPlanEntryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        MealPlanEntry result = mealPlanService.addUndefinedEntry(MONDAY, "r-1");
+
+        assertThat(result.getMealType()).isEqualTo(MealType.UNDEFINED);
+        assertThat(result.getRecipeIdSnapshot()).isEqualTo("r-1");
+        verify(mealPlanEntryRepository).save(any());
+    }
+
+    @Test
+    void addUndefinedEntry_alreadyPlannedThatDay_throwsSlotOccupiedException() {
+        Recipe recipe = makeRecipe("r-1", "Tarte aux pommes");
+        when(recipeRepository.findById("r-1")).thenReturn(Optional.of(recipe));
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                MONDAY, List.of(MealType.UNDEFINED, MealType.LUNCH, MealType.DINNER), "r-1")).thenReturn(true);
+
+        assertThatThrownBy(() -> mealPlanService.addUndefinedEntry(MONDAY, "r-1"))
+                .isInstanceOf(MealPlanService.SlotOccupiedException.class);
+
+        verify(mealPlanEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void addUndefinedEntry_recipeNotFound_throwsNoSuchElementException() {
+        when(recipeRepository.findById("unknown")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> mealPlanService.addUndefinedEntry(MONDAY, "unknown"))
+                .isInstanceOf(NoSuchElementException.class);
+
+        verify(mealPlanEntryRepository, never()).save(any());
+    }
+
+    @Test
     void removeEntry_existingEntry_deletesIt() {
         MealPlanEntry entry = new MealPlanEntry();
         when(mealPlanEntryRepository.findByEntryDateAndMealType(MONDAY, MealType.DINNER)).thenReturn(Optional.of(entry));

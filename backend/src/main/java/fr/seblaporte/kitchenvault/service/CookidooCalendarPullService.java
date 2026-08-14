@@ -57,15 +57,11 @@ public class CookidooCalendarPullService {
         }
     }
 
-    private void importRecipe(LocalDate date, CookidooCalendarDayRecipe recipe) {
-        boolean alreadyImported = mealPlanEntryRepository
-                .existsByEntryDateAndMealTypeAndRecipeIdSnapshot(date, MealType.UNDEFINED, recipe.id());
-        if (alreadyImported) {
-            return;
-        }
+    private static final List<MealType> ANY_MEAL_TYPE = List.of(MealType.UNDEFINED, MealType.LUNCH, MealType.DINNER);
 
+    private void importRecipe(LocalDate date, CookidooCalendarDayRecipe recipe) {
         boolean alreadyPlanned = mealPlanEntryRepository
-                .existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(date, List.of(MealType.LUNCH, MealType.DINNER), recipe.id());
+                .existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(date, ANY_MEAL_TYPE, recipe.id());
         if (alreadyPlanned) {
             return;
         }

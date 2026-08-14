@@ -224,6 +224,17 @@ class MenuPlanDelegateTest {
     }
 
     @Test
+    void addUndefinedEntry_alreadyPlannedThatDay_returns409() throws Exception {
+        when(mealPlanService.addUndefinedEntry(any(), any()))
+                .thenThrow(new MealPlanService.SlotOccupiedException("Cette recette est déjà planifiée ce jour-là"));
+
+        mockMvc.perform(post("/api/v1/menu-plan/entries/2024-04-01/undefined")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recipeId\":\"r-1\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void removeUndefinedEntry_always_returns204() throws Exception {
         mockMvc.perform(delete("/api/v1/menu-plan/entries/undefined/42"))
                 .andExpect(status().isNoContent());

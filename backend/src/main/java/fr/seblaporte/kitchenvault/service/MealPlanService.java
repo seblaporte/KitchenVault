@@ -52,6 +52,12 @@ public class MealPlanService {
         Recipe recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new NoSuchElementException("Recipe not found: " + recipeId));
 
+        boolean alreadyPlanned = mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
+                date, List.of(MealType.UNDEFINED, MealType.LUNCH, MealType.DINNER), recipeId);
+        if (alreadyPlanned) {
+            throw new SlotOccupiedException("Cette recette est déjà planifiée ce jour-là");
+        }
+
         MealPlanEntry entry = new MealPlanEntry();
         entry.setEntryDate(date);
         entry.setMealType(MealType.UNDEFINED);

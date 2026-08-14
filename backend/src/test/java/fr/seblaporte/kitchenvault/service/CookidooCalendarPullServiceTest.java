@@ -44,6 +44,7 @@ class CookidooCalendarPullServiceTest {
     CookidooCalendarPullService service;
 
     private static final LocalDate MONDAY = LocalDate.of(2025, 5, 19);
+    private static final List<MealType> ANY_MEAL_TYPE = List.of(MealType.UNDEFINED, MealType.LUNCH, MealType.DINNER);
 
     private CookidooCalendarDayRecipe cookidooRecipe(String id) {
         return new CookidooCalendarDayRecipe(id, "Recipe " + id, 1800, "thumb", "img", "https://cookidoo.example/" + id);
@@ -59,7 +60,7 @@ class CookidooCalendarPullServiceTest {
         CookidooCalendarDayRecipe recipe = cookidooRecipe("r-1");
         CookidooCalendarDay day = new CookidooCalendarDay("2025-05-19", "Day", List.of(recipe));
         when(cookidooServiceClient.getCalendarWeek("2025-05-19")).thenReturn(List.of(day));
-        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeAndRecipeIdSnapshot(MONDAY, MealType.UNDEFINED, "r-1"))
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(MONDAY, ANY_MEAL_TYPE, "r-1"))
                 .thenReturn(false);
         when(recipeRepository.findById("r-1")).thenReturn(Optional.empty());
         CookidooRecipeDetails details = recipeDetails("r-1");
@@ -76,7 +77,7 @@ class CookidooCalendarPullServiceTest {
         CookidooCalendarDayRecipe recipe = cookidooRecipe("r-1");
         CookidooCalendarDay day = new CookidooCalendarDay("2025-05-19", "Day", List.of(recipe));
         when(cookidooServiceClient.getCalendarWeek("2025-05-19")).thenReturn(List.of(day));
-        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeAndRecipeIdSnapshot(MONDAY, MealType.UNDEFINED, "r-1"))
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(MONDAY, ANY_MEAL_TYPE, "r-1"))
                 .thenReturn(false);
         when(recipeRepository.findById("r-1")).thenReturn(Optional.of(mock(Recipe.class)));
 
@@ -88,29 +89,11 @@ class CookidooCalendarPullServiceTest {
     }
 
     @Test
-    void pullWeek_recipeAlreadyImported_skipsEntirely() {
+    void pullWeek_recipeAlreadyPlanned_skipsEntirely() {
         CookidooCalendarDayRecipe recipe = cookidooRecipe("r-1");
         CookidooCalendarDay day = new CookidooCalendarDay("2025-05-19", "Day", List.of(recipe));
         when(cookidooServiceClient.getCalendarWeek("2025-05-19")).thenReturn(List.of(day));
-        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeAndRecipeIdSnapshot(MONDAY, MealType.UNDEFINED, "r-1"))
-                .thenReturn(true);
-
-        service.pullWeek(MONDAY);
-
-        verifyNoInteractions(recipeRepository);
-        verify(cookidooServiceClient, never()).getRecipeById(any());
-        verify(mealPlanService, never()).addUndefinedEntry(any(), any());
-    }
-
-    @Test
-    void pullWeek_recipeAlreadyPlannedAsLunchOrDinner_skipsEntirely() {
-        CookidooCalendarDayRecipe recipe = cookidooRecipe("r-1");
-        CookidooCalendarDay day = new CookidooCalendarDay("2025-05-19", "Day", List.of(recipe));
-        when(cookidooServiceClient.getCalendarWeek("2025-05-19")).thenReturn(List.of(day));
-        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeAndRecipeIdSnapshot(MONDAY, MealType.UNDEFINED, "r-1"))
-                .thenReturn(false);
-        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(
-                MONDAY, List.of(MealType.LUNCH, MealType.DINNER), "r-1"))
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(MONDAY, ANY_MEAL_TYPE, "r-1"))
                 .thenReturn(true);
 
         service.pullWeek(MONDAY);
@@ -135,7 +118,7 @@ class CookidooCalendarPullServiceTest {
         CookidooCalendarDayRecipe ok = cookidooRecipe("r-2");
         CookidooCalendarDay day = new CookidooCalendarDay("2025-05-19", "Day", List.of(failing, ok));
         when(cookidooServiceClient.getCalendarWeek("2025-05-19")).thenReturn(List.of(day));
-        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeAndRecipeIdSnapshot(eq(MONDAY), eq(MealType.UNDEFINED), any()))
+        when(mealPlanEntryRepository.existsByEntryDateAndMealTypeInAndRecipeIdSnapshot(eq(MONDAY), eq(ANY_MEAL_TYPE), any()))
                 .thenReturn(false);
         when(recipeRepository.findById("r-1")).thenReturn(Optional.of(mock(Recipe.class)));
         when(recipeRepository.findById("r-2")).thenReturn(Optional.of(mock(Recipe.class)));

@@ -594,7 +594,7 @@ paths:
       tags: [menu-plan]
       operationId: addUndefinedEntry
       summary: Ajouter une recette dans la catégorie "Non défini" d'un jour
-      description: Crée une nouvelle entrée, sans remplacer les entrées déjà présentes ce jour-là.
+      description: Crée une nouvelle entrée, sans remplacer les entrées déjà présentes ce jour-là. Rejette si la recette est déjà planifiée ce jour-là (Déjeuner, Dîner ou Non défini).
       parameters:
         - name: date
           in: path
@@ -617,6 +617,12 @@ paths:
                 $ref: "#/components/schemas/MealPlanEntryDto"
         "404":
           description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "409":
+          description: La recette est déjà planifiée ce jour-là
           content:
             application/json:
               schema:

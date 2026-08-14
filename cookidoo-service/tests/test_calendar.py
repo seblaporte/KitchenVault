@@ -1,5 +1,6 @@
 """Tests for the POST /calendar/{day}/recipes endpoint."""
 
+import pytest
 from cookidoo_api import CookidooAuthException, CookidooRequestException
 from cookidoo_api.types import CookidooCalendarDay, CookidooCalendarDayRecipe
 
@@ -129,6 +130,69 @@ def test_add_recipes_replace_empty_calendar(client, patch_session):
     assert response.status_code == 200
     patch_session.remove_recipe_from_calendar.assert_not_called()
     patch_session.add_recipes_to_calendar.assert_called_once()
+
+
+def test_add_recipes_replace_removes_last_recipe_from_day(client, patch_session):
+    """A TypeError from cookidoo_api's known 'recipes: null' parsing bug when
+    removing the last recipe of a day is absorbed, and the sync still succeeds."""
+    existing_recipe = _make_recipe("old-recipe-1", "Old Recipe 1")
+    existing_day = _make_calendar_day("2024-01-15", [existing_recipe])
+    result_day = _make_calendar_day("2024-01-15", [_make_recipe("new-recipe-1")])
+
+    patch_session.get_recipes_in_calendar_week.return_value = [existing_day]
+    patch_session.remove_recipe_from_calendar.side_effect = TypeError(
+        "'NoneType' object is not subscriptable"
+    )
+    patch_session.add_recipes_to_calendar.return_value = result_day
+
+    response = client.post(
+        "/calendar/2024-01-15/recipes",
+        json={"recipe_ids": ["new-recipe-1"], "replace": True},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["recipes"][0]["id"] == "new-recipe-1"
+    patch_session.add_recipes_to_calendar.assert_called_once()
+
+
+def test_add_recipes_replace_empty_recipe_ids_skips_add_call(client, patch_session):
+    """replace=true with an empty recipe_ids list clears the day without
+    calling add_recipes_to_calendar (which would hit the same parsing bug)."""
+    existing_recipe = _make_recipe("old-recipe-1", "Old Recipe 1")
+    existing_day = _make_calendar_day("2024-01-15", [existing_recipe])
+
+    patch_session.get_recipes_in_calendar_week.return_value = [existing_day]
+    patch_session.remove_recipe_from_calendar.side_effect = TypeError(
+        "'NoneType' object is not subscriptable"
+    )
+
+    response = client.post(
+        "/calendar/2024-01-15/recipes",
+        json={"recipe_ids": [], "replace": True},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "2024-01-15"
+    assert data["recipes"] == []
+    patch_session.remove_recipe_from_calendar.assert_called_once()
+    patch_session.add_recipes_to_calendar.assert_not_called()
+
+
+def test_add_recipes_replace_unrelated_type_error_propagates(client, patch_session):
+    """A TypeError unrelated to the known parsing bug must still surface as an error."""
+    existing_recipe = _make_recipe("old-recipe-1", "Old Recipe 1")
+    existing_day = _make_calendar_day("2024-01-15", [existing_recipe])
+
+    patch_session.get_recipes_in_calendar_week.return_value = [existing_day]
+    patch_session.remove_recipe_from_calendar.side_effect = TypeError("unrelated error")
+
+    with pytest.raises(TypeError, match="unrelated error"):
+        client.post(
+            "/calendar/2024-01-15/recipes",
+            json={"recipe_ids": ["new-recipe-1"], "replace": True},
+        )
 
 
 def test_add_recipes_auth_error(client, patch_session):

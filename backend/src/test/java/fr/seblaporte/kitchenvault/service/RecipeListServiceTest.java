@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.web.client.RestClientException;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -213,6 +214,64 @@ class RecipeListServiceTest {
         verify(cookidooServiceClient).addRecipesToCollection(eq("col-fav"), any());
         verify(syncService).upsertCollection(removeResult);
         verify(syncService).upsertCollection(addResult);
+    }
+
+    @Test
+    void moveRecipe_addToTargetFails_revertsSourceRemovalInCookidoo() {
+        Collection discoveryCollection = new Collection("col-discovery");
+        Collection favoritesCollection = new Collection("col-fav");
+        RecipeListSettings discoverySettings = new RecipeListSettings(RecipeListRole.DISCOVERY);
+        discoverySettings.setCollection(discoveryCollection);
+        RecipeListSettings favoritesSettings = new RecipeListSettings(RecipeListRole.FAVORITES);
+        favoritesSettings.setCollection(favoritesCollection);
+
+        when(recipeRepository.existsById("r-1")).thenReturn(true);
+        when(recipeListSettingsRepository.findById(RecipeListRole.FAVORITES)).thenReturn(Optional.of(favoritesSettings));
+        when(recipeListSettingsRepository.findById(RecipeListRole.DISCOVERY)).thenReturn(Optional.of(discoverySettings));
+        when(recipeListSettingsRepository.findAll()).thenReturn(List.of(discoverySettings, favoritesSettings));
+        when(recipeRepository.exists(any(Specification.class))).thenReturn(true);
+
+        CookidooCollection removeResult = new CookidooCollection("col-discovery", "Discovery", null, List.of());
+        CookidooCollection revertResult = new CookidooCollection("col-discovery", "Discovery (reverted)", null, List.of());
+        when(cookidooServiceClient.removeRecipeFromCollection("col-discovery", "r-1")).thenReturn(removeResult);
+        when(cookidooServiceClient.addRecipesToCollection(eq("col-fav"), any()))
+                .thenThrow(new RestClientException("Cookidoo indisponible"));
+        when(cookidooServiceClient.addRecipesToCollection(eq("col-discovery"), any())).thenReturn(revertResult);
+
+        assertThatThrownBy(() -> recipeListService.moveRecipe("r-1", RecipeListRole.FAVORITES))
+                .isInstanceOf(RestClientException.class);
+
+        verify(cookidooServiceClient).removeRecipeFromCollection("col-discovery", "r-1");
+        verify(cookidooServiceClient).addRecipesToCollection(eq("col-discovery"), any());
+        verify(syncService).upsertCollection(removeResult);
+        verify(syncService).upsertCollection(revertResult);
+    }
+
+    @Test
+    void moveRecipe_addToTargetFails_compensationAlsoFails_doesNotSwallowOriginalException() {
+        Collection discoveryCollection = new Collection("col-discovery");
+        Collection favoritesCollection = new Collection("col-fav");
+        RecipeListSettings discoverySettings = new RecipeListSettings(RecipeListRole.DISCOVERY);
+        discoverySettings.setCollection(discoveryCollection);
+        RecipeListSettings favoritesSettings = new RecipeListSettings(RecipeListRole.FAVORITES);
+        favoritesSettings.setCollection(favoritesCollection);
+
+        when(recipeRepository.existsById("r-1")).thenReturn(true);
+        when(recipeListSettingsRepository.findById(RecipeListRole.FAVORITES)).thenReturn(Optional.of(favoritesSettings));
+        when(recipeListSettingsRepository.findById(RecipeListRole.DISCOVERY)).thenReturn(Optional.of(discoverySettings));
+        when(recipeListSettingsRepository.findAll()).thenReturn(List.of(discoverySettings, favoritesSettings));
+        when(recipeRepository.exists(any(Specification.class))).thenReturn(true);
+
+        when(cookidooServiceClient.removeRecipeFromCollection("col-discovery", "r-1"))
+                .thenReturn(new CookidooCollection("col-discovery", "Discovery", null, List.of()));
+        when(cookidooServiceClient.addRecipesToCollection(eq("col-fav"), any()))
+                .thenThrow(new RestClientException("Cookidoo indisponible"));
+        when(cookidooServiceClient.addRecipesToCollection(eq("col-discovery"), any()))
+                .thenThrow(new RestClientException("Toujours indisponible"));
+
+        assertThatThrownBy(() -> recipeListService.moveRecipe("r-1", RecipeListRole.FAVORITES))
+                .isInstanceOf(RestClientException.class)
+                .hasMessage("Cookidoo indisponible");
     }
 
     @Test

@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Component
 public class AdminDelegate implements AdminApiDelegate {
@@ -48,12 +49,16 @@ public class AdminDelegate implements AdminApiDelegate {
         var entityRole = fr.seblaporte.kitchenvault.entity.RecipeListRole.valueOf(role.name());
 
         RecipeListSettings settings = recipeListService.getSettings(entityRole);
-        if (recipeListSettingsUpdateDto.getDisplayLabel() != null) {
-            settings = recipeListService.updateLabel(entityRole, recipeListSettingsUpdateDto.getDisplayLabel());
-        }
-        if (recipeListSettingsUpdateDto.getCollectionId() != null) {
-            settings = recipeListService.bindExistingCollection(
-                    entityRole, recipeListSettingsUpdateDto.getCollectionId());
+        try {
+            if (recipeListSettingsUpdateDto.getDisplayLabel() != null) {
+                settings = recipeListService.updateLabel(entityRole, recipeListSettingsUpdateDto.getDisplayLabel());
+            }
+            if (recipeListSettingsUpdateDto.getCollectionId() != null) {
+                settings = recipeListService.bindExistingCollection(
+                        entityRole, recipeListSettingsUpdateDto.getCollectionId());
+            }
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(recipeListMapper.toDto(settings));
     }

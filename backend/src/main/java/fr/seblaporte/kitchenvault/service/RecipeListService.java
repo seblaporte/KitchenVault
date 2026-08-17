@@ -12,6 +12,8 @@ import fr.seblaporte.kitchenvault.repository.CollectionRepository;
 import fr.seblaporte.kitchenvault.repository.RecipeListSettingsRepository;
 import fr.seblaporte.kitchenvault.repository.RecipeRepository;
 import fr.seblaporte.kitchenvault.repository.RecipeSpecification;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(readOnly = true)
 public class RecipeListService {
+
+    private static final Logger log = LoggerFactory.getLogger(RecipeListService.class);
 
     private final RecipeListSettingsRepository recipeListSettingsRepository;
     private final CollectionRepository collectionRepository;
@@ -130,6 +134,13 @@ public class RecipeListService {
      * Moves a recipe to {@code targetRole}. Writes to Cookidoo (remove from the current
      * collection, then add to the target one) before touching local state; if the Cookidoo
      * call fails, the exception propagates and no local write happens.
+     *
+     * <p>If the removal from the source collection succeeds but the addition to the target
+     * one fails, this transaction rolls back the local writes but the source removal has
+     * already happened remotely on Cookidoo — so we attempt to re-add the recipe to the
+     * source collection on Cookidoo before propagating the failure, to keep Cookidoo aligned
+     * with the local state once it's rolled back. If that compensation also fails, Cookidoo
+     * and local state stay out of sync until the next scheduled full sync.
      */
     @Transactional
     public RecipeListRole moveRecipe(String recipeId, RecipeListRole targetRole) {
@@ -147,19 +158,42 @@ public class RecipeListService {
             return targetRole;
         }
 
-        if (currentRole.isPresent()) {
-            RecipeListSettings sourceSettings = recipeListSettingsRepository.findById(currentRole.get())
-                    .orElseThrow();
+        Collection sourceCollection = currentRole
+                .map(role -> recipeListSettingsRepository.findById(role).orElseThrow())
+                .map(RecipeListSettings::getCollection)
+                .orElse(null);
+
+        if (sourceCollection != null) {
             CookidooCollection sourceResult = cookidooServiceClient.removeRecipeFromCollection(
-                    sourceSettings.getCollection().getId(), recipeId);
+                    sourceCollection.getId(), recipeId);
             syncService.upsertCollection(sourceResult);
         }
 
-        CookidooCollection targetResult = cookidooServiceClient.addRecipesToCollection(
-                targetSettings.getCollection().getId(), new AddRecipesToCollectionRequest(List.of(recipeId)));
-        syncService.upsertCollection(targetResult);
+        try {
+            CookidooCollection targetResult = cookidooServiceClient.addRecipesToCollection(
+                    targetSettings.getCollection().getId(), new AddRecipesToCollectionRequest(List.of(recipeId)));
+            syncService.upsertCollection(targetResult);
+        } catch (RuntimeException addFailure) {
+            if (sourceCollection != null) {
+                revertRemovalFromSource(sourceCollection, recipeId);
+            }
+            throw addFailure;
+        }
 
         return targetRole;
+    }
+
+    private void revertRemovalFromSource(Collection sourceCollection, String recipeId) {
+        try {
+            CookidooCollection revertResult = cookidooServiceClient.addRecipesToCollection(
+                    sourceCollection.getId(), new AddRecipesToCollectionRequest(List.of(recipeId)));
+            syncService.upsertCollection(revertResult);
+        } catch (RuntimeException compensationFailure) {
+            log.error("Échec de la compensation Cookidoo pour la recette {} après échec de l'ajout à la "
+                            + "collection cible : l'état local et Cookidoo peuvent diverger jusqu'au prochain "
+                            + "sync complet",
+                    recipeId, compensationFailure);
+        }
     }
 
     private RecipeListSettings getOrCreate(RecipeListRole role) {

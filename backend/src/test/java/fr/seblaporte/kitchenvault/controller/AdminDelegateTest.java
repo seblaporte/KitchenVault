@@ -69,6 +69,19 @@ class AdminDelegateTest {
     }
 
     @Test
+    void updateRecipeListSettings_collectionNotFound_returnsNotFound() throws Exception {
+        when(recipeListService.getSettings(any())).thenReturn(
+                new RecipeListSettings(fr.seblaporte.kitchenvault.entity.RecipeListRole.FAVORITES));
+        when(recipeListService.bindExistingCollection(any(), any()))
+                .thenThrow(new java.util.NoSuchElementException("Collection not found: missing"));
+
+        mockMvc.perform(patch("/api/v1/admin/recipe-lists/FAVORITES")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"collectionId\":\"missing\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void createRecipeListCollection_createsAndBinds() throws Exception {
         RecipeListSettings settings = new RecipeListSettings(fr.seblaporte.kitchenvault.entity.RecipeListRole.DISCOVERY);
         settings.setDisplayLabel("Miam");

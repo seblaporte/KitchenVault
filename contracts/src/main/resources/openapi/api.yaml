@@ -165,6 +165,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RecipeListSettingsDto"
+        "404":
+          description: La collection indiquée n'existe pas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
         "409":
           description: La collection est déjà rattachée à un autre rôle
           content:

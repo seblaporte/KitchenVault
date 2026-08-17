@@ -1,11 +1,14 @@
 package fr.seblaporte.kitchenvault.cookidoo;
 
 import fr.seblaporte.kitchenvault.cookidoo.model.AddRecipesToCalendarRequest;
+import fr.seblaporte.kitchenvault.cookidoo.model.AddRecipesToCollectionRequest;
 import fr.seblaporte.kitchenvault.cookidoo.model.CookidooCalendarDay;
 import fr.seblaporte.kitchenvault.cookidoo.model.CookidooCollection;
 import fr.seblaporte.kitchenvault.cookidoo.model.CookidooRecipeDetails;
+import fr.seblaporte.kitchenvault.cookidoo.model.CreateCollectionRequest;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.service.annotation.DeleteExchange;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
@@ -19,6 +22,15 @@ public interface CookidooServiceClient {
 
     @GetExchange("/collections")
     List<CookidooCollection> getCollections();
+
+    @PostExchange("/collections")
+    CookidooCollection createCollection(@RequestBody CreateCollectionRequest request);
+
+    @PostExchange("/collections/{id}/recipes")
+    CookidooCollection addRecipesToCollection(@PathVariable String id, @RequestBody AddRecipesToCollectionRequest request);
+
+    @DeleteExchange("/collections/{id}/recipes/{recipeId}")
+    CookidooCollection removeRecipeFromCollection(@PathVariable String id, @PathVariable String recipeId);
 
     @GetExchange("/recipes/{id}")
     CookidooRecipeDetails getRecipeById(@PathVariable String id);

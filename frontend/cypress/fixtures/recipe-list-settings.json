@@ -1,0 +1,5 @@
+[
+  { "role": "FAVORITES", "displayLabel": "Favoris", "collection": { "id": "col-1", "name": "Plats du quotidien" } },
+  { "role": "DISCOVERY", "displayLabel": "Miam", "collection": null },
+  { "role": "REJECTED", "displayLabel": "Pas fou", "collection": { "id": "col-2", "name": "Desserts & Pâtisseries" } }
+]

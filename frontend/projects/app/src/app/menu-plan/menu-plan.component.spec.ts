@@ -8,13 +8,13 @@ import { ToastService } from '../shared/toast/toast.service';
 
 const weekPlan: MenuPlanDto = {
   days: [
-    { date: '2026-06-08', lunch: { recipeId: 'r-1', recipeName: 'Pasta' } },
-    { date: '2026-06-09', dinner: { recipeId: 'r-2', recipeName: 'Salade' } },
-    { date: '2026-06-10' },
-    { date: '2026-06-11' },
-    { date: '2026-06-12' },
-    { date: '2026-06-13' },
-    { date: '2026-06-14' },
+    { date: '2026-06-08', lunch: { recipeId: 'r-1', recipeName: 'Pasta' }, undefinedMeals: [] },
+    { date: '2026-06-09', dinner: { recipeId: 'r-2', recipeName: 'Salade' }, undefinedMeals: [] },
+    { date: '2026-06-10', undefinedMeals: [] },
+    { date: '2026-06-11', undefinedMeals: [] },
+    { date: '2026-06-12', undefinedMeals: [] },
+    { date: '2026-06-13', undefinedMeals: [] },
+    { date: '2026-06-14', undefinedMeals: [] },
   ],
 };
 

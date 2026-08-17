@@ -72,6 +72,13 @@ describe('Responsive mobile — iPhone 14', () => {
       cy.url().should('include', '/shopping');
     });
 
+    it('navigue vers Mes listes', () => {
+      cy.intercept('GET', '**/api/v1/recipe-lists', { fixture: 'recipe-lists-overview.json' });
+      cy.get('nav[aria-label="Navigation mobile"]').contains('Listes').click();
+      cy.url().should('include', '/lists');
+      cy.get('h1').should('contain.text', 'Mes listes');
+    });
+
     it('met en surbrillance l\'onglet actif', () => {
       // '/' redirige vers '/menu' (voir app.routes.ts) : c'est cet onglet qui doit être actif.
       cy.get('nav[aria-label="Navigation mobile"] a[aria-label="Menu"]')
@@ -214,7 +221,27 @@ describe('Responsive mobile — iPhone 14', () => {
     it('page Admin — pas de débordement', () => {
       cy.intercept('GET', '**/api/v1/admin/stats', { fixture: 'admin-stats.json' });
       cy.intercept('GET', '**/api/v1/sync/latest', { statusCode: 404 });
+      cy.intercept('GET', '**/api/v1/admin/recipe-lists', { fixture: 'recipe-list-settings.json' });
+      cy.intercept('GET', '**/api/v1/collections', { fixture: 'collections.json' });
       cy.visit('/admin');
+      cy.document().then((doc) => {
+        expect(doc.documentElement.scrollWidth).to.be.lte(IPHONE.width);
+      });
+    });
+
+    it('page Mes listes — pas de débordement', () => {
+      cy.intercept('GET', '**/api/v1/recipe-lists', { fixture: 'recipe-lists-overview.json' }).as('overview');
+      cy.visit('/lists');
+      cy.wait('@overview');
+      cy.document().then((doc) => {
+        expect(doc.documentElement.scrollWidth).to.be.lte(IPHONE.width);
+      });
+    });
+
+    it('page Bilan hebdomadaire — pas de débordement', () => {
+      cy.intercept('GET', '**/api/v1/weekly-reviews/*', { fixture: 'weekly-review.json' }).as('review');
+      cy.visit('/lists/weekly-review');
+      cy.wait('@review');
       cy.document().then((doc) => {
         expect(doc.documentElement.scrollWidth).to.be.lte(IPHONE.width);
       });

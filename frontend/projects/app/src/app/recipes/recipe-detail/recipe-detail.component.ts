@@ -4,9 +4,12 @@ import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { MenuPlanService } from '@KitchenVault/api-client';
+import { MenuPlanService, RecipeListsService, RecipeListRole } from '@KitchenVault/api-client';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroArrowLeft } from '@ng-icons/heroicons/outline';
+import { ToastService } from '../../shared/toast/toast.service';
+
+const ALL_ROLES: RecipeListRole[] = ['FAVORITES', 'DISCOVERY', 'REJECTED'];
 
 interface Ingredient {
   id: string;
@@ -175,6 +178,30 @@ interface RecipeDetail {
                   </svg>
                 </a>
               }
+
+              <!-- Liste de recettes (favoris / à découvrir / à exclure) -->
+              <div class="flex flex-wrap items-center gap-2">
+                @if (listRole()) {
+                  <span class="rounded-full bg-stone-100 dark:bg-stone-800 px-3 py-1 text-xs font-medium text-stone-700 dark:text-stone-300">
+                    {{ roleLabel(listRole()!) }}
+                  </span>
+                } @else {
+                  <span class="text-xs text-stone-400 dark:text-stone-500">Dans aucune liste</span>
+                }
+                <label>
+                  <span class="sr-only">Déplacer cette recette vers...</span>
+                  <select
+                    (change)="onMoveRecipe($event)"
+                    class="rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 px-2 py-1 text-xs text-stone-700 dark:text-stone-300 cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
+                    aria-label="Déplacer cette recette vers une autre liste"
+                  >
+                    <option value="" selected>Déplacer vers...</option>
+                    @for (role of otherRoles(); track role) {
+                      <option [value]="role">{{ roleLabel(role) }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -303,6 +330,9 @@ export class RecipeDetailComponent implements OnInit {
   readonly backLabel = signal<'Recettes' | 'Menu'>('Recettes');
   private backWeekStart: string | null = null;
 
+  listRole = signal<RecipeListRole | null>(null);
+  private roleLabels: Partial<Record<RecipeListRole, string>> = {};
+
   private readonly nutritionLabels: Record<string, string> = {
     protein: 'Protéines',
     fat: 'Lipides',
@@ -322,6 +352,8 @@ export class RecipeDetailComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private menuPlanService: MenuPlanService,
+    private recipeListsService: RecipeListsService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit(): void {
@@ -354,6 +386,51 @@ export class RecipeDetailComponent implements OnInit {
           this.historyDates.set(history.dates);
         }
       });
+
+    this.recipeListsService.getRecipeListMembership(this.id())
+      .pipe(catchError(() => of(null)))
+      .subscribe(membership => {
+        if (membership) this.listRole.set(membership.role ?? null);
+      });
+
+    this.recipeListsService.getRecipeListsOverview()
+      .pipe(catchError(() => of([])))
+      .subscribe(overview => {
+        this.roleLabels = Object.fromEntries(overview.map(o => [o.role, o.displayLabel]));
+      });
+  }
+
+  otherRoles(): RecipeListRole[] {
+    return ALL_ROLES.filter(role => role !== this.listRole());
+  }
+
+  roleLabel(role: RecipeListRole): string {
+    return this.roleLabels[role] ?? role;
+  }
+
+  onMoveRecipe(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const target = select.value as RecipeListRole | '';
+    select.value = '';
+    if (!target) return;
+
+    this.recipeListsService.updateRecipeListMembership(this.id(), { role: target }).subscribe({
+      next: membership => {
+        this.listRole.set(membership.role ?? null);
+        this.toast.show({
+          type: 'success',
+          title: 'Recette déplacée',
+          message: `Ajoutée à « ${this.roleLabel(target)} ».`,
+        });
+      },
+      error: () => {
+        this.toast.show({
+          type: 'error',
+          title: 'Échec du déplacement',
+          message: 'Vérifiez qu\'une collection Cookidoo est rattachée à cette liste dans l\'administration.',
+        });
+      },
+    });
   }
 
   formatHistoryDate(date: string): string {

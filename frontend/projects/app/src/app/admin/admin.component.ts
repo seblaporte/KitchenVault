@@ -5,6 +5,7 @@ import { catchError, EMPTY, interval, of, Subscription, switchMap, startWith } f
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import { heroArrowPath } from '@ng-icons/heroicons/outline';
 import { BASE_PATH } from '@KitchenVault/api-client';
+import { RecipeListsSettingsComponent } from './recipe-lists-settings/recipe-lists-settings.component';
 
 interface SyncRun {
   id: string;
@@ -25,7 +26,7 @@ interface AdminStats {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, NgIconComponent],
+  imports: [CommonModule, NgIconComponent, RecipeListsSettingsComponent],
   providers: [provideIcons({ heroArrowPath })],
   template: `
     <div class="space-y-8">
@@ -176,6 +177,20 @@ interface AdminStats {
             {{ indexingMessage()!.text }}
           </div>
         }
+      </section>
+
+      <!-- Listes de recettes -->
+      <section
+        class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6"
+        aria-labelledby="recipe-lists-heading"
+      >
+        <h2 id="recipe-lists-heading" class="text-base font-semibold text-stone-900 dark:text-stone-100">
+          Listes de recettes
+        </h2>
+        <p class="mt-1 mb-4 text-sm text-stone-500 dark:text-stone-400">
+          Personnalisez les libellés et rattachez chaque liste à une collection Cookidoo.
+        </p>
+        <app-recipe-lists-settings />
       </section>
     </div>
   `,

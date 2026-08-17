@@ -24,6 +24,10 @@ tags:
     description: Consultation des collections
   - name: categories
     description: Consultation des catégories
+  - name: recipe-lists
+    description: Listes de recettes personnalisables (favoris / découverte / rejet)
+  - name: weekly-review
+    description: Bilan hebdomadaire des recettes à découvrir
   - name: menu-plan
     description: Planification du menu
   - name: chat
@@ -118,6 +122,86 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminStatsDto"
+
+  /api/v1/admin/recipe-lists:
+    get:
+      tags: [admin]
+      operationId: getRecipeListSettings
+      summary: Réglages des 3 listes de recettes
+      description: |
+        Retourne, pour chaque rôle (FAVORITES/DISCOVERY/REJECTED), le libellé configuré
+        et la collection Cookidoo rattachée (null si aucune).
+      responses:
+        "200":
+          description: Réglages des listes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecipeListSettingsDto"
+
+  /api/v1/admin/recipe-lists/{role}:
+    patch:
+      tags: [admin]
+      operationId: updateRecipeListSettings
+      summary: Met à jour le libellé et/ou la collection rattachée d'un rôle
+      parameters:
+        - name: role
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/RecipeListRole"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipeListSettingsUpdateDto"
+      responses:
+        "200":
+          description: Réglages mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeListSettingsDto"
+        "409":
+          description: La collection est déjà rattachée à un autre rôle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/admin/recipe-lists/{role}/collection:
+    post:
+      tags: [admin]
+      operationId: createRecipeListCollection
+      summary: Crée une nouvelle collection Cookidoo et la rattache à ce rôle
+      parameters:
+        - name: role
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/RecipeListRole"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecipeListCollectionDto"
+      responses:
+        "200":
+          description: Collection créée et rattachée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeListSettingsDto"
+        "503":
+          description: Service Cookidoo indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
 
   # ─── Recettes ────────────────────────────────────────────────────────────────
 
@@ -262,6 +346,155 @@ paths:
                 $ref: "#/components/schemas/CollectionDto"
         "404":
           description: Collection introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  # ─── Listes de recettes ─────────────────────────────────────────────────────
+
+  /api/v1/recipe-lists:
+    get:
+      tags: [recipe-lists]
+      operationId: getRecipeListsOverview
+      summary: Vue d'ensemble des 3 listes avec leurs recettes
+      responses:
+        "200":
+          description: Les 3 listes avec leur libellé et leurs recettes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecipeListOverviewDto"
+
+  /api/v1/recipes/{id}/list-membership:
+    get:
+      tags: [recipe-lists]
+      operationId: getRecipeListMembership
+      summary: Rôle courant d'une recette
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Rôle courant (null si la recette n'appartient à aucune des 3 listes)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeListMembershipDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+    put:
+      tags: [recipe-lists]
+      operationId: updateRecipeListMembership
+      summary: Déplace une recette vers une autre liste
+      description: |
+        Remplace l'appartenance de la recette par le rôle demandé. Écrit d'abord dans la
+        collection Cookidoo correspondante ; la mise à jour locale n'a lieu qu'après confirmation.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipeListMembershipDto"
+      responses:
+        "200":
+          description: Appartenance mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeListMembershipDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "422":
+          description: Aucune collection Cookidoo n'est rattachée à ce rôle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service Cookidoo indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  # ─── Bilan hebdomadaire ──────────────────────────────────────────────────────
+
+  /api/v1/weekly-reviews/{weekStart}:
+    get:
+      tags: [weekly-review]
+      operationId: getWeeklyReview
+      summary: Bilan des recettes "à découvrir" planifiées sur la semaine
+      parameters:
+        - name: weekStart
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Recettes à noter, avec les dates où elles étaient planifiées
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReviewDto"
+        "400":
+          description: weekStart n'est pas un lundi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/weekly-reviews/{weekStart}/votes:
+    post:
+      tags: [weekly-review]
+      operationId: submitWeeklyReviewVotes
+      summary: Soumet les votes du bilan et déplace les recettes correspondantes
+      description: |
+        Un échec de déplacement pour une recette (ex. Cookidoo indisponible) n'empêche pas
+        l'application des autres votes.
+      parameters:
+        - name: weekStart
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WeeklyReviewSubmitDto"
+      responses:
+        "200":
+          description: Résultat des déplacements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReviewResultDto"
+        "400":
+          description: weekStart n'est pas un lundi
           content:
             application/json:
               schema:
@@ -1148,6 +1381,75 @@ components:
           items:
             $ref: "#/components/schemas/ChapterDto"
 
+    # ── Listes de recettes ─────────────────────────────────────────────────────
+
+    RecipeListRole:
+      type: string
+      enum: [FAVORITES, DISCOVERY, REJECTED]
+
+    RecipeListCollectionRefDto:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    RecipeListSettingsDto:
+      type: object
+      required: [role, displayLabel]
+      properties:
+        role:
+          $ref: "#/components/schemas/RecipeListRole"
+        displayLabel:
+          type: string
+        collection:
+          allOf:
+            - $ref: "#/components/schemas/RecipeListCollectionRefDto"
+          nullable: true
+
+    RecipeListSettingsUpdateDto:
+      type: object
+      properties:
+        displayLabel:
+          type: string
+          nullable: true
+        collectionId:
+          type: string
+          nullable: true
+
+    CreateRecipeListCollectionDto:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+
+    RecipeListOverviewDto:
+      type: object
+      required: [role, displayLabel, recipes]
+      properties:
+        role:
+          $ref: "#/components/schemas/RecipeListRole"
+        displayLabel:
+          type: string
+        recipes:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecipeSummaryDto"
+
+    RecipeListMembershipDto:
+      type: object
+      properties:
+        role:
+          allOf:
+            - $ref: "#/components/schemas/RecipeListRole"
+          nullable: true
+          description: Rôle courant de la recette, null si elle n'appartient à aucune des 3 listes
+
     # ── Menu Plan ─────────────────────────────────────────────────────────────
 
     MealType:
@@ -1252,6 +1554,90 @@ components:
           items:
             type: string
             format: date
+
+    # ── Bilan hebdomadaire ─────────────────────────────────────────────────────
+
+    WeeklyReviewItemDto:
+      type: object
+      required: [recipeId, recipeName, plannedDates]
+      properties:
+        recipeId:
+          type: string
+        recipeName:
+          type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
+        plannedDates:
+          type: array
+          items:
+            type: string
+            format: date
+
+    WeeklyReviewDto:
+      type: object
+      required: [weekStart, items]
+      properties:
+        weekStart:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewItemDto"
+
+    WeeklyReviewVote:
+      type: string
+      enum: [UP, DOWN]
+
+    WeeklyReviewVoteDto:
+      type: object
+      required: [recipeId, vote]
+      properties:
+        recipeId:
+          type: string
+        vote:
+          $ref: "#/components/schemas/WeeklyReviewVote"
+
+    WeeklyReviewSubmitDto:
+      type: object
+      required: [votes]
+      properties:
+        votes:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewVoteDto"
+
+    WeeklyReviewMovedItemDto:
+      type: object
+      required: [recipeId, newRole]
+      properties:
+        recipeId:
+          type: string
+        newRole:
+          $ref: "#/components/schemas/RecipeListRole"
+
+    WeeklyReviewFailedItemDto:
+      type: object
+      required: [recipeId, error]
+      properties:
+        recipeId:
+          type: string
+        error:
+          type: string
+
+    WeeklyReviewResultDto:
+      type: object
+      required: [moved, failed]
+      properties:
+        moved:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewMovedItemDto"
+        failed:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewFailedItemDto"
 
     # ── Chat IA ────────────────────────────────────────────────────────────────
 

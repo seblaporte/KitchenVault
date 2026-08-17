@@ -9,6 +9,8 @@ import fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult.AgentAction;
 import fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult.MealSlotAssignment;
 import fr.seblaporte.kitchenvault.entity.MealPlanEntry;
 import fr.seblaporte.kitchenvault.entity.MealType;
+import fr.seblaporte.kitchenvault.entity.Recipe;
+import fr.seblaporte.kitchenvault.entity.RecipeListRole;
 import fr.seblaporte.kitchenvault.entity.WeeklyPlanSession;
 import fr.seblaporte.kitchenvault.generated.model.PendingMealChangeDto;
 import fr.seblaporte.kitchenvault.generated.model.QuickActionDto;
@@ -28,6 +30,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class WeeklyMealPlanService {
@@ -38,16 +41,19 @@ public class WeeklyMealPlanService {
     private final WeeklyPlanSessionRepository sessionRepository;
     private final MealPlanService mealPlanService;
     private final RecipeRepository recipeRepository;
+    private final RecipeListService recipeListService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public WeeklyMealPlanService(WeeklyMealPlanAgent agent,
                                  WeeklyPlanSessionRepository sessionRepository,
                                  MealPlanService mealPlanService,
-                                 RecipeRepository recipeRepository) {
+                                 RecipeRepository recipeRepository,
+                                 RecipeListService recipeListService) {
         this.agent = agent;
         this.sessionRepository = sessionRepository;
         this.mealPlanService = mealPlanService;
         this.recipeRepository = recipeRepository;
+        this.recipeListService = recipeListService;
     }
 
     @Transactional
@@ -90,6 +96,22 @@ public class WeeklyMealPlanService {
         List<MealSlotAssignment> assignments = result.mealAssignments() != null
                 ? result.mealAssignments() : List.of();
 
+        // Filtrage strict et déterministe : une recette du rôle REJECTED ne doit jamais être
+        // appliquée, même si le LLM l'a proposée malgré l'instruction du prompt.
+        Set<String> rejectedRecipeIds = recipeListService.getRejectedRecipeIds();
+        int excludedCount = 0;
+        if (!rejectedRecipeIds.isEmpty() && !assignments.isEmpty()) {
+            int before = assignments.size();
+            assignments = assignments.stream()
+                    .filter(a -> !rejectedRecipeIds.contains(a.recipeId()))
+                    .toList();
+            excludedCount = before - assignments.size();
+            if (excludedCount > 0) {
+                log.info("Excluded {} rejected-list recipe(s) from meal assignments for session {}",
+                        excludedCount, request.getSessionId());
+            }
+        }
+
         if (!assignments.isEmpty()) {
             if (!session.isInitialDone()) {
                 assignments.forEach(a -> {
@@ -123,6 +145,10 @@ public class WeeklyMealPlanService {
                         .toList();
 
         String reply = result.reply() != null ? result.reply().replace("\\n", "\n") : "";
+        if (excludedCount > 0) {
+            String rejectedLabel = recipeListService.getSettings(RecipeListRole.REJECTED).getDisplayLabel();
+            reply += "\n\n⚠️ " + excludedCount + " recette(s) exclue(s) automatiquement (liste « " + rejectedLabel + " »).";
+        }
 
         return new WeeklyPlanChatResponse()
                 .reply(reply)
@@ -167,8 +193,30 @@ public class WeeklyMealPlanService {
             sb.append("\n");
         }
 
+        appendRecipeListSection(sb, "Recettes favorites — sources fiables",
+                recipeListService.getSettings(RecipeListRole.FAVORITES), RecipeListRole.FAVORITES);
+        appendRecipeListSection(sb, "Recettes à découvrir",
+                recipeListService.getSettings(RecipeListRole.DISCOVERY), RecipeListRole.DISCOVERY);
+        appendRecipeListSection(sb, "Recettes à exclure — ne jamais proposer",
+                recipeListService.getSettings(RecipeListRole.REJECTED), RecipeListRole.REJECTED);
+
         sb.append("[Message utilisateur]\n").append(request.getMessage());
         return sb.toString();
+    }
+
+    private void appendRecipeListSection(StringBuilder sb, String title,
+                                         fr.seblaporte.kitchenvault.entity.RecipeListSettings settings,
+                                         RecipeListRole role) {
+        List<Recipe> recipes = recipeListService.getRecipesForRole(role);
+        sb.append("[").append(title).append(" (« ").append(settings.getDisplayLabel()).append(" »)]\n");
+        if (recipes.isEmpty()) {
+            sb.append("(aucune)\n");
+        } else {
+            for (Recipe recipe : recipes) {
+                sb.append("- ").append(recipe.getName()).append(" (id: ").append(recipe.getId()).append(")\n");
+            }
+        }
+        sb.append("\n");
     }
 
     private String findSlot(List<MealPlanEntry> plan, LocalDate date, MealType mealType) {

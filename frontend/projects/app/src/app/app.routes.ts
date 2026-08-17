@@ -33,4 +33,16 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./shopping-list/shopping-list.component').then(m => m.ShoppingListComponent),
   },
+  {
+    path: 'lists',
+    loadComponent: () =>
+      import('./recipe-lists/recipe-lists.component').then(m => m.RecipeListsComponent),
+  },
+  {
+    path: 'lists/weekly-review',
+    loadComponent: () =>
+      import('./recipe-lists/weekly-review/weekly-review.component').then(
+        m => m.WeeklyReviewComponent,
+      ),
+  },
 ];

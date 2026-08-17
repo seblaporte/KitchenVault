@@ -21,6 +21,14 @@ class CollectionResponse(BaseModel):
     chapters: list[ChapterResponse]
 
 
+class CreateCollectionRequest(BaseModel):
+    name: str
+
+
+class AddRecipesToCollectionRequest(BaseModel):
+    recipe_ids: list[str]
+
+
 class IngredientResponse(BaseModel):
     id: str
     name: str

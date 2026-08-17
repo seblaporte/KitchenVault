@@ -1,0 +1,8 @@
+{
+  "moved": [
+    { "recipeId": "recipe-2", "newRole": "FAVORITES" }
+  ],
+  "failed": [
+    { "recipeId": "recipe-3", "error": "Cookidoo indisponible" }
+  ]
+}

@@ -2,6 +2,10 @@ describe('Détail d\'une recette', () => {
   beforeEach(() => {
     cy.intercept('GET', '**/api/v1/recipes/recipe-1', { fixture: 'recipe-detail.json' }).as('recipeDetail');
     cy.intercept('GET', '**/api/v1/menu-plan/history*', { body: { recipeId: 'recipe-1', dates: [] } });
+    cy.intercept('GET', '**/api/v1/recipes/*/list-membership', {
+      fixture: 'recipe-list-membership-none.json',
+    }).as('listMembership');
+    cy.intercept('GET', '**/api/v1/recipe-lists', { fixture: 'recipe-lists-overview.json' });
   });
 
   it('affiche les informations de la recette', () => {
@@ -36,5 +40,56 @@ describe('Détail d\'une recette', () => {
     cy.visit('/recipes/recipe-404');
 
     cy.get('[role="alert"]').should('be.visible');
+  });
+
+  describe('Liste de recettes (badge + déplacement)', () => {
+    it('affiche "Dans aucune liste" quand la recette n\'appartient à aucune liste', () => {
+      cy.visit('/recipes/recipe-1');
+      cy.wait('@recipeDetail');
+      cy.wait('@listMembership');
+
+      cy.contains('Dans aucune liste').should('be.visible');
+    });
+
+    it('affiche le libellé configuré du rôle courant', () => {
+      cy.intercept('GET', '**/api/v1/recipes/recipe-1/list-membership', {
+        fixture: 'recipe-list-membership-discovery.json',
+      }).as('listMembership');
+
+      cy.visit('/recipes/recipe-1');
+      cy.wait('@recipeDetail');
+      cy.wait('@listMembership');
+
+      // Le libellé vient de la fixture recipe-lists-overview (jamais codé en dur).
+      cy.contains('Miam').should('be.visible');
+    });
+
+    it('déplace la recette vers une autre liste et affiche une confirmation', () => {
+      cy.intercept('PUT', '**/api/v1/recipes/recipe-1/list-membership', {
+        body: { role: 'FAVORITES' },
+      }).as('move');
+
+      cy.visit('/recipes/recipe-1');
+      cy.wait('@recipeDetail');
+      cy.wait('@listMembership');
+
+      cy.get('[aria-label="Déplacer cette recette vers une autre liste"]').select('FAVORITES', { force: true });
+
+      cy.wait('@move');
+      cy.get('[role="status"]').should('contain.text', 'Recette déplacée');
+    });
+
+    it('affiche une erreur si le déplacement échoue (aucune collection rattachée)', () => {
+      cy.intercept('PUT', '**/api/v1/recipes/recipe-1/list-membership', { statusCode: 422 }).as('moveFailed');
+
+      cy.visit('/recipes/recipe-1');
+      cy.wait('@recipeDetail');
+      cy.wait('@listMembership');
+
+      cy.get('[aria-label="Déplacer cette recette vers une autre liste"]').select('FAVORITES', { force: true });
+
+      cy.wait('@moveFailed');
+      cy.get('[role="status"]').should('contain.text', 'Échec du déplacement');
+    });
   });
 });

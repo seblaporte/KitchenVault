@@ -60,14 +60,14 @@ import { ToastService } from '../shared/toast/toast.service';
             <h2 [id]="'section-' + section.role" class="text-base font-semibold text-stone-900 dark:text-stone-100">
               {{ section.displayLabel }}
             </h2>
-            <span class="text-sm text-stone-400 dark:text-stone-500">({{ section.recipes.length }})</span>
+            <span class="text-sm text-stone-400 dark:text-stone-500">({{ (section.recipes ?? []).length }})</span>
           </div>
 
-          @if (section.recipes.length === 0) {
+          @if ((section.recipes ?? []).length === 0) {
             <p class="text-sm text-stone-500 dark:text-stone-400">Aucune recette dans cette liste pour le moment.</p>
           } @else {
             <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              @for (recipe of section.recipes; track recipe.id) {
+              @for (recipe of section.recipes ?? []; track recipe.id) {
                 <div class="flex flex-col overflow-hidden rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-sm">
                   <a
                     [routerLink]="['/recipes', recipe.id]"

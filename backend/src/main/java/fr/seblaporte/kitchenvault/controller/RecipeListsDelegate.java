@@ -2,13 +2,11 @@ package fr.seblaporte.kitchenvault.controller;
 
 import fr.seblaporte.kitchenvault.generated.api.RecipeListsApiDelegate;
 import fr.seblaporte.kitchenvault.generated.model.RecipeListMembershipDto;
-import fr.seblaporte.kitchenvault.generated.model.RecipeListOverviewDto;
 import fr.seblaporte.kitchenvault.mapper.RecipeListMapper;
 import fr.seblaporte.kitchenvault.service.RecipeListService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.NoSuchElementException;
 
 @Component
@@ -20,15 +18,6 @@ public class RecipeListsDelegate implements RecipeListsApiDelegate {
     public RecipeListsDelegate(RecipeListService recipeListService, RecipeListMapper recipeListMapper) {
         this.recipeListService = recipeListService;
         this.recipeListMapper = recipeListMapper;
-    }
-
-    @Override
-    public ResponseEntity<List<RecipeListOverviewDto>> getRecipeListsOverview() {
-        List<RecipeListOverviewDto> overview = recipeListService.getSettings().stream()
-                .map(settings -> recipeListMapper.toOverviewDto(
-                        settings, recipeListService.getRecipesForRole(settings.getRole())))
-                .toList();
-        return ResponseEntity.ok(overview);
     }
 
     @Override

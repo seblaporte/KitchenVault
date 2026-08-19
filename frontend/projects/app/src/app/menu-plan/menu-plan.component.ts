@@ -1,13 +1,14 @@
 import { Component, OnInit, OnDestroy, HostListener, signal, effect, inject, Renderer2, computed } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown, heroArrowsRightLeft, heroXMark } from '@ng-icons/heroicons/outline';
+import { heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown, heroArrowsRightLeft, heroXMark, heroCalendarDays } from '@ng-icons/heroicons/outline';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, EMPTY, forkJoin, map, of, switchMap } from 'rxjs';
 import { MealSlotComponent, HeldMode } from './meal-slot/meal-slot.component';
 import { RecipePickerDialogComponent } from './recipe-picker-dialog/recipe-picker-dialog.component';
 import { ChatModalComponent } from './chat-modal/chat-modal.component';
 import { WeeklyPlanDrawerComponent } from './weekly-plan-drawer/weekly-plan-drawer.component';
+import { WeeklyReviewModalComponent } from './weekly-review-modal/weekly-review-modal.component';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MenuPlanService, ShoppingListService, MenuPlanDto, DayPlanDto, MealType, MealPlanUpsertDto, MealPlanEntryDto } from '@KitchenVault/api-client';
 import { ToastService } from '../shared/toast/toast.service';
@@ -65,8 +66,8 @@ interface HeldMeal {
 @Component({
   selector: 'app-menu-plan',
   standalone: true,
-  imports: [CommonModule, RouterLink, NgIconComponent, MealSlotComponent, RecipePickerDialogComponent, ChatModalComponent, WeeklyPlanDrawerComponent],
-  viewProviders: [provideIcons({ heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown, heroArrowsRightLeft, heroXMark })],
+  imports: [CommonModule, RouterLink, NgIconComponent, MealSlotComponent, RecipePickerDialogComponent, ChatModalComponent, WeeklyPlanDrawerComponent, WeeklyReviewModalComponent],
+  viewProviders: [provideIcons({ heroSparkles, heroPlay, heroArrowUpOnSquare, heroChevronDown, heroArrowsRightLeft, heroXMark, heroCalendarDays })],
   template: `
     <!-- En-tête semaine -->
     <div class="sticky top-[calc(3.5rem+env(safe-area-inset-top)+0.5rem)] sm:top-[calc(4rem+env(safe-area-inset-top)+0.5rem)] z-20 flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 px-4 py-3 shadow-sm mb-4">
@@ -119,7 +120,7 @@ interface HeldMeal {
         </div>
       </div>
 
-      <div class="w-full sm:w-auto sm:ml-auto flex items-center gap-2">
+      <div class="w-full sm:w-auto sm:ml-auto flex flex-wrap sm:flex-nowrap items-center gap-2">
         <button
           (click)="openWeeklyDrawer()"
           [class.ring-2]="weeklyDrawerOpen()"
@@ -194,6 +195,15 @@ interface HeldMeal {
         >
           <ng-icon name="heroPlay" class="h-3.5 w-3.5" aria-hidden="true" />
           Suggérer
+        </button>
+
+        <button
+          (click)="openWeeklyReview()"
+          class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
+          aria-label="Faire le bilan hebdomadaire de la semaine affichée"
+        >
+          <ng-icon name="heroCalendarDays" class="h-3.5 w-3.5" aria-hidden="true" />
+          Bilan
         </button>
       </div>
     </div>
@@ -496,6 +506,14 @@ interface HeldMeal {
         (dismissed)="onChatDismissed($event)"
       />
     }
+
+    <!-- Modale de bilan hebdomadaire -->
+    @if (weeklyReviewOpen()) {
+      <app-weekly-review-modal
+        [weekStart]="toISODateStr(weekStart())"
+        (dismissed)="weeklyReviewOpen.set(false)"
+      />
+    }
   `,
 })
 export class MenuPlanComponent implements OnInit, OnDestroy {
@@ -506,6 +524,7 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   pickerOpen = signal(false);
   chatContext = signal<ChatContext | null>(null);
   weeklyDrawerOpen = signal(false);
+  weeklyReviewOpen = signal(false);
   selectionIds = signal<Set<string>>(new Set());
   syncing = signal(false);
   syncDropdownOpen = signal(false);
@@ -723,6 +742,11 @@ export class MenuPlanComponent implements OnInit, OnDestroy {
   openWeeklyDrawer(): void {
     this.cancelHold();
     this.weeklyDrawerOpen.set(true);
+  }
+
+  openWeeklyReview(): void {
+    this.cancelHold();
+    this.weeklyReviewOpen.set(true);
   }
 
   openPicker(event: { date: string; mealType: string }): void {

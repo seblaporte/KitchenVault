@@ -5,7 +5,7 @@ describe('Détail d\'une recette', () => {
     cy.intercept('GET', '**/api/v1/recipes/*/list-membership', {
       fixture: 'recipe-list-membership-none.json',
     }).as('listMembership');
-    cy.intercept('GET', '**/api/v1/recipe-lists', { fixture: 'recipe-lists-overview.json' });
+    cy.intercept('GET', '**/api/v1/admin/recipe-lists', { fixture: 'recipe-list-settings.json' });
   });
 
   it('affiche les informations de la recette', () => {
@@ -60,11 +60,11 @@ describe('Détail d\'une recette', () => {
       cy.wait('@recipeDetail');
       cy.wait('@listMembership');
 
-      // Le libellé vient de la fixture recipe-lists-overview (jamais codé en dur).
+      // Le libellé vient de la fixture recipe-list-settings (jamais codé en dur).
       cy.contains('Miam').should('be.visible');
     });
 
-    it('déplace la recette vers une autre liste et affiche une confirmation', () => {
+    it('demande une confirmation avant de déplacer la recette vers une autre liste', () => {
       cy.intercept('PUT', '**/api/v1/recipes/recipe-1/list-membership', {
         body: { role: 'FAVORITES' },
       }).as('move');
@@ -73,10 +73,34 @@ describe('Détail d\'une recette', () => {
       cy.wait('@recipeDetail');
       cy.wait('@listMembership');
 
-      cy.get('[aria-label="Déplacer cette recette vers une autre liste"]').select('FAVORITES', { force: true });
+      cy.get('[aria-label="Déplacer cette recette vers une autre liste"]').click();
+      cy.contains('button', 'Déplacer vers « Favoris »').click();
+
+      // Le clic sur une liste cible ouvre une étape de confirmation, sans appel API immédiat.
+      cy.get('@move.all').should('have.length', 0);
+      cy.contains('Déplacer « Poulet rôti » vers « Favoris » ?').should('be.visible');
+
+      cy.contains('button', 'Confirmer').click();
 
       cy.wait('@move');
       cy.get('[role="status"]').should('contain.text', 'Recette déplacée');
+    });
+
+    it('permet d\'annuler avant de confirmer le déplacement', () => {
+      cy.intercept('PUT', '**/api/v1/recipes/recipe-1/list-membership', {
+        body: { role: 'FAVORITES' },
+      }).as('move');
+
+      cy.visit('/recipes/recipe-1');
+      cy.wait('@recipeDetail');
+      cy.wait('@listMembership');
+
+      cy.get('[aria-label="Déplacer cette recette vers une autre liste"]').click();
+      cy.contains('button', 'Déplacer vers « Favoris »').click();
+      cy.contains('button', 'Annuler').click();
+
+      cy.contains('button', 'Déplacer vers « Favoris »').should('be.visible');
+      cy.get('@move.all').should('have.length', 0);
     });
 
     it('affiche une erreur si le déplacement échoue (aucune collection rattachée)', () => {
@@ -86,7 +110,9 @@ describe('Détail d\'une recette', () => {
       cy.wait('@recipeDetail');
       cy.wait('@listMembership');
 
-      cy.get('[aria-label="Déplacer cette recette vers une autre liste"]').select('FAVORITES', { force: true });
+      cy.get('[aria-label="Déplacer cette recette vers une autre liste"]').click();
+      cy.contains('button', 'Déplacer vers « Favoris »').click();
+      cy.contains('button', 'Confirmer').click();
 
       cy.wait('@moveFailed');
       cy.get('[role="status"]').should('contain.text', 'Échec du déplacement');

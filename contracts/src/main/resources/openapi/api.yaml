@@ -359,21 +359,6 @@ paths:
 
   # ─── Listes de recettes ─────────────────────────────────────────────────────
 
-  /api/v1/recipe-lists:
-    get:
-      tags: [recipe-lists]
-      operationId: getRecipeListsOverview
-      summary: Vue d'ensemble des 3 listes avec leurs recettes
-      responses:
-        "200":
-          description: Les 3 listes avec leur libellé et leurs recettes
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/RecipeListOverviewDto"
-
   /api/v1/recipes/{id}/list-membership:
     get:
       tags: [recipe-lists]
@@ -1433,19 +1418,6 @@ components:
           type: string
           minLength: 1
           maxLength: 255
-
-    RecipeListOverviewDto:
-      type: object
-      required: [role, displayLabel, recipes]
-      properties:
-        role:
-          $ref: "#/components/schemas/RecipeListRole"
-        displayLabel:
-          type: string
-        recipes:
-          type: array
-          items:
-            $ref: "#/components/schemas/RecipeSummaryDto"
 
     RecipeListMembershipDto:
       type: object

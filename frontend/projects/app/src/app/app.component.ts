@@ -2,14 +2,14 @@ import { Component, OnInit, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart, heroQueueList } from '@ng-icons/heroicons/outline';
+import { heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart } from '@ng-icons/heroicons/outline';
 import { ToastComponent } from './shared/toast/toast.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIconComponent, NgClass, ToastComponent],
-  providers: [provideIcons({ heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart, heroQueueList })],
+  providers: [provideIcons({ heroBookOpen, heroCalendarDays, heroCog6Tooth, heroSun, heroMoon, heroShoppingCart })],
   template: `
     <div class="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
       <!-- Navigation desktop -->
@@ -54,17 +54,6 @@ import { ToastComponent } from './shared/toast/toast.component';
                 >
                   <ng-icon name="heroShoppingCart" class="h-5 w-5" aria-hidden="true" />
                   Courses
-                </a>
-              </li>
-              <li>
-                <a
-                  routerLink="/lists"
-                  routerLinkActive="bg-stone-100 dark:bg-stone-800 text-forest-600 dark:text-forest-400"
-                  class="flex items-center gap-2 px-4 py-2 rounded-xl text-base font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
-                  aria-label="Mes listes"
-                >
-                  <ng-icon name="heroQueueList" class="h-5 w-5" aria-hidden="true" />
-                  Mes listes
                 </a>
               </li>
               <li>
@@ -139,17 +128,6 @@ import { ToastComponent } from './shared/toast/toast.component';
           >
             <ng-icon name="heroShoppingCart" class="h-6 w-6" aria-hidden="true" />
             <span class="text-[10px] font-medium">Courses</span>
-          </a>
-          <a
-            routerLink="/lists"
-            routerLinkActive
-            #rlaLists="routerLinkActive"
-            [ngClass]="rlaLists.isActive ? 'text-forest-600 dark:text-forest-400' : 'text-stone-400 dark:text-stone-500'"
-            class="flex-1 flex flex-col items-center gap-0.5 py-2.5 transition-colors active:bg-stone-50 dark:active:bg-stone-800"
-            aria-label="Mes listes"
-          >
-            <ng-icon name="heroQueueList" class="h-6 w-6" aria-hidden="true" />
-            <span class="text-[10px] font-medium">Listes</span>
           </a>
           <a
             routerLink="/admin"

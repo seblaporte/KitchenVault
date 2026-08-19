@@ -1,34 +1,57 @@
-describe('Bilan hebdomadaire', () => {
-  it('se déclenche uniquement après un clic explicite depuis Mes listes (pas de bannière automatique)', () => {
-    cy.intercept('GET', '**/api/v1/recipe-lists', { fixture: 'recipe-lists-overview.json' }).as('overview');
-
-    cy.visit('/lists');
-    cy.wait('@overview');
-
-    // Aucun appel au bilan tant que l'utilisateur n'a pas cliqué explicitement.
-    cy.get('@overview.all').should('have.length', 1);
-    cy.contains('a', 'Faire le bilan hebdomadaire').should('be.visible');
+describe('Bilan hebdomadaire (modale, page Menu)', () => {
+  beforeEach(() => {
+    cy.intercept({ method: 'GET', pathname: '/api/v1/menu-plan' }, { fixture: 'week-plan-empty.json' }).as('weekPlan');
   });
 
-  it('affiche les recettes à découvrir planifiées la semaine dernière', () => {
+  it('se déclenche uniquement après un clic explicite sur "Bilan" (pas d\'appel automatique)', () => {
     cy.intercept('GET', '**/api/v1/weekly-reviews/*', { fixture: 'weekly-review.json' }).as('review');
 
-    cy.visit('/lists/weekly-review');
+    cy.visit('/menu');
+    cy.wait('@weekPlan');
+
+    cy.get('@review.all').should('have.length', 0);
+    cy.get('[aria-label="Faire le bilan hebdomadaire de la semaine affichée"]').should('be.visible');
+  });
+
+  it('affiche les recettes à découvrir planifiées la semaine actuellement affichée', () => {
+    cy.intercept('GET', '**/api/v1/weekly-reviews/*', { fixture: 'weekly-review.json' }).as('review');
+
+    cy.visit('/menu');
+    cy.wait('@weekPlan');
+    cy.get('[aria-label="Faire le bilan hebdomadaire de la semaine affichée"]').click();
     cy.wait('@review');
 
-    cy.get('h1').should('contain.text', 'Bilan de la semaine');
+    cy.get('[role="dialog"][aria-label="Bilan de la semaine"]').should('be.visible');
     cy.contains('Boeuf bourguignon').should('be.visible');
     cy.contains('Tarte aux pommes').should('be.visible');
     cy.contains('Planifiée 2 fois cette semaine-là').should('be.visible');
   });
 
+  it('permet de rattraper le bilan d\'une semaine passée en naviguant avant de l\'ouvrir', () => {
+    cy.intercept('GET', '**/api/v1/weekly-reviews/*', { fixture: 'weekly-review.json' }).as('review');
+
+    cy.visit('/menu');
+    cy.wait('@weekPlan');
+
+    cy.intercept({ method: 'GET', pathname: '/api/v1/menu-plan' }, { fixture: 'week-plan-empty.json' }).as('prevWeekPlan');
+    cy.get('[aria-label="Semaine précédente"]').click();
+    cy.wait('@prevWeekPlan');
+
+    cy.get('[aria-label="Faire le bilan hebdomadaire de la semaine affichée"]').click();
+    cy.wait('@review').its('request.url').should('match', /\/api\/v1\/weekly-reviews\/\d{4}-\d{2}-\d{2}$/);
+
+    cy.get('[role="dialog"][aria-label="Bilan de la semaine"]').should('be.visible');
+  });
+
   it('affiche un message quand aucune recette à découvrir n\'était planifiée', () => {
     cy.intercept('GET', '**/api/v1/weekly-reviews/*', { body: { weekStart: '2026-04-27', items: [] } }).as('review');
 
-    cy.visit('/lists/weekly-review');
+    cy.visit('/menu');
+    cy.wait('@weekPlan');
+    cy.get('[aria-label="Faire le bilan hebdomadaire de la semaine affichée"]').click();
     cy.wait('@review');
 
-    cy.contains('Aucune recette à découvrir n\'était planifiée la semaine dernière.').should('be.visible');
+    cy.contains('Aucune recette à découvrir n\'était planifiée cette semaine-là.').should('be.visible');
   });
 
   it('vote pouce haut et pouce bas puis valide le bilan', () => {
@@ -40,7 +63,9 @@ describe('Bilan hebdomadaire', () => {
       ], failed: [] },
     }).as('submit');
 
-    cy.visit('/lists/weekly-review');
+    cy.visit('/menu');
+    cy.wait('@weekPlan');
+    cy.get('[aria-label="Faire le bilan hebdomadaire de la semaine affichée"]').click();
     cy.wait('@review');
 
     // Le bouton de validation est désactivé tant qu'aucun vote n'est enregistré.
@@ -58,15 +83,16 @@ describe('Bilan hebdomadaire', () => {
       ],
     });
 
-    cy.url().should('include', '/lists').and('not.include', '/weekly-review');
+    cy.get('[role="dialog"][aria-label="Bilan de la semaine"]').should('not.exist');
   });
 
   it('un échec partiel n\'empêche pas la confirmation des autres votes', () => {
     cy.intercept('GET', '**/api/v1/weekly-reviews/*', { fixture: 'weekly-review.json' }).as('review');
     cy.intercept('POST', '**/api/v1/weekly-reviews/*/votes', { fixture: 'weekly-review-result.json' }).as('submit');
-    cy.intercept('GET', '**/api/v1/recipe-lists', { fixture: 'recipe-lists-overview.json' });
 
-    cy.visit('/lists/weekly-review');
+    cy.visit('/menu');
+    cy.wait('@weekPlan');
+    cy.get('[aria-label="Faire le bilan hebdomadaire de la semaine affichée"]').click();
     cy.wait('@review');
 
     cy.get('[aria-label="Pouce vers le haut pour Boeuf bourguignon"]').click();
@@ -81,7 +107,9 @@ describe('Bilan hebdomadaire', () => {
     cy.viewport(390, 844);
     cy.intercept('GET', '**/api/v1/weekly-reviews/*', { fixture: 'weekly-review.json' }).as('review');
 
-    cy.visit('/lists/weekly-review');
+    cy.visit('/menu');
+    cy.wait('@weekPlan');
+    cy.get('[aria-label="Faire le bilan hebdomadaire de la semaine affichée"]').click();
     cy.wait('@review');
 
     cy.get('[aria-label="Pouce vers le haut pour Boeuf bourguignon"]')

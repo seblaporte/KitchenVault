@@ -1,9 +1,7 @@
 package fr.seblaporte.kitchenvault.controller;
 
-import fr.seblaporte.kitchenvault.entity.RecipeListSettings;
 import fr.seblaporte.kitchenvault.generated.api.RecipeListsApiController;
 import fr.seblaporte.kitchenvault.generated.model.RecipeListMembershipDto;
-import fr.seblaporte.kitchenvault.generated.model.RecipeListOverviewDto;
 import fr.seblaporte.kitchenvault.mapper.RecipeListMapper;
 import fr.seblaporte.kitchenvault.service.RecipeListService;
 import org.junit.jupiter.api.Test;
@@ -14,11 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -33,20 +29,6 @@ class RecipeListsDelegateTest {
 
     @MockitoBean RecipeListService recipeListService;
     @MockitoBean RecipeListMapper recipeListMapper;
-
-    @Test
-    void getRecipeListsOverview_returnsThreeLists() throws Exception {
-        when(recipeListService.getSettings()).thenReturn(List.of(
-                new RecipeListSettings(fr.seblaporte.kitchenvault.entity.RecipeListRole.FAVORITES)));
-        when(recipeListService.getRecipesForRole(any())).thenReturn(List.of());
-        when(recipeListMapper.toOverviewDto(any(), any())).thenReturn(
-                new RecipeListOverviewDto(fr.seblaporte.kitchenvault.generated.model.RecipeListRole.FAVORITES,
-                        "Favoris", List.of()));
-
-        mockMvc.perform(get("/api/v1/recipe-lists"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].role").value("FAVORITES"));
-    }
 
     @Test
     void getRecipeListMembership_recipeNotFound_returnsNotFound() throws Exception {

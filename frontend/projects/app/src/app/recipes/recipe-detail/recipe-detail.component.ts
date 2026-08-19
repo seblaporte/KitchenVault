@@ -94,10 +94,10 @@ interface RecipeDetail {
 
       @if (recipe(); as r) {
         <!-- En-tête -->
-        <div class="overflow-hidden rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-sm">
+        <div class="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-sm">
           <div class="flex flex-col md:flex-row">
             <!-- Image -->
-            <div class="w-full md:w-64 lg:w-80 flex-shrink-0 bg-stone-100 dark:bg-stone-800">
+            <div class="w-full md:w-64 lg:w-80 flex-shrink-0 overflow-hidden rounded-t-2xl md:rounded-t-none md:rounded-l-2xl bg-stone-100 dark:bg-stone-800">
               @if (r.imageUrl || r.thumbnailUrl) {
                 <img
                   [src]="r.imageUrl ?? r.thumbnailUrl"

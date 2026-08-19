@@ -58,14 +58,14 @@ const ROLE_TITLES: Record<RecipeListRole, string> = {
             <label class="flex-1 min-w-[12rem]">
               <span class="mb-1 block text-xs font-medium text-stone-500 dark:text-stone-400">Collection Cookidoo rattachée</span>
               <select
-                [value]="row.collectionId ?? ''"
-                (change)="onCollectionChange(row, $event)"
+                [ngModel]="row.collectionId"
+                (ngModelChange)="onCollectionChange(row, $event)"
                 class="w-full rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 text-sm text-stone-900 dark:text-stone-100 cursor-pointer focus-visible:outline-2 focus-visible:outline-forest-500"
                 [attr.aria-label]="'Collection rattachée à ' + row.roleTitle"
               >
-                <option value="">Aucune</option>
+                <option [ngValue]="null">Aucune</option>
                 @for (collection of collections(); track collection.id) {
-                  <option [value]="collection.id">{{ collection.name }}</option>
+                  <option [ngValue]="collection.id">{{ collection.name }}</option>
                 }
               </select>
             </label>
@@ -154,9 +154,8 @@ export class RecipeListsSettingsComponent implements OnInit {
     });
   }
 
-  onCollectionChange(row: RoleRow, event: Event): void {
-    const collectionId = (event.target as HTMLSelectElement).value;
-    this.bindCollection(row, collectionId || null);
+  onCollectionChange(row: RoleRow, collectionId: string | null): void {
+    this.bindCollection(row, collectionId);
   }
 
   bindCollection(row: RoleRow, collectionId: string | null): void {

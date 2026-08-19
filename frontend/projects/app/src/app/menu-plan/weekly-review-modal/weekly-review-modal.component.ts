@@ -93,7 +93,7 @@ import { ToastService } from '../../shared/toast/toast.service';
                       [attr.aria-pressed]="votes()[item.recipeId] === 'UP'"
                       [class.bg-emerald-100]="votes()[item.recipeId] === 'UP'"
                       [class.text-emerald-700]="votes()[item.recipeId] === 'UP'"
-                      class="flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 dark:border-stone-700 text-stone-400 dark:text-stone-500 hover:bg-emerald-50 hover:text-emerald-600 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+                      class="flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 dark:border-stone-700 text-stone-400 dark:text-stone-500 hover:bg-emerald-50 hover:text-emerald-600 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
                       [attr.aria-label]="'Pouce vers le haut pour ' + item.recipeName"
                     >
                       <ng-icon name="heroHandThumbUp" class="h-5 w-5" aria-hidden="true" />
@@ -104,7 +104,7 @@ import { ToastService } from '../../shared/toast/toast.service';
                       [attr.aria-pressed]="votes()[item.recipeId] === 'DOWN'"
                       [class.bg-red-100]="votes()[item.recipeId] === 'DOWN'"
                       [class.text-red-700]="votes()[item.recipeId] === 'DOWN'"
-                      class="flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 dark:border-stone-700 text-stone-400 dark:text-stone-500 hover:bg-red-50 hover:text-red-600 transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
+                      class="flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 dark:border-stone-700 text-stone-400 dark:text-stone-500 hover:bg-red-50 hover:text-red-600 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-forest-500"
                       [attr.aria-label]="'Pouce vers le bas pour ' + item.recipeName"
                     >
                       <ng-icon name="heroHandThumbDown" class="h-5 w-5" aria-hidden="true" />

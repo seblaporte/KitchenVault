@@ -9,7 +9,6 @@ import fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult.AgentAction;
 import fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult.MealSlotAssignment;
 import fr.seblaporte.kitchenvault.entity.MealPlanEntry;
 import fr.seblaporte.kitchenvault.entity.MealType;
-import fr.seblaporte.kitchenvault.entity.Recipe;
 import fr.seblaporte.kitchenvault.entity.RecipeListRole;
 import fr.seblaporte.kitchenvault.entity.WeeklyPlanSession;
 import fr.seblaporte.kitchenvault.generated.model.PendingMealChangeDto;
@@ -36,6 +35,13 @@ import java.util.Set;
 public class WeeklyMealPlanService {
 
     private static final Logger log = LoggerFactory.getLogger(WeeklyMealPlanService.class);
+
+    /**
+     * Marks the start of the free-text user message inside the enriched prompt. The RAG
+     * query transformer (see AiConfig) uses this to search only on the actual question,
+     * not on the injected week plan / recipe list context that precedes it.
+     */
+    public static final String USER_MESSAGE_MARKER = "[Message utilisateur]\n";
 
     private final WeeklyMealPlanAgent agent;
     private final WeeklyPlanSessionRepository sessionRepository;
@@ -193,30 +199,12 @@ public class WeeklyMealPlanService {
             sb.append("\n");
         }
 
-        appendRecipeListSection(sb, "Recettes favorites — sources fiables",
-                recipeListService.getSettings(RecipeListRole.FAVORITES), RecipeListRole.FAVORITES);
-        appendRecipeListSection(sb, "Recettes à découvrir",
-                recipeListService.getSettings(RecipeListRole.DISCOVERY), RecipeListRole.DISCOVERY);
-        appendRecipeListSection(sb, "Recettes à exclure — ne jamais proposer",
-                recipeListService.getSettings(RecipeListRole.REJECTED), RecipeListRole.REJECTED);
-
-        sb.append("[Message utilisateur]\n").append(request.getMessage());
+        // Favorites/discovery/rejected recipes are no longer dumped here — they're carried by
+        // the RAG retrieval itself (see RoleAwareRecipeContentRetriever), which excludes
+        // rejected recipes at the vector search level and tags favorites/discovery matches
+        // inline, bounded regardless of how large the user's lists grow.
+        sb.append(USER_MESSAGE_MARKER).append(request.getMessage());
         return sb.toString();
-    }
-
-    private void appendRecipeListSection(StringBuilder sb, String title,
-                                         fr.seblaporte.kitchenvault.entity.RecipeListSettings settings,
-                                         RecipeListRole role) {
-        List<Recipe> recipes = recipeListService.getRecipesForRole(role);
-        sb.append("[").append(title).append(" (« ").append(settings.getDisplayLabel()).append(" »)]\n");
-        if (recipes.isEmpty()) {
-            sb.append("(aucune)\n");
-        } else {
-            for (Recipe recipe : recipes) {
-                sb.append("- ").append(recipe.getName()).append(" (id: ").append(recipe.getId()).append(")\n");
-            }
-        }
-        sb.append("\n");
     }
 
     private String findSlot(List<MealPlanEntry> plan, LocalDate date, MealType mealType) {

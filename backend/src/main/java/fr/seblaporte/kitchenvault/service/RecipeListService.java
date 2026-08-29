@@ -130,6 +130,18 @@ public class RecipeListService {
                 .collect(Collectors.toSet());
     }
 
+    public Set<String> getFavoriteRecipeIds() {
+        return getRecipesForRole(RecipeListRole.FAVORITES).stream()
+                .map(Recipe::getId)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<String> getDiscoveryRecipeIds() {
+        return getRecipesForRole(RecipeListRole.DISCOVERY).stream()
+                .map(Recipe::getId)
+                .collect(Collectors.toSet());
+    }
+
     /**
      * Moves a recipe to {@code targetRole}. Writes to Cookidoo (remove from the current
      * collection, then add to the target one) before touching local state; if the Cookidoo

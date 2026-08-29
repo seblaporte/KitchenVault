@@ -13,7 +13,6 @@ import fr.seblaporte.kitchenvault.generated.model.WeeklyPlanChatRequest;
 import fr.seblaporte.kitchenvault.generated.model.WeeklyPlanChatResponse;
 import fr.seblaporte.kitchenvault.repository.RecipeRepository;
 import fr.seblaporte.kitchenvault.repository.WeeklyPlanSessionRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -44,18 +43,6 @@ class WeeklyMealPlanServiceTest {
     @InjectMocks WeeklyMealPlanService service;
 
     private static final LocalDate WEEK_START = LocalDate.of(2026, 5, 4);
-
-    @BeforeEach
-    void setUpRecipeLists() {
-        // Every non-early-return processChat call builds the enriched message, which reads
-        // the label of all 3 roles — stub it generically here so individual tests don't need to.
-        lenient().when(recipeListService.getSettings(any(RecipeListRole.class))).thenAnswer(invocation -> {
-            RecipeListRole role = invocation.getArgument(0);
-            RecipeListSettings settings = new RecipeListSettings(role);
-            settings.setDisplayLabel(role.name());
-            return settings;
-        });
-    }
 
     @Test
     void processChat_emptyRecipeBase_throwsEmptyRecipeBaseException() {
@@ -223,6 +210,33 @@ class WeeklyMealPlanServiceTest {
 
         verify(agent).chat(eq("session-1"), argThat(msg ->
                 msg.contains("Salade niçoise") && msg.contains("abc123")));
+    }
+
+    @Test
+    void processChat_doesNotDumpRecipeListsIntoEnrichedMessage() {
+        // Favorites/discovery/rejected recipes must be carried by the RAG content retriever
+        // (RoleAwareRecipeContentRetriever), not injected as raw text here — that text block
+        // used to grow unbounded with the size of the user's lists and could overflow the
+        // embedding model's context window (see WeeklyMealPlanService.buildEnrichedMessage).
+        when(recipeRepository.count()).thenReturn(5L);
+        WeeklyPlanSession session = new WeeklyPlanSession("session-1", WEEK_START);
+        when(sessionRepository.findById("session-1"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(session));
+        when(sessionRepository.save(any())).thenReturn(session);
+        when(mealPlanService.getWeekPlan(WEEK_START)).thenReturn(List.of());
+        when(agent.chat(anyString(), anyString()))
+                .thenReturn(new WeeklyPlanAgentResult("Ok", List.of(), List.of(), null));
+
+        service.processChat(buildRequest("Planifie ma semaine"));
+
+        verify(agent).chat(eq("session-1"), argThat(msg ->
+                !msg.contains("Recettes favorites") &&
+                !msg.contains("Recettes à découvrir") &&
+                !msg.contains("Recettes à exclure")));
+        verify(recipeListService, never()).getSettings(RecipeListRole.FAVORITES);
+        verify(recipeListService, never()).getSettings(RecipeListRole.DISCOVERY);
+        verify(recipeListService, never()).getRecipesForRole(any());
     }
 
     @Test

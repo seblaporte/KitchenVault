@@ -5,4 +5,7 @@
 * xref:api.adoc[API REST]
 * xref:sync.adoc[Synchronisation Cookidoo]
 * xref:ai.adoc[Assistant IA culinaire]
+** xref:ai-meal-planner.adoc[Planification hebdomadaire]
+** xref:ai-recipe-chat.adoc[Suggestion de recettes]
+** xref:ai-shopping-list.adoc[Liste de courses]
 * xref:frontend.adoc[Interface Angular]

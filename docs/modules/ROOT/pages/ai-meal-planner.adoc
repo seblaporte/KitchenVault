@@ -1,0 +1,357 @@
+= Planification hebdomadaire par IA
+:description: Fonctionnement du planificateur de menu hebdomadaire (WeeklyMealPlanAgent)
+
+== Vue d'ensemble
+
+La planification hebdomadaire est la fonctionnalité IA principale de KitchenVault : à partir de contraintes exprimées en langage naturel (jours d'absence, jours sans four, ingrédients prioritaires...), l'assistant génère un menu complet pour les 7 jours (déjeuner + dîner), puis permet de l'ajuster par la conversation.
+
+Côté interface, le composant Angular `weekly-plan-drawer` (voir xref:frontend.adoc[]) présente trois phases successives :
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+
+start
+:phase = "form"\n(week-constraint-form :\nabsences, ingrédients prioritaires,\njours sans four, remarques libres);
+:utilisateur valide le formulaire;
+:phase = "generating"\n(animation de progression);
+:POST /chat/meal-plan-week\n(premier appel, avec constraints);
+:phase = "chat"\n(fil de discussion,\nchips d'actions rapides);
+repeat
+  :utilisateur envoie un message\nou clique une quickAction;
+  :POST /chat/meal-plan-week\n(sans constraints);
+repeat while (session active ?) is (oui)
+stop
+@enduml
+....
+
+Toute l'implémentation vit dans `WeeklyMealPlanAgent` (le prompt), `WeeklyMealPlanService` (l'orchestration) et `WeeklyPlanSession` (l'état persisté entre deux messages).
+
+== L'agent : `WeeklyMealPlanAgent`
+
+Interface LangChain4J à sortie structurée, avec mémoire par session et retriever RAG (voir xref:ai.adoc[]) :
+
+[source,java]
+----
+public interface WeeklyMealPlanAgent {
+
+    @SystemMessage("""...""")   // voir décomposition ci-dessous
+    @UserMessage("{{userMessage}}")
+    @Agent(description = "Planifie le menu de la semaine complète via collecte de contraintes et génération de menu")
+    WeeklyPlanAgentResult chat(@MemoryId String sessionId, @V("userMessage") String userMessage);
+}
+----
+
+Le prompt système (en français) définit un fonctionnement en deux phases :
+
+[cols="1,4", options="header"]
+|===
+|Phase |Comportement attendu du LLM
+
+|1 — Collecte et clarification
+|Analyse les contraintes fournies. Si une contrainte est ambiguë ou contradictoire, pose *une seule* question ciblée. Si les contraintes sont claires, passe directement à la génération sans demander de confirmation supplémentaire.
+
+|2 — Génération du menu
+|Le message contient un bloc `[Planning courant]` avec l'état de chaque créneau. Les créneaux déjà occupés sont des contraintes fixes, sauf demande explicite de changement. Les recettes disponibles sont fournies automatiquement par le RAG.
+|===
+
+Règles de sélection imposées par le prompt :
+
+* jours sans four → recettes légères (salade, wok, vapeur, cru, poêle), four/gratin/rôti/tarte/quiche proscrits ;
+* jours d'absence → créneaux laissés vides (aucune entrée dans `mealAssignments` pour ces jours) ;
+* variété imposée sur la semaine (pas deux plats similaires consécutifs) ;
+* si la base de recettes est insuffisante pour couvrir tous les créneaux, l'assistant doit le signaler explicitement dans sa réponse plutôt que d'inventer une recette ;
+* les recettes annotées `[Liste : recette favorite — source fiable]` sont à privilégier comme valeur sûre, celles annotées `[Liste : recette à découvrir]` sont de bonnes candidates pour varier le menu (sans quota imposé) ;
+* les recettes de la liste « à exclure » de l'utilisateur ne sont *jamais* présentées dans le contexte fourni au LLM — il ne peut donc structurellement pas les proposer (voir <<Listes de recettes et retrieval role-aware>>).
+
+Le prompt distingue également 4 comportements selon l'état de la conversation :
+
+[cols="1,3", options="header"]
+|===
+|État détecté |Comportement
+
+|Génération initiale (`initialDone=false`)
+|Remplit `mealAssignments` pour *tous* les créneaux à couvrir. Résume le menu et justifie les choix. Propose des quickActions du type « Changer le déjeuner de [Jour] », « Je valide le menu ✓ ».
+
+|Modification (`initialDone=true`)
+|Remplit `mealAssignments` uniquement avec les créneaux modifiés. Décrit les changements et demande confirmation. QuickActions : « Oui, modifier ✓ », « Non, garder », « Proposer autre chose ».
+
+|Confirmation (message contient `"CONFIRM"`)
+|`mealAssignments` vide, `action = APPLY_PENDING`. Confirme dans `reply`.
+
+|Refus (message contient `"REJECT"`)
+|`mealAssignments` vide, `action = CLEAR_PENDING`. Propose des alternatives dans `reply`.
+|===
+
+=== Sortie structurée : `WeeklyPlanAgentResult`
+
+[source,java]
+----
+record WeeklyPlanAgentResult(
+    String reply,                          // réponse conversationnelle en Markdown
+    List<QuickAction> quickActions,        // chips contextuels : { label, action }
+    List<MealSlotAssignment> mealAssignments, // { date, mealType, recipeId, recipeName }
+    AgentAction action                     // APPLY_PENDING | CLEAR_PENDING | null
+) {}
+----
+
+Le LLM ne modifie jamais la base de données lui-même : il retourne cet objet, et c'est `WeeklyMealPlanService` qui décide, en fonction de l'état de la session, d'appliquer directement les `mealAssignments` ou de les mettre en attente de confirmation.
+
+[[listes-de-recettes-et-retrieval-role-aware]]
+== Listes de recettes et retrieval role-aware
+
+L'utilisateur peut classer ses recettes dans 3 listes à rôle fixe (`RecipeListRole` : `FAVORITES`, `DISCOVERY`, `REJECTED`), chacune optionnellement rattachée à une vraie collection Cookidoo via `RecipeListSettings` (table `recipe_list_settings`). Ces listes sont gérées par `RecipeListService` et alimentées en pratique par le bilan hebdomadaire (vote sur les recettes « à découvrir » planifiées dans la semaine) ainsi que par l'administration des recettes — ce mécanisme de gestion des listes n'est pas détaillé ici, seule son utilisation par le planificateur IA l'est.
+
+Ces listes influencent directement ce que le planificateur peut proposer, *au niveau de la récupération vectorielle elle-même* — pas en les décrivant en texte dans le prompt. C'est un choix délibéré : la taille de ces listes est arbitraire (contrôlée par l'utilisateur) et les dumper en texte dans le message enrichi ferait grossir le prompt sans borne, jusqu'à dépasser la fenêtre de contexte du modèle d'embedding.
+
+`AiConfig` construit pour `WeeklyMealPlanAgent` un `RetrievalAugmentor` dédié (et non le bean `EmbeddingStoreContentRetriever` partagé utilisé par le chat de suggestion), combinant deux mécanismes :
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+
+participant "WeeklyMealPlanAgent" as AI
+participant "RetrievalAugmentor\n(queryTransformer)" as QT
+participant "RoleAwareRecipeContentRetriever" as RAG
+participant "RecipeListService" as RLS
+database "pgvector\nrecipe_embedding_store" as PG
+
+AI -> QT : query = message enrichi complet\n([Contexte session] + [Planning courant] + ... + [Message utilisateur])
+QT -> QT : tronque tout ce qui précède\nle marqueur "[Message utilisateur]\\n"
+QT -> RAG : retrieve(query = texte libre uniquement)
+
+RAG -> RLS : getRejectedRecipeIds()
+RLS --> RAG : Set<recipeId> (liste "à exclure")
+RAG -> PG : search(embedding, maxResults=10, minScore=0.6,\nfiltre metadata: recipeId NOT IN rejectedIds)
+PG --> RAG : recettes générales (jamais de "rejetées")
+
+RAG -> RLS : getFavoriteRecipeIds()
+RLS --> RAG : Set<recipeId>
+RAG -> PG : search(embedding, maxResults=10, minScore=0.0,\nfiltre metadata: recipeId IN favoriteIds \\ rejectedIds)
+PG --> RAG : recettes favorites
+RAG -> RAG : tag "[Liste : recette favorite — source fiable]"
+
+RAG -> RLS : getDiscoveryRecipeIds()
+RLS --> RAG : Set<recipeId>
+RAG -> PG : search(embedding, maxResults=10, minScore=0.0,\nfiltre metadata: recipeId IN discoveryIds \\ rejectedIds)
+PG --> RAG : recettes à découvrir
+RAG -> RAG : tag "[Liste : recette à découvrir]"
+
+RAG --> QT : fusion dé-dupliquée par recipeId\n(un tag de rôle écrase le texte générique)
+QT --> AI : contexte RAG injecté dans le prompt
+@enduml
+....
+
+Deux points notables :
+
+* *Anti-dépassement de contexte d'embedding* : le `queryTransformer` ne fait jamais embedder le message enrichi complet (qui contient le planning des 7 jours et peut être long) — seul le texte après le marqueur `WeeklyMealPlanService.USER_MESSAGE_MARKER` (`"[Message utilisateur]\n"`) sert de requête de recherche. C'est le correctif apporté après un incident de dépassement de contexte du modèle d'embedding lorsque le prompt entier (avec les anciennes listes de recettes dumpées en texte) était utilisé comme requête.
+* *Exclusion stricte des recettes rejetées* : le filtre `recipeId NOT IN rejectedIds` s'applique au niveau de la recherche vectorielle elle-même (`MetadataFilterBuilder`), pas en post-traitement — une recette « à exclure » n'apparaît donc jamais dans le contexte transmis au LLM, quelle que soit la requête.
+
+=== Garde-fou côté serveur (défense en profondeur)
+
+Le filtrage au niveau du RAG rend la proposition d'une recette rejetée structurellement impossible, mais `WeeklyMealPlanService.processChat()` applique un second filtre déterministe, indépendant du LLM, sur les `mealAssignments` reçus avant toute écriture en base :
+
+[source,java]
+----
+Set<String> rejectedRecipeIds = recipeListService.getRejectedRecipeIds();
+assignments = assignments.stream()
+        .filter(a -> !rejectedRecipeIds.contains(a.recipeId()))
+        .toList();
+----
+
+Si des assignations sont exclues par ce garde-fou (cas résiduel, par exemple une recette rejetée *après* la génération d'une réponse déjà en cours), un avertissement est ajouté à `reply` :
+
+----
+⚠️ 2 recette(s) exclue(s) automatiquement (liste « Recettes à éviter »).
+----
+
+Le libellé de la liste (`« Recettes à éviter »` dans cet exemple) provient de `RecipeListSettings.displayLabel`, personnalisable par l'utilisateur.
+
+== État de session : `WeeklyPlanSession`
+
+Chaque conversation de planification a une session persistée en base (table `weekly_plan_session`), qui porte deux informations clés : si la génération initiale a déjà eu lieu, et les modifications en attente de confirmation.
+
+[source,sql]
+----
+CREATE TABLE weekly_plan_session (
+    session_id      varchar(255) PRIMARY KEY,
+    week_start      date         NOT NULL,
+    initial_done    boolean      NOT NULL DEFAULT false,
+    pending_changes jsonb,                          -- liste de {date, mealType, recipeId, recipeName}
+    created_at      timestamptz  NOT NULL DEFAULT NOW(),
+    last_active_at  timestamptz  NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_weekly_plan_session_last_active_at ON weekly_plan_session (last_active_at);
+----
+
+=== Machine d'état : génération initiale vs. modifications en attente
+
+`initialDone` fait basculer le comportement de `WeeklyMealPlanService` : la toute première fournée de `mealAssignments` est écrite directement dans le planning (« généré gratuitement une fois »), alors que *toute* modification ultérieure doit être explicitement confirmée par l'utilisateur avant d'être appliquée.
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+
+state "initialDone = false" as Initial
+state "initialDone = true\npendingChanges = null" as Stable
+state "initialDone = true\npendingChanges = [...]" as Pending
+
+[*] --> Initial : nouvelle session
+
+Initial --> Stable : mealAssignments reçus\n→ upsertEntry() direct sur\nMealPlanEntry pour chaque créneau\n+ initialDone = true
+
+Stable --> Pending : nouveau mealAssignments\n(modification demandée)\n→ stocké dans pending_changes (jsonb)
+
+Pending --> Stable : action = APPLY_PENDING\n→ upsertEntry() pour chaque\nchangement en attente\n+ pending_changes = null
+
+Pending --> Stable : action = CLEAR_PENDING\n→ pending_changes = null\n(rien n'est appliqué)
+@enduml
+....
+
+`upsertEntry(date, mealType, recipeId)` (`MealPlanService`) crée ou met à jour la `MealPlanEntry` du créneau, avec un instantané dénormalisé du nom et de l'ID de recette (`recipeNameSnapshot`/`recipeIdSnapshot`) affiché même si la recette est ensuite modifiée ou supprimée. Chaque assignation est appliquée indépendamment : l'échec d'une seule (ex. `recipeId` invalide) est loggé et n'interrompt pas les autres.
+
+== `WeeklyMealPlanService.processChat()` — flux complet
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 11
+skinparam ArrowColor #555555
+skinparam sequenceMessageAlign center
+
+actor Utilisateur
+participant "ChatDelegate" as HTTP
+participant "WeeklyMealPlanService" as Svc
+participant "WeeklyPlanSession\n(repository)" as Sess
+participant "MealPlanService" as Plan
+participant "WeeklyMealPlanAgent" as AI
+database "weekly_plan_session /\nmeal_plan_entry" as DB
+
+Utilisateur -> HTTP : POST /chat/meal-plan-week\n{ sessionId, weekStart, message, constraints? }
+HTTP -> Svc : processChat(request)
+
+alt aucune recette en base
+  Svc --> HTTP : throw EmptyRecipeBaseException
+  HTTP --> Utilisateur : 422 Unprocessable Entity
+else base non vide
+  Svc -> Sess : findById(sessionId) ou création
+  Svc -> Plan : getWeekPlan(weekStart)
+  Plan --> Svc : List<MealPlanEntry>
+  Svc -> Svc : buildEnrichedMessage()\n[Contexte session] + [Planning courant]\n+ [Contraintes initiales]? + [Message utilisateur]
+  Svc -> AI : chat(sessionId, enrichedMessage)
+  AI --> Svc : WeeklyPlanAgentResult
+
+  alt result.action == APPLY_PENDING
+    Svc -> Plan : upsertEntry(...) pour chaque pending change
+    Svc -> Sess : pending_changes = null
+  else result.action == CLEAR_PENDING
+    Svc -> Sess : pending_changes = null
+  end
+
+  Svc -> Svc : filtre les mealAssignments contenant\nun recipeId de la liste "rejetées"\n(garde-fou, indépendant du LLM)
+
+  alt mealAssignments non vide ET !initialDone
+    Svc -> Plan : upsertEntry(...) pour chaque assignment
+    Svc -> Sess : initial_done = true
+  else mealAssignments non vide ET initialDone
+    Svc -> Sess : pending_changes = JSON(assignments)
+  end
+
+  opt recettes exclues par le garde-fou
+    Svc -> Svc : reply += avertissement\n"N recette(s) exclue(s) automatiquement..."
+  end
+
+  Svc --> HTTP : WeeklyPlanChatResponse\n{ reply, proposedChanges?, quickActions? }
+  HTTP --> Utilisateur : 200 OK
+end
+@enduml
+....
+
+=== Message enrichi envoyé au LLM
+
+`buildEnrichedMessage()` construit un texte brut (pas d'appel d'outil) injecté comme variable `{{userMessage}}` :
+
+----
+[Contexte de session]
+sessionId: abc-123
+weekStart: 2026-08-31
+initialDone: true
+
+[Planning courant — semaine du 2026-08-31]
+MONDAY 2026-08-31 | Déjeuner: Salade de quinoa (id: 7f1e...) | Dîner: (vide)
+TUESDAY 2026-09-01 | Déjeuner: (vide) | Dîner: Curry de légumes (id: 9a2b...)
+... (7 jours)
+
+[Contraintes initiales]          ← uniquement présent au tout premier appel
+Jours d'absence : SATURDAY
+Ingrédients prioritaires : courgette, tomate
+Jours sans four : MONDAY, WEDNESDAY
+Remarques : pas de poisson
+
+[Message utilisateur]
+Change le dîner de mardi, je n'aime pas le curry
+----
+
+Les recettes disponibles ne sont *pas* listées ici — pas plus que les listes favoris/à découvrir/à exclure de l'utilisateur : elles sont injectées séparément et automatiquement par le retriever RAG role-aware (<<Listes de recettes et retrieval role-aware>>), qui ne recherche que sur le texte suivant `[Message utilisateur]`, jamais sur le bloc `[Planning courant]` ni sur le reste du contexte.
+
+== Contrat REST
+
+`POST /api/v1/chat/meal-plan-week`
+
+[cols="1,3", options="header"]
+|===
+|Champ (requête `WeeklyPlanChatRequest`) |Description
+
+|`sessionId` (string, requis)
+|Identifiant de conversation, généré côté client (`randomUUID()`), réinitialisé si `weekStart` change.
+
+|`weekStart` (date, requis)
+|Lundi de la semaine planifiée.
+
+|`message` (string, requis)
+|Message utilisateur, ou le littéral `"CONFIRM"` / `"REJECT"` envoyé par les quickActions de confirmation.
+
+|`constraints` (`WeekConstraintsDto`, optionnel)
+|Présent uniquement au premier appel : `absenceDays[]`, `priorityIngredients`, `thermalConstraintDays[]`, `freeText`.
+|===
+
+[cols="1,3", options="header"]
+|===
+|Champ (réponse `WeeklyPlanChatResponse`) |Description
+
+|`reply` (string, requis)
+|Réponse conversationnelle en Markdown.
+
+|`proposedChanges` (`PendingMealChangeDto[]`, optionnel)
+|Présent uniquement si des modifications sont en attente de confirmation (`date`, `mealType`, `recipeId`, `recipeName`, `previousRecipeName?`).
+
+|`quickActions` (`QuickActionDto[]`, optionnel)
+|Chips contextuels (`label` affiché, `action` renvoyé comme prochain `message`).
+|===
+
+Erreurs : `422` si la base de recettes est vide, `503` si l'appel au LLM échoue.
+
+== Intégration frontend
+
+Le composant `weekly-plan-drawer.component.ts` gère les trois phases (`form`/`generating`/`chat`) via un signal Angular. Dans la phase `chat` :
+
+* chaque réponse IA est rendue en Markdown (`ngx-markdown`) ;
+* si `proposedChanges` est présent, une carte ambre « Modifications proposées » liste chaque changement (jour, repas, recette, recette précédente le cas échéant) ;
+* les `quickActions` sont affichées comme des chips cliquables en pied de fil ; cliquer une chip envoie `action.action` comme message tout en affichant `action.label` comme bulle utilisateur ;
+* si `proposedChanges` est absent/vide dans la réponse, le changement a été appliqué directement (génération initiale) : le composant émet `planChanged` pour que le parent (`MenuPlanComponent`) recharge le planning affiché.
+
+Voir xref:frontend.adoc[] pour les conventions générales du frontend Angular.

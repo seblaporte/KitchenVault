@@ -1,0 +1,116 @@
+= Suggestion de recettes par chat
+:description: Fonctionnement du chat de suggestion de recettes (RecipeSuggestionAgent)
+
+== Vue d'ensemble
+
+Contrairement à la planification hebdomadaire (xref:ai-meal-planner.adoc[]), ce chat sert à trouver *une* recette précise pour un usage ponctuel — typiquement depuis la modale `chat-modal.component.ts`, ouverte lorsqu'un utilisateur cherche une recette à assigner à un créneau unique du planning ou à ajouter à sa sélection.
+
+L'utilisateur décrit ce qu'il cherche en langage naturel (« un plat réconfortant pour un dimanche d'hiver », « quelque chose de rapide avec des courgettes ») ; l'assistant s'appuie sur la recherche sémantique (RAG, voir xref:ai.adoc[]) pour proposer des recettes réellement présentes dans la base KitchenVault.
+
+== L'agent : `RecipeSuggestionAgent`
+
+[source,java]
+----
+public interface RecipeSuggestionAgent {
+
+    @SystemMessage("""
+            Tu es un assistant culinaire. Pour chaque recette que tu mentionnes :
+            - Indique le nom de la recette, son temps de préparation et son temps total
+            - Résume les ingrédients principaux (ne liste pas tous les ingrédients)
+            - Ne décris jamais les étapes de préparation ni les techniques culinaires
+            - N'inclus jamais l'identifiant technique (ID) ni aucune information interne dans ta réponse textuelle
+
+            Place les IDs des recettes mentionnées uniquement dans le champ recipeIds
+            de ta réponse structurée, pas dans le texte.
+            """)
+    @UserMessage("{{userRequest}}")
+    @Agent(description = "Suggère des recettes adaptées via recherche sémantique")
+    RecipeSuggestionResult suggestRecipes(@MemoryId String sessionId, @V("userRequest") String userRequest);
+}
+----
+
+Le prompt impose une séparation stricte entre le texte affiché (jamais d'ID, jamais les étapes de préparation) et les données structurées :
+
+[source,java]
+----
+record RecipeSuggestionResult(
+    String reply,           // texte affiché à l'utilisateur, sans ID ni détail de préparation
+    List<String> recipeIds  // UUIDs des recettes suggérées, extraits du contexte RAG (champ "ID:")
+) {}
+----
+
+`ChatDelegate.chatRecipe()` résout ensuite chaque `recipeId` en `RecipeSummaryDto` via `RecipeService`/`RecipeMapper` (les IDs qui ne correspondent à aucune recette existante sont silencieusement ignorés).
+
+== Particularité : une seule conversation active à la fois
+
+`ChatDelegate` garde un unique champ `lastSessionId` au niveau du composant (pas par utilisateur). Dès qu'un `sessionId` différent du précédent est reçu, `chatMemoryStore.deleteAllMessages()` est appelé — c'est-à-dire que *tout* l'historique en base (`chat_message`) est purgé, pas seulement celui de l'ancienne session :
+
+[source,java]
+----
+if (!sessionId.equals(lastSessionId)) {
+    chatMemoryStore.deleteAllMessages();
+    lastSessionId = sessionId;
+}
+----
+
+En pratique, ce comportement est sans conséquence visible car ce chat est ouvert dans une modale mono-utilisateur, mono-session à la fois côté frontend — mais il est important de le documenter tel quel : contrairement au planificateur hebdomadaire (une ligne `weekly_plan_session` par conversation, isolées les unes des autres), ce chat ne supporte pas plusieurs conversations `RecipeSuggestionAgent` concurrentes sur la même instance backend.
+
+== Contrat REST
+
+`POST /api/v1/chat/recipe`
+
+[cols="1,3", options="header"]
+|===
+|Champ |Description
+
+|`sessionId` (string, requis)
+|Identifiant de conversation (`ChatMessageDto`).
+
+|`message` (string, requis)
+|Requête en langage naturel.
+
+|`reply` (réponse, string)
+|Texte de l'assistant (Markdown), sans ID ni étapes de préparation.
+
+|`suggestions` (réponse, `RecipeSummaryDto[]`)
+|Recettes résolues à partir des `recipeIds` retournés par l'agent.
+|===
+
+Erreur : `503` si l'appel au LLM échoue.
+
+== Flux d'une requête
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+
+actor Utilisateur
+participant "chat-modal\n(Angular)" as UI
+participant "ChatDelegate" as HTTP
+participant "RecipeSuggestionAgent" as AI
+participant "ContentRetriever\n(RAG partagé)" as RAG
+participant "RecipeService" as Svc
+
+Utilisateur -> UI : "un plat réconfortant\npour un dimanche d'hiver"
+UI -> HTTP : POST /chat/recipe { sessionId, message }
+
+alt nouvelle session (sessionId ≠ lastSessionId)
+  HTTP -> HTTP : chatMemoryStore.deleteAllMessages()
+end
+
+HTTP -> AI : suggestRecipes(sessionId, message)
+AI -> RAG : récupération automatique des recettes proches sémantiquement
+RAG --> AI : segments de recettes (avec ID)
+AI --> HTTP : RecipeSuggestionResult { reply, recipeIds }
+
+HTTP -> Svc : getRecipeById(id) pour chaque recipeId
+Svc --> HTTP : RecipeSummaryDto[]
+
+HTTP --> UI : ChatResponseDto { reply, suggestions }
+UI --> Utilisateur : réponse + cartes recettes
+@enduml
+....

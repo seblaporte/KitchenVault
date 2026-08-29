@@ -535,7 +535,8 @@ paths:
       summary: Suggestions de recettes
       description: |
         Workflow spécialisé pour la recherche et suggestion de recettes.
-        Chaîne les agents : SeasonalContextAgent → RecipeSuggestionAgent (RAG).
+        Utilise RecipeSuggestionAgent, un agent LangChain4J avec sortie structurée
+        appuyé sur le retriever RAG partagé (recherche sémantique dans les embeddings de recettes).
       requestBody:
         required: true
         content:

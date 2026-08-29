@@ -1,0 +1,91 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 015-create-recipe-list-settings
+      author: seblaporte
+      changes:
+        - createTable:
+            tableName: recipe_list_settings
+            columns:
+              - column:
+                  name: role
+                  type: varchar(20)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: collection_id
+                  type: varchar(255)
+              - column:
+                  name: display_label
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 015-recipe-list-settings-unique-collection
+      author: seblaporte
+      changes:
+        - addUniqueConstraint:
+            tableName: recipe_list_settings
+            columnNames: collection_id
+            constraintName: uq_recipe_list_settings_collection
+
+  - changeSet:
+      id: 015-recipe-list-settings-fk-collection
+      author: seblaporte
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: collection_id
+            baseTableName: recipe_list_settings
+            constraintName: fk_recipe_list_settings_collection
+            onDelete: SET NULL
+            referencedColumnNames: id
+            referencedTableName: collection
+
+  - changeSet:
+      id: 015-recipe-list-settings-seed
+      author: seblaporte
+      changes:
+        - insert:
+            tableName: recipe_list_settings
+            columns:
+              - column:
+                  name: role
+                  value: FAVORITES
+              - column:
+                  name: display_label
+                  value: Favoris
+              - column:
+                  name: updated_at
+                  valueComputed: NOW()
+        - insert:
+            tableName: recipe_list_settings
+            columns:
+              - column:
+                  name: role
+                  value: DISCOVERY
+              - column:
+                  name: display_label
+                  value: À découvrir
+              - column:
+                  name: updated_at
+                  valueComputed: NOW()
+        - insert:
+            tableName: recipe_list_settings
+            columns:
+              - column:
+                  name: role
+                  value: REJECTED
+              - column:
+                  name: display_label
+                  value: À éviter
+              - column:
+                  name: updated_at
+                  valueComputed: NOW()

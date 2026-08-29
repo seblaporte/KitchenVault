@@ -14,6 +14,8 @@ servers:
 tags:
   - name: sync
     description: Synchronisation avec Cookidoo
+  - name: embedding
+    description: Indexation des embeddings pour la recherche sémantique
   - name: admin
     description: Administration et statistiques
   - name: recipes
@@ -22,10 +24,16 @@ tags:
     description: Consultation des collections
   - name: categories
     description: Consultation des catégories
+  - name: recipe-lists
+    description: Listes de recettes personnalisables (favoris / découverte / rejet)
+  - name: weekly-review
+    description: Bilan hebdomadaire des recettes à découvrir
   - name: menu-plan
     description: Planification du menu
   - name: chat
     description: Chat IA avec suggestions de recettes et planification
+  - name: shopping-list
+    description: Liste de courses avec consolidation IA
 
 paths:
 
@@ -85,6 +93,20 @@ paths:
               schema:
                 $ref: "#/components/schemas/SyncRunPageDto"
 
+  # ─── Embeddings ──────────────────────────────────────────────────────────────
+
+  /api/v1/embeddings/index:
+    post:
+      tags: [embedding]
+      operationId: triggerEmbeddingIndexation
+      summary: Déclenche l'indexation des embeddings
+      description: |
+        Lance l'indexation asynchrone des embeddings pour toutes les recettes.
+        Permet de réindexer sans relancer une synchronisation Cookidoo complète.
+      responses:
+        "202":
+          description: Indexation démarrée
+
   # ─── Administration ──────────────────────────────────────────────────────────
 
   /api/v1/admin/stats:
@@ -100,6 +122,92 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminStatsDto"
+
+  /api/v1/admin/recipe-lists:
+    get:
+      tags: [admin]
+      operationId: getRecipeListSettings
+      summary: Réglages des 3 listes de recettes
+      description: |
+        Retourne, pour chaque rôle (FAVORITES/DISCOVERY/REJECTED), le libellé configuré
+        et la collection Cookidoo rattachée (null si aucune).
+      responses:
+        "200":
+          description: Réglages des listes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecipeListSettingsDto"
+
+  /api/v1/admin/recipe-lists/{role}:
+    patch:
+      tags: [admin]
+      operationId: updateRecipeListSettings
+      summary: Met à jour le libellé et/ou la collection rattachée d'un rôle
+      parameters:
+        - name: role
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/RecipeListRole"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipeListSettingsUpdateDto"
+      responses:
+        "200":
+          description: Réglages mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeListSettingsDto"
+        "404":
+          description: La collection indiquée n'existe pas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "409":
+          description: La collection est déjà rattachée à un autre rôle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/admin/recipe-lists/{role}/collection:
+    post:
+      tags: [admin]
+      operationId: createRecipeListCollection
+      summary: Crée une nouvelle collection Cookidoo et la rattache à ce rôle
+      parameters:
+        - name: role
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/RecipeListRole"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecipeListCollectionDto"
+      responses:
+        "200":
+          description: Collection créée et rattachée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeListSettingsDto"
+        "503":
+          description: Service Cookidoo indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
 
   # ─── Recettes ────────────────────────────────────────────────────────────────
 
@@ -249,17 +357,186 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorDto"
 
+  # ─── Listes de recettes ─────────────────────────────────────────────────────
+
+  /api/v1/recipes/{id}/list-membership:
+    get:
+      tags: [recipe-lists]
+      operationId: getRecipeListMembership
+      summary: Rôle courant d'une recette
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Rôle courant (null si la recette n'appartient à aucune des 3 listes)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeListMembershipDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+    put:
+      tags: [recipe-lists]
+      operationId: updateRecipeListMembership
+      summary: Déplace une recette vers une autre liste
+      description: |
+        Remplace l'appartenance de la recette par le rôle demandé. Écrit d'abord dans la
+        collection Cookidoo correspondante ; la mise à jour locale n'a lieu qu'après confirmation.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipeListMembershipDto"
+      responses:
+        "200":
+          description: Appartenance mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeListMembershipDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "422":
+          description: Aucune collection Cookidoo n'est rattachée à ce rôle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service Cookidoo indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  # ─── Bilan hebdomadaire ──────────────────────────────────────────────────────
+
+  /api/v1/weekly-reviews/{weekStart}:
+    get:
+      tags: [weekly-review]
+      operationId: getWeeklyReview
+      summary: Bilan des recettes "à découvrir" planifiées sur la semaine
+      parameters:
+        - name: weekStart
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Recettes à noter, avec les dates où elles étaient planifiées
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReviewDto"
+        "400":
+          description: weekStart n'est pas un lundi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/weekly-reviews/{weekStart}/votes:
+    post:
+      tags: [weekly-review]
+      operationId: submitWeeklyReviewVotes
+      summary: Soumet les votes du bilan et déplace les recettes correspondantes
+      description: |
+        Un échec de déplacement pour une recette (ex. Cookidoo indisponible) n'empêche pas
+        l'application des autres votes.
+      parameters:
+        - name: weekStart
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WeeklyReviewSubmitDto"
+      responses:
+        "200":
+          description: Résultat des déplacements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReviewResultDto"
+        "400":
+          description: weekStart n'est pas un lundi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
   # ─── Chat IA ─────────────────────────────────────────────────────────────────
 
-  /api/v1/chat:
+  /api/v1/chat/meal-plan-week:
     post:
       tags: [chat]
-      operationId: sendMessage
-      summary: Envoie un message au chat IA
+      operationId: chatMealPlanWeek
+      summary: Planification IA de la semaine
       description: |
-        Envoie un message à l'assistant IA KitchenVault.
-        L'assistant peut suggérer des recettes, identifier les légumes de saison,
-        planifier des menus et générer des listes de courses.
+        Assistant conversationnel pour planifier les déjeuners et dîners de la semaine.
+        Phase 1 : collecte et clarification des contraintes.
+        Phase 2 : génération du menu complet et itérations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WeeklyPlanChatRequest"
+      responses:
+        "200":
+          description: Réponse de l'assistant de planification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyPlanChatResponse"
+        "422":
+          description: Base de recettes vide ou insuffisante
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service IA indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/chat/recipe:
+    post:
+      tags: [chat]
+      operationId: chatRecipe
+      summary: Suggestions de recettes
+      description: |
+        Workflow spécialisé pour la recherche et suggestion de recettes.
+        Utilise RecipeSuggestionAgent, un agent LangChain4J avec sortie structurée
+        appuyé sur le retriever RAG partagé (recherche sémantique dans les embeddings de recettes).
       requestBody:
         required: true
         content:
@@ -268,13 +545,13 @@ paths:
               $ref: "#/components/schemas/ChatMessageDto"
       responses:
         "200":
-          description: Réponse de l'assistant IA
+          description: Suggestions de recettes de l'assistant IA
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ChatResponseDto"
         "503":
-          description: Service IA indisponible (timeout Groq, rate limit, erreur réseau)
+          description: Service IA indisponible
           content:
             application/json:
               schema:
@@ -363,6 +640,47 @@ paths:
       responses:
         "204":
           description: Créneau supprimé (ou inexistant)
+    patch:
+      tags: [menu-plan]
+      operationId: relocateEntry
+      summary: Déplacer la recette de ce créneau vers un autre créneau
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: mealType
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/MealType"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanRelocateDto"
+      responses:
+        "200":
+          description: Recette déplacée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntryDto"
+        "404":
+          description: Aucune recette au créneau source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "409":
+          description: Le créneau cible est déjà occupé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
 
   /api/v1/menu-plan/suggestions:
     get:
@@ -403,6 +721,342 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/MealPlanEntryDto"
+
+  /api/v1/menu-plan/entries/bulk:
+    post:
+      tags: [menu-plan]
+      operationId: upsertBulkEntries
+      summary: Appliquer plusieurs créneaux en une seule requête
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanBulkRequest"
+      responses:
+        "200":
+          description: Entrées créées ou mises à jour
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MealPlanEntryDto"
+        "404":
+          description: Une des recettes est introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/menu-plan/{weekStart}/cookidoo-sync:
+    post:
+      tags: [menu-plan]
+      operationId: syncWeekToCookidoo
+      summary: Synchroniser la semaine planifiée vers le planning Cookidoo
+      parameters:
+        - name: weekStart
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: replace
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "204":
+          description: Semaine synchronisée avec succès
+        "400":
+          description: weekStart n'est pas un lundi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service Cookidoo indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/menu-plan/{weekStart}/cookidoo-pull:
+    post:
+      tags: [menu-plan]
+      operationId: pullWeekFromCookidoo
+      summary: Récupérer les recettes planifiées sur Cookidoo pour la semaine
+      description: |
+        Importe les recettes planifiées sur Cookidoo pour la semaine dans la catégorie "Non défini".
+        N'écrase jamais les créneaux Déjeuner/Dîner existants.
+      parameters:
+        - name: weekStart
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "204":
+          description: Semaine récupérée avec succès
+        "400":
+          description: weekStart n'est pas un lundi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service Cookidoo indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/menu-plan/entries/{date}/undefined:
+    post:
+      tags: [menu-plan]
+      operationId: addUndefinedEntry
+      summary: Ajouter une recette dans la catégorie "Non défini" d'un jour
+      description: Crée une nouvelle entrée, sans remplacer les entrées déjà présentes ce jour-là. Rejette si la recette est déjà planifiée ce jour-là (Déjeuner, Dîner ou Non défini).
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanUpsertDto"
+      responses:
+        "200":
+          description: Entrée créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntryDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "409":
+          description: La recette est déjà planifiée ce jour-là
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/menu-plan/entries/undefined/{id}:
+    delete:
+      tags: [menu-plan]
+      operationId: removeUndefinedEntry
+      summary: Supprimer une entrée de la catégorie "Non défini" (idempotent)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Entrée supprimée (ou inexistante)
+
+  /api/v1/menu-plan/entries/undefined/{id}/relocate:
+    patch:
+      tags: [menu-plan]
+      operationId: relocateUndefinedEntry
+      summary: Déplacer une recette de la catégorie "Non défini" vers un créneau Déjeuner/Dîner
+      description: |
+        Si le créneau cible est déjà occupé, la recette qui s'y trouve bascule dans la catégorie
+        "Non défini" à la date d'origine de la source (échange), plutôt que d'être rejetée.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanRelocateDto"
+      responses:
+        "200":
+          description: Recette déplacée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntryDto"
+        "404":
+          description: Aucune entrée "Non défini" avec cet identifiant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  # ─── Liste de courses ────────────────────────────────────────────────────────
+
+  /api/v1/shopping-list:
+    get:
+      tags: [shopping-list]
+      operationId: getShoppingList
+      summary: Retourne l'état complet de la liste de courses
+      description: |
+        Retourne la liste de courses active avec la sélection de recettes et les articles consolidés.
+        Crée automatiquement une liste vide si elle n'existe pas encore.
+      responses:
+        "200":
+          description: Liste de courses complète
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListDto"
+    delete:
+      tags: [shopping-list]
+      operationId: clearShoppingList
+      summary: Réinitialise complètement la liste de courses
+      description: Supprime tous les articles et la sélection de recettes.
+      responses:
+        "204":
+          description: Liste réinitialisée
+
+  /api/v1/shopping-list/selection/recipes/{recipeId}:
+    post:
+      tags: [shopping-list]
+      operationId: addRecipeToSelection
+      summary: Ajoute une recette à la sélection de la liste de courses
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recette ajoutée à la sélection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListRecipeDto"
+        "404":
+          description: Recette introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+    delete:
+      tags: [shopping-list]
+      operationId: removeRecipeFromSelection
+      summary: Retire une recette de la sélection (idempotent)
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Recette retirée de la sélection
+
+  /api/v1/shopping-list/consolidate:
+    post:
+      tags: [shopping-list]
+      operationId: consolidateShoppingList
+      summary: Consolide la liste de courses via l'agent IA
+      description: |
+        Agrège les ingrédients de toutes les recettes de la sélection,
+        filtre les produits de base, fusionne les doublons et catégorise chaque article.
+        Remplace les articles précédemment consolidés.
+      responses:
+        "200":
+          description: Liste consolidée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListDto"
+        "422":
+          description: Aucune recette dans la sélection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+        "503":
+          description: Service IA indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/shopping-list/items:
+    post:
+      tags: [shopping-list]
+      operationId: addShoppingListItem
+      summary: Ajoute un article custom à la liste de courses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddShoppingListItemRequest"
+      responses:
+        "201":
+          description: Article créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListItemDto"
+
+  /api/v1/shopping-list/items/{id}/toggle:
+    patch:
+      tags: [shopping-list]
+      operationId: toggleShoppingListItem
+      summary: Bascule l'état coché/décoché d'un article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Article mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingListItemDto"
+        "404":
+          description: Article introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDto"
+
+  /api/v1/shopping-list/items/{id}:
+    delete:
+      tags: [shopping-list]
+      operationId: deleteShoppingListItem
+      summary: Supprime un article de la liste
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Article supprimé
 
   /api/v1/menu-plan/history:
     get:
@@ -719,11 +1373,67 @@ components:
           items:
             $ref: "#/components/schemas/ChapterDto"
 
+    # ── Listes de recettes ─────────────────────────────────────────────────────
+
+    RecipeListRole:
+      type: string
+      enum: [FAVORITES, DISCOVERY, REJECTED]
+
+    RecipeListCollectionRefDto:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    RecipeListSettingsDto:
+      type: object
+      required: [role, displayLabel]
+      properties:
+        role:
+          $ref: "#/components/schemas/RecipeListRole"
+        displayLabel:
+          type: string
+        collection:
+          allOf:
+            - $ref: "#/components/schemas/RecipeListCollectionRefDto"
+          nullable: true
+
+    RecipeListSettingsUpdateDto:
+      type: object
+      properties:
+        displayLabel:
+          type: string
+          nullable: true
+        collectionId:
+          type: string
+          nullable: true
+
+    CreateRecipeListCollectionDto:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+
+    RecipeListMembershipDto:
+      type: object
+      properties:
+        role:
+          allOf:
+            - $ref: "#/components/schemas/RecipeListRole"
+          nullable: true
+          description: Rôle courant de la recette, null si elle n'appartient à aucune des 3 listes
+
     # ── Menu Plan ─────────────────────────────────────────────────────────────
 
     MealType:
       type: string
-      enum: [LUNCH, DINNER]
+      enum: [LUNCH, DINNER, UNDEFINED]
 
     MenuPlanDto:
       type: object
@@ -736,7 +1446,7 @@ components:
 
     DayPlanDto:
       type: object
-      required: [date]
+      required: [date, undefinedMeals]
       properties:
         date:
           type: string
@@ -749,6 +1459,10 @@ components:
           allOf:
             - $ref: "#/components/schemas/MealPlanEntryDto"
           nullable: true
+        undefinedMeals:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealPlanEntryDto"
 
     MealPlanEntryDto:
       type: object
@@ -777,6 +1491,37 @@ components:
         recipeId:
           type: string
 
+    MealPlanRelocateDto:
+      type: object
+      required: [date, mealType]
+      properties:
+        date:
+          type: string
+          format: date
+        mealType:
+          $ref: "#/components/schemas/MealType"
+
+    MealPlanBulkRequest:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealPlanBulkEntryDto"
+
+    MealPlanBulkEntryDto:
+      type: object
+      required: [date, mealType, recipeId]
+      properties:
+        date:
+          type: string
+          format: date
+        mealType:
+          $ref: "#/components/schemas/MealType"
+        recipeId:
+          type: string
+
     RecipeHistoryDto:
       type: object
       required: [recipeId, dates]
@@ -789,7 +1534,183 @@ components:
             type: string
             format: date
 
+    # ── Bilan hebdomadaire ─────────────────────────────────────────────────────
+
+    WeeklyReviewItemDto:
+      type: object
+      required: [recipeId, recipeName, plannedDates]
+      properties:
+        recipeId:
+          type: string
+        recipeName:
+          type: string
+        thumbnailUrl:
+          type: string
+          nullable: true
+        plannedDates:
+          type: array
+          items:
+            type: string
+            format: date
+
+    WeeklyReviewDto:
+      type: object
+      required: [weekStart, items]
+      properties:
+        weekStart:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewItemDto"
+
+    WeeklyReviewVote:
+      type: string
+      enum: [UP, DOWN]
+
+    WeeklyReviewVoteDto:
+      type: object
+      required: [recipeId, vote]
+      properties:
+        recipeId:
+          type: string
+        vote:
+          $ref: "#/components/schemas/WeeklyReviewVote"
+
+    WeeklyReviewSubmitDto:
+      type: object
+      required: [votes]
+      properties:
+        votes:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewVoteDto"
+
+    WeeklyReviewMovedItemDto:
+      type: object
+      required: [recipeId, newRole]
+      properties:
+        recipeId:
+          type: string
+        newRole:
+          $ref: "#/components/schemas/RecipeListRole"
+
+    WeeklyReviewFailedItemDto:
+      type: object
+      required: [recipeId, error]
+      properties:
+        recipeId:
+          type: string
+        error:
+          type: string
+
+    WeeklyReviewResultDto:
+      type: object
+      required: [moved, failed]
+      properties:
+        moved:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewMovedItemDto"
+        failed:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReviewFailedItemDto"
+
     # ── Chat IA ────────────────────────────────────────────────────────────────
+
+    WeeklyPlanChatRequest:
+      type: object
+      required: [sessionId, weekStart, message]
+      properties:
+        sessionId:
+          type: string
+          description: Identifiant de session (UUID côté client)
+        weekStart:
+          type: string
+          format: date
+          description: Lundi de la semaine à planifier (ISO-8601)
+        message:
+          type: string
+          description: Message de l'utilisateur, ou "CONFIRM" / "REJECT" pour la confirmation
+        constraints:
+          allOf:
+            - $ref: "#/components/schemas/WeekConstraintsDto"
+          nullable: true
+          description: Contraintes initiales, présentes uniquement au premier appel
+
+    WeekConstraintsDto:
+      type: object
+      properties:
+        absenceDays:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Jours sans repas (ex. ["MONDAY", "WEDNESDAY"])
+        priorityIngredients:
+          type: string
+          nullable: true
+          description: Ingrédients à utiliser en priorité (texte libre)
+        thermalConstraintDays:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Jours où le four est à éviter
+        freeText:
+          type: string
+          nullable: true
+          description: Remarques libres supplémentaires
+
+    WeeklyPlanChatResponse:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string
+          description: Réponse conversationnelle de l'IA (Markdown)
+        proposedChanges:
+          type: array
+          nullable: true
+          description: Modifications en attente de confirmation (null si déjà appliquées)
+          items:
+            $ref: "#/components/schemas/PendingMealChangeDto"
+        quickActions:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/QuickActionDto"
+
+    PendingMealChangeDto:
+      type: object
+      required: [date, mealType, recipeId, recipeName]
+      properties:
+        date:
+          type: string
+          format: date
+        mealType:
+          $ref: "#/components/schemas/MealType"
+        recipeId:
+          type: string
+        recipeName:
+          type: string
+        previousRecipeName:
+          type: string
+          nullable: true
+          description: Nom de la recette remplacée (null si créneau vide)
+
+    QuickActionDto:
+      type: object
+      required: [label, action]
+      properties:
+        label:
+          type: string
+          description: Texte affiché sur le chip
+        action:
+          type: string
+          description: Message à renvoyer comme prochain message utilisateur
 
     ChatMessageDto:
       type: object
@@ -809,6 +1730,110 @@ components:
         reply:
           type: string
           description: Réponse de l'assistant IA
+        suggestions:
+          type: array
+          nullable: true
+          description: Recettes suggérées par l'IA
+          items:
+            $ref: "#/components/schemas/RecipeSummaryDto"
+
+    # ── Liste de courses ───────────────────────────────────────────────────────
+
+    ShoppingCategory:
+      type: string
+      enum: [PRODUCE, MEAT, DAIRY, BAKERY, GROCERY, FROZEN, SPICES, OTHER]
+
+    ShoppingListRecipeDto:
+      type: object
+      required: [id, recipeName, recipeIdSnapshot, consolidated, addedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        recipeId:
+          type: string
+          nullable: true
+          description: ID live de la recette (null si supprimée)
+        recipeName:
+          type: string
+        recipeIdSnapshot:
+          type: string
+          description: ID snapshot de la recette au moment de l'ajout
+        consolidated:
+          type: boolean
+          description: La recette est-elle déjà reflétée dans les articles consolidés
+        addedAt:
+          type: string
+          format: date-time
+        thumbnailUrl:
+          type: string
+          nullable: true
+          description: URL de la miniature de la recette (null si recette supprimée ou sans image)
+
+    ShoppingListItemDto:
+      type: object
+      required: [id, name, category, checked, sourceRecipeIds, custom, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        quantity:
+          type: string
+          nullable: true
+        category:
+          $ref: "#/components/schemas/ShoppingCategory"
+        checked:
+          type: boolean
+        sourceRecipeIds:
+          type: array
+          items:
+            type: string
+          description: IDs des recettes sources de cet article
+        sourceRecipeNames:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map recipeIdSnapshot → nom de la recette source (snapshot au moment de la consolidation)
+        custom:
+          type: boolean
+          description: Article ajouté manuellement par l'utilisateur
+        createdAt:
+          type: string
+          format: date-time
+
+    ShoppingListDto:
+      type: object
+      required: [recipes, items]
+      properties:
+        recipes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShoppingListRecipeDto"
+          description: Recettes dans la sélection
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShoppingListItemDto"
+          description: Articles de la liste (consolidés + custom)
+        consolidatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date de la dernière consolidation IA (null si jamais consolidée)
+
+    AddShoppingListItemRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        quantity:
+          type: string
+          nullable: true
 
     # ── Erreurs ────────────────────────────────────────────────────────────────
 

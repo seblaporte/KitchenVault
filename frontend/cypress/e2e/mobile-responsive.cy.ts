@@ -214,7 +214,22 @@ describe('Responsive mobile — iPhone 14', () => {
     it('page Admin — pas de débordement', () => {
       cy.intercept('GET', '**/api/v1/admin/stats', { fixture: 'admin-stats.json' });
       cy.intercept('GET', '**/api/v1/sync/latest', { statusCode: 404 });
+      cy.intercept('GET', '**/api/v1/admin/recipe-lists', { fixture: 'recipe-list-settings.json' });
+      cy.intercept('GET', '**/api/v1/collections', { fixture: 'collections.json' });
       cy.visit('/admin');
+      cy.document().then((doc) => {
+        expect(doc.documentElement.scrollWidth).to.be.lte(IPHONE.width);
+      });
+    });
+
+    it('modale Bilan hebdomadaire — pas de débordement', () => {
+      interceptMenuPlan();
+      interceptCommonApis();
+      cy.intercept('GET', '**/api/v1/weekly-reviews/*', { fixture: 'weekly-review.json' }).as('review');
+      cy.visit('/menu');
+      cy.wait('@weekPlan');
+      cy.get('[aria-label="Faire le bilan hebdomadaire de la semaine affichée"]').click();
+      cy.wait('@review');
       cy.document().then((doc) => {
         expect(doc.documentElement.scrollWidth).to.be.lte(IPHONE.width);
       });

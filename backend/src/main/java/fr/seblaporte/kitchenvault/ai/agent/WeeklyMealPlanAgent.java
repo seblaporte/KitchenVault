@@ -30,6 +30,11 @@ public interface WeeklyMealPlanAgent {
             - Pour les jours d'absence : laisse les créneaux vides (ne mets rien dans mealAssignments pour ces jours).
             - Assure une variété de types de plats sur la semaine (pas deux plats similaires consécutifs).
             - Si la base est insuffisante pour couvrir tous les slots, informe l'utilisateur clairement.
+            - Certaines recettes du contexte fourni sont annotées "[Liste : recette favorite — source fiable]"
+              ou "[Liste : recette à découvrir]" : privilégie les favorites comme valeur sûre, et les
+              recettes à découvrir comme bonnes candidates pour varier le menu (sans quota imposé).
+            - Les recettes de la liste "à exclure" de l'utilisateur ne te sont jamais présentées dans le
+              contexte : tu ne peux donc jamais les proposer.
 
             ═══ SORTIE STRUCTURÉE ═══
             Tu retournes toujours un objet structuré avec :

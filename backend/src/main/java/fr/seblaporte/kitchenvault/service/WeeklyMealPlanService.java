@@ -9,6 +9,7 @@ import fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult.AgentAction;
 import fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult.MealSlotAssignment;
 import fr.seblaporte.kitchenvault.entity.MealPlanEntry;
 import fr.seblaporte.kitchenvault.entity.MealType;
+import fr.seblaporte.kitchenvault.entity.RecipeListRole;
 import fr.seblaporte.kitchenvault.entity.WeeklyPlanSession;
 import fr.seblaporte.kitchenvault.generated.model.PendingMealChangeDto;
 import fr.seblaporte.kitchenvault.generated.model.QuickActionDto;
@@ -28,26 +29,37 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class WeeklyMealPlanService {
 
     private static final Logger log = LoggerFactory.getLogger(WeeklyMealPlanService.class);
 
+    /**
+     * Marks the start of the free-text user message inside the enriched prompt. The RAG
+     * query transformer (see AiConfig) uses this to search only on the actual question,
+     * not on the injected week plan / recipe list context that precedes it.
+     */
+    public static final String USER_MESSAGE_MARKER = "[Message utilisateur]\n";
+
     private final WeeklyMealPlanAgent agent;
     private final WeeklyPlanSessionRepository sessionRepository;
     private final MealPlanService mealPlanService;
     private final RecipeRepository recipeRepository;
+    private final RecipeListService recipeListService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public WeeklyMealPlanService(WeeklyMealPlanAgent agent,
                                  WeeklyPlanSessionRepository sessionRepository,
                                  MealPlanService mealPlanService,
-                                 RecipeRepository recipeRepository) {
+                                 RecipeRepository recipeRepository,
+                                 RecipeListService recipeListService) {
         this.agent = agent;
         this.sessionRepository = sessionRepository;
         this.mealPlanService = mealPlanService;
         this.recipeRepository = recipeRepository;
+        this.recipeListService = recipeListService;
     }
 
     @Transactional
@@ -90,6 +102,22 @@ public class WeeklyMealPlanService {
         List<MealSlotAssignment> assignments = result.mealAssignments() != null
                 ? result.mealAssignments() : List.of();
 
+        // Filtrage strict et déterministe : une recette du rôle REJECTED ne doit jamais être
+        // appliquée, même si le LLM l'a proposée malgré l'instruction du prompt.
+        Set<String> rejectedRecipeIds = recipeListService.getRejectedRecipeIds();
+        int excludedCount = 0;
+        if (!rejectedRecipeIds.isEmpty() && !assignments.isEmpty()) {
+            int before = assignments.size();
+            assignments = assignments.stream()
+                    .filter(a -> !rejectedRecipeIds.contains(a.recipeId()))
+                    .toList();
+            excludedCount = before - assignments.size();
+            if (excludedCount > 0) {
+                log.info("Excluded {} rejected-list recipe(s) from meal assignments for session {}",
+                        excludedCount, request.getSessionId());
+            }
+        }
+
         if (!assignments.isEmpty()) {
             if (!session.isInitialDone()) {
                 assignments.forEach(a -> {
@@ -123,6 +151,10 @@ public class WeeklyMealPlanService {
                         .toList();
 
         String reply = result.reply() != null ? result.reply().replace("\\n", "\n") : "";
+        if (excludedCount > 0) {
+            String rejectedLabel = recipeListService.getSettings(RecipeListRole.REJECTED).getDisplayLabel();
+            reply += "\n\n⚠️ " + excludedCount + " recette(s) exclue(s) automatiquement (liste « " + rejectedLabel + " »).";
+        }
 
         return new WeeklyPlanChatResponse()
                 .reply(reply)
@@ -167,7 +199,11 @@ public class WeeklyMealPlanService {
             sb.append("\n");
         }
 
-        sb.append("[Message utilisateur]\n").append(request.getMessage());
+        // Favorites/discovery/rejected recipes are no longer dumped here — they're carried by
+        // the RAG retrieval itself (see RoleAwareRecipeContentRetriever), which excludes
+        // rejected recipes at the vector search level and tags favorites/discovery matches
+        // inline, bounded regardless of how large the user's lists grow.
+        sb.append(USER_MESSAGE_MARKER).append(request.getMessage());
         return sb.toString();
     }
 

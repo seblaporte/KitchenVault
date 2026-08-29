@@ -203,7 +203,7 @@ public class SyncService {
         recipeRepository.save(recipe);
     }
 
-    private void upsertCollection(CookidooCollection cookidooCollection) {
+    void upsertCollection(CookidooCollection cookidooCollection) {
         Collection collection = collectionRepository.findById(cookidooCollection.id())
                 .orElseGet(() -> new Collection(cookidooCollection.id()));
 

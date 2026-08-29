@@ -92,3 +92,130 @@ def test_get_collections_request_error(client, patch_session):
     response = client.get("/collections")
 
     assert response.status_code == 502
+
+
+def test_create_collection_success(client, patch_session):
+    patch_session.add_custom_collection.return_value = _make_collection(
+        "col-new", "Nouvelle collection", description=None, recipes=[]
+    )
+
+    response = client.post("/collections", json={"name": "Nouvelle collection"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "col-new"
+    assert data["name"] == "Nouvelle collection"
+    patch_session.add_custom_collection.assert_called_once_with("Nouvelle collection")
+
+
+def test_create_collection_auth_error(client, patch_session):
+    patch_session.add_custom_collection.side_effect = CookidooAuthException("Unauthorized")
+
+    response = client.post("/collections", json={"name": "Nouvelle collection"})
+
+    assert response.status_code == 401
+
+
+def test_create_collection_request_error(client, patch_session):
+    patch_session.add_custom_collection.side_effect = CookidooRequestException("Timeout")
+
+    response = client.post("/collections", json={"name": "Nouvelle collection"})
+
+    assert response.status_code == 502
+
+
+def test_add_recipes_to_collection_success(client, patch_session):
+    patch_session.add_recipes_to_custom_collection.return_value = _make_collection("col-1")
+
+    response = client.post("/collections/col-1/recipes", json={"recipe_ids": ["r-1", "r-2"]})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "col-1"
+    patch_session.add_recipes_to_custom_collection.assert_called_once_with(
+        "col-1", ["r-1", "r-2"]
+    )
+
+
+def test_add_recipes_to_collection_auth_error(client, patch_session):
+    patch_session.add_recipes_to_custom_collection.side_effect = CookidooAuthException(
+        "Unauthorized"
+    )
+
+    response = client.post("/collections/col-1/recipes", json={"recipe_ids": ["r-1"]})
+
+    assert response.status_code == 401
+
+
+def test_add_recipes_to_collection_request_error(client, patch_session):
+    patch_session.add_recipes_to_custom_collection.side_effect = CookidooRequestException(
+        "Timeout"
+    )
+
+    response = client.post("/collections/col-1/recipes", json={"recipe_ids": ["r-1"]})
+
+    assert response.status_code == 502
+
+
+def test_remove_recipe_from_collection_success(client, patch_session):
+    patch_session.remove_recipe_from_custom_collection.return_value = _make_collection(
+        "col-1", recipes=[CookidooChapterRecipe(id="r-2", name="Recette 2", total_time=3600)]
+    )
+
+    response = client.delete("/collections/col-1/recipes/r-1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["chapters"][0]["recipes"] == [
+        {"id": "r-2", "name": "Recette 2", "total_time": 3600}
+    ]
+    patch_session.remove_recipe_from_custom_collection.assert_called_once_with("col-1", "r-1")
+
+
+def test_remove_recipe_from_collection_null_recipes_bug_falls_back_to_refetch(client, patch_session):
+    """A TypeError from cookidoo_api's known 'recipes: null' parsing bug when
+    removing the last recipe of a chapter is absorbed, and the collection is
+    re-fetched to build a consistent response."""
+    patch_session.remove_recipe_from_custom_collection.side_effect = TypeError(
+        "'NoneType' object is not iterable"
+    )
+    patch_session.count_custom_collections.return_value = (1, 1)
+    patch_session.get_custom_collections.return_value = [
+        _make_collection("col-1", recipes=[])
+    ]
+
+    response = client.delete("/collections/col-1/recipes/r-1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "col-1"
+    assert data["chapters"][0]["recipes"] == []
+    patch_session.get_custom_collections.assert_called_once_with(page=0)
+
+
+def test_remove_recipe_from_collection_unrelated_type_error_propagates(client, patch_session):
+    """A TypeError unrelated to the known parsing bug must still surface as an error."""
+    patch_session.remove_recipe_from_custom_collection.side_effect = TypeError("unrelated error")
+
+    with pytest.raises(TypeError, match="unrelated error"):
+        client.delete("/collections/col-1/recipes/r-1")
+
+
+def test_remove_recipe_from_collection_auth_error(client, patch_session):
+    patch_session.remove_recipe_from_custom_collection.side_effect = CookidooAuthException(
+        "Unauthorized"
+    )
+
+    response = client.delete("/collections/col-1/recipes/r-1")
+
+    assert response.status_code == 401
+
+
+def test_remove_recipe_from_collection_request_error(client, patch_session):
+    patch_session.remove_recipe_from_custom_collection.side_effect = CookidooRequestException(
+        "Timeout"
+    )
+
+    response = client.delete("/collections/col-1/recipes/r-1")
+
+    assert response.status_code == 502

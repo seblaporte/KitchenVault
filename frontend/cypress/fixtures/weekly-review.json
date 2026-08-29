@@ -1,0 +1,17 @@
+{
+  "weekStart": "2026-04-27",
+  "items": [
+    {
+      "recipeId": "recipe-2",
+      "recipeName": "Boeuf bourguignon",
+      "thumbnailUrl": null,
+      "plannedDates": ["2026-04-28", "2026-04-30"]
+    },
+    {
+      "recipeId": "recipe-3",
+      "recipeName": "Tarte aux pommes",
+      "thumbnailUrl": null,
+      "plannedDates": ["2026-05-01"]
+    }
+  ]
+}

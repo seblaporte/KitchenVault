@@ -1,0 +1,123 @@
+= Consolidation de la liste de courses par IA
+:description: Fonctionnement de la consolidation IA de la liste de courses (ShoppingListConsolidationAgent)
+
+== Vue d'ensemble
+
+Une fois que l'utilisateur a sélectionné plusieurs recettes (issues du planning de la semaine ou ajoutées manuellement), il peut demander la consolidation : l'IA fusionne les ingrédients de toutes les recettes sélectionnées en une liste de courses unique, dé-doublonnée et catégorisée.
+
+Contrairement aux deux autres fonctionnalités IA (xref:ai-meal-planner.adoc[], xref:ai-recipe-chat.adoc[]), cet agent :
+
+* n'a *pas* de mémoire de conversation (chaque consolidation est un appel isolé, sans historique) ;
+* n'utilise *pas* le RAG (il ne recherche pas de recettes, il ne fait que traiter le texte des ingrédients qu'on lui fournit) ;
+* retourne toujours un JSON structuré, jamais de texte conversationnel.
+
+== L'agent : `ShoppingListConsolidationAgent`
+
+[source,java]
+----
+public interface ShoppingListConsolidationAgent {
+
+    @SystemMessage("""
+            Tu es un assistant de liste de courses pour une application culinaire française.
+            Tu reçois une liste d'ingrédients extraits de plusieurs recettes.
+
+            Règles obligatoires :
+            1. EXCLURE les produits de base courants toujours disponibles en cuisine
+               (sel, poivre, eau, huile, beurre, farine, sucre, vinaigre, etc.)
+               ainsi que les produits listés explicitement dans la demande.
+            2. FUSIONNER les doublons : si le même ingrédient apparaît dans plusieurs recettes,
+               retourner une seule ligne.
+               - Préférer grammes/ml sur les unités dénombrables
+                 (ex: "2 carottes" + "200g carottes" → "200g carottes")
+               - Si même unité, additionner les quantités (ex: "200g" + "300g" → "500g")
+               - Si unités incompatibles, garder la plus précise
+            3. CATÉGORISER chaque article (voir tableau ci-dessous)
+            4. Retourner UNIQUEMENT un JSON structuré conforme au schéma demandé.
+            5. Pour chaque article, renseigner sourceRecipeIds avec les identifiants de recettes
+               (indiqués entre crochets [ID: xxx] dans le prompt) dont provient l'ingrédient.
+            """)
+    @Agent(description = "Consolide la liste de courses en agrégeant, filtrant et catégorisant les ingrédients")
+    ShoppingListConsolidationResult consolidate(@UserMessage String ingredientsWithContext);
+}
+----
+
+=== Sortie structurée
+
+[source,java]
+----
+record ShoppingListConsolidationResult(
+    List<ConsolidatedItem> items
+) {
+    record ConsolidatedItem(
+        String name,                  // nom de l'article en français
+        String quantity,               // "500g", "2 pièces", "1 litre"... null si inconnue
+        ShoppingCategory category,      // voir tableau des catégories
+        List<String> sourceRecipeIds    // recettes dont provient l'article, pour traçabilité
+    ) {}
+}
+----
+
+=== Catégories
+
+[cols="1,3", options="header"]
+|===
+|Catégorie |Contenu
+
+|`PRODUCE`   |Fruits, légumes, herbes fraîches, champignons
+|`MEAT`      |Viandes, poissons, fruits de mer, charcuterie
+|`DAIRY`     |Produits laitiers, fromages, œufs, crème
+|`BAKERY`    |Pain, viennoiseries, pâtisseries, chapelure
+|`GROCERY`   |Pâtes, riz, céréales, légumineuses, conserves, bouillons, huiles spéciales, sauces prêtes
+|`FROZEN`    |Surgelés
+|`SPICES`    |Épices sèches, aromates secs, condiments, moutarde, ketchup, sauce soja
+|`OTHER`     |Tout le reste
+|===
+
+== `ShoppingListService.consolidate()` — flux complet
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontSize 12
+skinparam ArrowColor #555555
+
+actor Utilisateur
+participant "Écran liste de courses\n(Angular)" as UI
+participant "ShoppingListService" as Svc
+participant "RecipeRepository" as Repo
+participant "ShoppingListConsolidationAgent" as AI
+database "shopping_list /\nshopping_list_item" as DB
+
+Utilisateur -> UI : "Consolider ma liste"
+UI -> Svc : consolidate()
+
+alt aucune recette sélectionnée
+  Svc --> UI : throw EmptySelectionException
+else sélection non vide
+  Svc -> Svc : buildIngredientsText()\n"Produits de base à exclure : ..."\n+ pour chaque recette\n"Recette : X [ID: ...]"\n- ingrédient (description libre)
+  Svc -> Repo : findById(recipeId) pour chaque recette sélectionnée
+  Repo --> Svc : Recipe (groupes d'ingrédients)
+
+  Svc -> AI : consolidate(ingredientsText)
+  AI --> Svc : ShoppingListConsolidationResult { items }
+
+  Svc -> DB : supprime les items non "custom"\n(conserve les items ajoutés manuellement)
+  Svc -> DB : insère les nouveaux items consolidés\n(name, quantity, category, sourceRecipeIds)
+  Svc -> DB : marque les recettes sélectionnées comme "consolidated"
+
+  Svc --> UI : ShoppingList à jour
+end
+@enduml
+....
+
+Points notables :
+
+* `buildIngredientsText()` liste les ingrédients tels qu'enregistrés (le champ `description` d'`Ingredient` est une quantité en texte libre, non structurée — c'est le LLM qui en extrait et normalise la quantité) ;
+* les articles ajoutés manuellement par l'utilisateur (`custom = true`) sont préservés lors d'une re-consolidation : seuls les articles issus d'un précédent passage de l'IA sont remplacés ;
+* si l'agent ne renseigne pas `sourceRecipeIds` pour un article, le service retombe sur l'ensemble des recettes de la sélection courante.
+
+== Configuration
+
+La liste des produits de base toujours exclus est configurable (`ai.shopping-list.basic-necessities`, voir xref:ai.adoc[]) — elle est injectée dans le prompt en plus des règles d'exclusion générales déjà données au LLM, pour permettre d'exclure des produits spécifiques au foyer (ex. déjà en stock) sans modifier le prompt.

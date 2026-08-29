@@ -6,6 +6,8 @@ import fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult.AgentAction;
 import fr.seblaporte.kitchenvault.ai.agent.WeeklyPlanAgentResult.MealSlotAssignment;
 import fr.seblaporte.kitchenvault.entity.MealPlanEntry;
 import fr.seblaporte.kitchenvault.entity.MealType;
+import fr.seblaporte.kitchenvault.entity.RecipeListRole;
+import fr.seblaporte.kitchenvault.entity.RecipeListSettings;
 import fr.seblaporte.kitchenvault.entity.WeeklyPlanSession;
 import fr.seblaporte.kitchenvault.generated.model.WeeklyPlanChatRequest;
 import fr.seblaporte.kitchenvault.generated.model.WeeklyPlanChatResponse;
@@ -20,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,6 +38,7 @@ class WeeklyMealPlanServiceTest {
     @Mock WeeklyPlanSessionRepository sessionRepository;
     @Mock MealPlanService mealPlanService;
     @Mock RecipeRepository recipeRepository;
+    @Mock RecipeListService recipeListService;
 
     @InjectMocks WeeklyMealPlanService service;
 
@@ -206,6 +210,62 @@ class WeeklyMealPlanServiceTest {
 
         verify(agent).chat(eq("session-1"), argThat(msg ->
                 msg.contains("Salade niçoise") && msg.contains("abc123")));
+    }
+
+    @Test
+    void processChat_doesNotDumpRecipeListsIntoEnrichedMessage() {
+        // Favorites/discovery/rejected recipes must be carried by the RAG content retriever
+        // (RoleAwareRecipeContentRetriever), not injected as raw text here — that text block
+        // used to grow unbounded with the size of the user's lists and could overflow the
+        // embedding model's context window (see WeeklyMealPlanService.buildEnrichedMessage).
+        when(recipeRepository.count()).thenReturn(5L);
+        WeeklyPlanSession session = new WeeklyPlanSession("session-1", WEEK_START);
+        when(sessionRepository.findById("session-1"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(session));
+        when(sessionRepository.save(any())).thenReturn(session);
+        when(mealPlanService.getWeekPlan(WEEK_START)).thenReturn(List.of());
+        when(agent.chat(anyString(), anyString()))
+                .thenReturn(new WeeklyPlanAgentResult("Ok", List.of(), List.of(), null));
+
+        service.processChat(buildRequest("Planifie ma semaine"));
+
+        verify(agent).chat(eq("session-1"), argThat(msg ->
+                !msg.contains("Recettes favorites") &&
+                !msg.contains("Recettes à découvrir") &&
+                !msg.contains("Recettes à exclure")));
+        verify(recipeListService, never()).getSettings(RecipeListRole.FAVORITES);
+        verify(recipeListService, never()).getSettings(RecipeListRole.DISCOVERY);
+        verify(recipeListService, never()).getRecipesForRole(any());
+    }
+
+    @Test
+    void processChat_rejectedRecipeInAssignments_isFilteredOutAndNotedInReply() {
+        when(recipeRepository.count()).thenReturn(5L);
+        WeeklyPlanSession session = new WeeklyPlanSession("session-1", WEEK_START);
+        when(sessionRepository.findById("session-1"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(session));
+        when(sessionRepository.save(any())).thenReturn(session);
+        when(mealPlanService.getWeekPlan(WEEK_START)).thenReturn(List.of());
+        when(recipeListService.getRejectedRecipeIds()).thenReturn(Set.of("bad-recipe"));
+
+        RecipeListSettings rejectedSettings = new RecipeListSettings(RecipeListRole.REJECTED);
+        rejectedSettings.setDisplayLabel("À éviter");
+        when(recipeListService.getSettings(RecipeListRole.REJECTED)).thenReturn(rejectedSettings);
+
+        List<MealSlotAssignment> assignments = List.of(
+                new MealSlotAssignment("2026-05-05", "DINNER", "bad-recipe", "Recette à éviter"),
+                new MealSlotAssignment("2026-05-06", "DINNER", "good-recipe", "Recette ok"));
+        when(agent.chat(anyString(), anyString()))
+                .thenReturn(new WeeklyPlanAgentResult("Menu généré !", List.of(), assignments, null));
+
+        WeeklyPlanChatResponse response = service.processChat(buildRequest("Planifie ma semaine"));
+
+        verify(mealPlanService, never()).upsertEntry(LocalDate.of(2026, 5, 5), MealType.DINNER, "bad-recipe");
+        verify(mealPlanService).upsertEntry(LocalDate.of(2026, 5, 6), MealType.DINNER, "good-recipe");
+        assertThat(response.getReply()).contains("exclue");
+        assertThat(response.getReply()).contains("À éviter");
     }
 
     private WeeklyPlanChatRequest buildRequest(String message) {

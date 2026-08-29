@@ -7,18 +7,26 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.rag.DefaultRetrievalAugmentor;
+import dev.langchain4j.rag.RetrievalAugmentor;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
+import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import fr.seblaporte.kitchenvault.ai.agent.RecipeSuggestionAgent;
 import fr.seblaporte.kitchenvault.ai.agent.ShoppingListConsolidationAgent;
 import fr.seblaporte.kitchenvault.ai.agent.WeeklyMealPlanAgent;
 import fr.seblaporte.kitchenvault.ai.memory.PostgresChatMemoryStore;
+import fr.seblaporte.kitchenvault.ai.service.RoleAwareRecipeContentRetriever;
 import fr.seblaporte.kitchenvault.config.AiProperties;
+import fr.seblaporte.kitchenvault.service.RecipeListService;
+import fr.seblaporte.kitchenvault.service.WeeklyMealPlanService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
+import java.util.List;
 
 @Configuration
 public class AiConfig {
@@ -102,13 +110,41 @@ public class AiConfig {
     }
 
     @Bean
+    public ContentRetriever weeklyPlanContentRetriever(
+            EmbeddingStore<TextSegment> embeddingStore,
+            EmbeddingModel embeddingModel,
+            RecipeListService recipeListService) {
+        // Rejected-list recipes are excluded at the vector search level (metadata filter) so
+        // they're never proposable, and favorites/discovery matches are fetched via a separate
+        // bounded, filtered search and tagged inline — see RoleAwareRecipeContentRetriever.
+        // This replaces dumping the 3 recipe lists as raw text in the prompt, which scaled with
+        // list size and could overflow the embedding model's context window.
+        return new RoleAwareRecipeContentRetriever(embeddingStore, embeddingModel, recipeListService);
+    }
+
+    @Bean
     public WeeklyMealPlanAgent weeklyMealPlanAgent(
             PostgresChatMemoryStore chatMemoryStore,
-            EmbeddingStoreContentRetriever contentRetriever) {
+            ContentRetriever weeklyPlanContentRetriever) {
+
+        // The prompt sent to this agent is enriched with the current week plan, which is not
+        // relevant as a RAG search query. RAG search must run only on the actual free-text
+        // question, so we strip everything before the user message marker before it gets embedded.
+        RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
+                .queryTransformer(query -> {
+                    String text = query.text();
+                    int markerIndex = text.lastIndexOf(WeeklyMealPlanService.USER_MESSAGE_MARKER);
+                    String searchText = markerIndex >= 0
+                            ? text.substring(markerIndex + WeeklyMealPlanService.USER_MESSAGE_MARKER.length())
+                            : text;
+                    return List.of(Query.from(searchText, query.metadata()));
+                })
+                .contentRetriever(weeklyPlanContentRetriever)
+                .build();
 
         return AgenticServices.agentBuilder(WeeklyMealPlanAgent.class)
                 .chatModel(weeklyPlanChatModel())
-                .contentRetriever(contentRetriever)
+                .retrievalAugmentor(retrievalAugmentor)
                 .chatMemoryProvider(sessionId -> MessageWindowChatMemory.builder()
                         .id(sessionId)
                         .maxMessages(40)

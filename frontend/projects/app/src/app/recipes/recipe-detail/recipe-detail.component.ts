@@ -4,9 +4,12 @@ import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { MenuPlanService } from '@KitchenVault/api-client';
+import { AdminService, MenuPlanService, RecipeListsService, RecipeListRole } from '@KitchenVault/api-client';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroArrowLeft } from '@ng-icons/heroicons/outline';
+import { heroArrowLeft, heroArrowsRightLeft } from '@ng-icons/heroicons/outline';
+import { ToastService } from '../../shared/toast/toast.service';
+
+const ALL_ROLES: RecipeListRole[] = ['FAVORITES', 'DISCOVERY', 'REJECTED'];
 
 interface Ingredient {
   id: string;
@@ -59,7 +62,7 @@ interface RecipeDetail {
   selector: 'app-recipe-detail',
   standalone: true,
   imports: [CommonModule, NgIconComponent],
-  providers: [provideIcons({ heroArrowLeft })],
+  providers: [provideIcons({ heroArrowLeft, heroArrowsRightLeft })],
   template: `
     <div class="space-y-6">
       <!-- Retour -->
@@ -91,10 +94,10 @@ interface RecipeDetail {
 
       @if (recipe(); as r) {
         <!-- En-tête -->
-        <div class="overflow-hidden rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-sm">
+        <div class="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-sm">
           <div class="flex flex-col md:flex-row">
             <!-- Image -->
-            <div class="w-full md:w-64 lg:w-80 flex-shrink-0 bg-stone-100 dark:bg-stone-800">
+            <div class="w-full md:w-64 lg:w-80 flex-shrink-0 overflow-hidden rounded-t-2xl md:rounded-t-none md:rounded-l-2xl bg-stone-100 dark:bg-stone-800">
               @if (r.imageUrl || r.thumbnailUrl) {
                 <img
                   [src]="r.imageUrl ?? r.thumbnailUrl"
@@ -175,6 +178,78 @@ interface RecipeDetail {
                   </svg>
                 </a>
               }
+
+              <!-- Liste de recettes (favoris / à découvrir / à exclure) -->
+              <div class="flex flex-wrap items-center gap-2">
+                @if (listRole()) {
+                  <span class="rounded-full bg-stone-100 dark:bg-stone-800 px-3 py-1 text-xs font-medium text-stone-700 dark:text-stone-300">
+                    {{ roleLabel(listRole()!) }}
+                  </span>
+                } @else {
+                  <span class="text-xs text-stone-400 dark:text-stone-500">Dans aucune liste</span>
+                }
+
+                @if (moveDropdownOpen()) {
+                  <div class="fixed inset-0 z-40" (click)="closeMoveDropdown()" aria-hidden="true"></div>
+                }
+                <div class="relative">
+                  <button
+                    type="button"
+                    (click)="moveDropdownOpen.set(!moveDropdownOpen())"
+                    [disabled]="moving()"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 px-2.5 py-1 text-xs font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-forest-500"
+                    aria-label="Déplacer cette recette vers une autre liste"
+                    aria-haspopup="true"
+                    [attr.aria-expanded]="moveDropdownOpen()"
+                  >
+                    <ng-icon name="heroArrowsRightLeft" class="h-3.5 w-3.5" aria-hidden="true" />
+                    Déplacer
+                  </button>
+
+                  @if (moveDropdownOpen()) {
+                    <div
+                      class="absolute left-0 top-full mt-1 z-50 min-w-[220px] rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 shadow-lg py-1"
+                      role="menu"
+                    >
+                      @if (pendingTargetRole() === null) {
+                        @for (role of otherRoles(); track role) {
+                          <button
+                            type="button"
+                            (click)="selectTargetRole(role)"
+                            class="w-full text-left px-3 py-2 text-xs text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+                            role="menuitem"
+                          >
+                            Déplacer vers « {{ roleLabel(role) }} »
+                          </button>
+                        }
+                      } @else {
+                        <div class="px-3 py-2">
+                          <p class="text-xs text-stone-700 dark:text-stone-300">
+                            Déplacer « {{ recipe()?.name }} » vers « {{ roleLabel(pendingTargetRole()!) }} » ?
+                          </p>
+                          <div class="mt-2 flex justify-end gap-2">
+                            <button
+                              type="button"
+                              (click)="pendingTargetRole.set(null)"
+                              class="rounded-lg px-2.5 py-1 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+                            >
+                              Annuler
+                            </button>
+                            <button
+                              type="button"
+                              (click)="confirmMove()"
+                              [disabled]="moving()"
+                              class="rounded-lg bg-forest-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-forest-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Confirmer
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -303,6 +378,12 @@ export class RecipeDetailComponent implements OnInit {
   readonly backLabel = signal<'Recettes' | 'Menu'>('Recettes');
   private backWeekStart: string | null = null;
 
+  listRole = signal<RecipeListRole | null>(null);
+  moveDropdownOpen = signal(false);
+  pendingTargetRole = signal<RecipeListRole | null>(null);
+  moving = signal(false);
+  private roleLabels: Partial<Record<RecipeListRole, string>> = {};
+
   private readonly nutritionLabels: Record<string, string> = {
     protein: 'Protéines',
     fat: 'Lipides',
@@ -322,6 +403,9 @@ export class RecipeDetailComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private menuPlanService: MenuPlanService,
+    private recipeListsService: RecipeListsService,
+    private adminService: AdminService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit(): void {
@@ -354,6 +438,63 @@ export class RecipeDetailComponent implements OnInit {
           this.historyDates.set(history.dates);
         }
       });
+
+    this.recipeListsService.getRecipeListMembership(this.id())
+      .pipe(catchError(() => of(null)))
+      .subscribe(membership => {
+        if (membership) this.listRole.set(membership.role ?? null);
+      });
+
+    this.adminService.getRecipeListSettings()
+      .pipe(catchError(() => of([])))
+      .subscribe(settings => {
+        this.roleLabels = Object.fromEntries(settings.map(s => [s.role, s.displayLabel]));
+      });
+  }
+
+  otherRoles(): RecipeListRole[] {
+    return ALL_ROLES.filter(role => role !== this.listRole());
+  }
+
+  roleLabel(role: RecipeListRole): string {
+    return this.roleLabels[role] ?? role;
+  }
+
+  closeMoveDropdown(): void {
+    this.moveDropdownOpen.set(false);
+    this.pendingTargetRole.set(null);
+  }
+
+  selectTargetRole(role: RecipeListRole): void {
+    this.pendingTargetRole.set(role);
+  }
+
+  confirmMove(): void {
+    const target = this.pendingTargetRole();
+    if (!target) return;
+
+    this.moving.set(true);
+    this.recipeListsService.updateRecipeListMembership(this.id(), { role: target }).subscribe({
+      next: membership => {
+        this.moving.set(false);
+        this.closeMoveDropdown();
+        this.listRole.set(membership.role ?? null);
+        this.toast.show({
+          type: 'success',
+          title: 'Recette déplacée',
+          message: `Ajoutée à « ${this.roleLabel(target)} ».`,
+        });
+      },
+      error: () => {
+        this.moving.set(false);
+        this.closeMoveDropdown();
+        this.toast.show({
+          type: 'error',
+          title: 'Échec du déplacement',
+          message: 'Vérifiez qu\'une collection Cookidoo est rattachée à cette liste dans l\'administration.',
+        });
+      },
+    });
   }
 
   formatHistoryDate(date: string): string {

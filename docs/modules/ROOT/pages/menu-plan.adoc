@@ -1,0 +1,123 @@
+= Plan de repas (Menu Plan)
+:description: Planification manuelle des repas et synchronisation avec le calendrier Cookidoo
+
+== Vue d'ensemble
+
+Le plan de repas est une grille hebdomadaire (7 jours × Déjeuner/Dîner) permettant d'assigner une recette à chaque créneau. Chaque semaine commence un lundi. Une liste séparée de recettes « non définies » (`UNDEFINED`) accueille les recettes que l'on veut planifier dans la semaine sans encore choisir de jour/créneau précis.
+
+Ce plan est géré de façon déterministe par `MealPlanService` — l'assistant IA (voir xref:ai.adoc[Assistant IA culinaire]) peut proposer des assignations, mais c'est toujours ce service qui les applique en base.
+
+== Modèle de données
+
+[cols="1,3"]
+|===
+|Champ |Description
+
+|`entryDate`
+|Date du repas (clé, avec `mealType`)
+
+|`mealType`
+|`LUNCH`, `DINNER` ou `UNDEFINED` (recette « à placer », sans jour figé)
+
+|`recipe`
+|Référence vers `Recipe` (nullable si la recette source a été supprimée)
+
+|`recipeNameSnapshot` / `recipeIdSnapshot`
+|Copie du nom/id de la recette au moment de l'assignation, conservée même si la recette est supprimée ensuite (historique fiable)
+|===
+
+Contrainte d'unicité : un seul `MealPlanEntry` par couple `(entryDate, mealType)` pour `LUNCH`/`DINNER` — les entrées `UNDEFINED` ne sont pas contraintes par date (plusieurs recettes « à placer » peuvent partager le même jour).
+
+== Endpoints REST
+
+[cols="1,3"]
+|===
+|Endpoint |Rôle
+
+|`GET /api/v1/menu-plan?weekStart=`
+|Retourne les 7 jours de la semaine (déjeuner, dîner, recettes non définies par jour). `weekStart` doit être un lundi (sinon `400`).
+
+|`PUT /api/v1/menu-plan/entries/\{date}/\{mealType}`
+|Assigne une recette à un créneau `LUNCH`/`DINNER` (upsert)
+
+|`DELETE /api/v1/menu-plan/entries/\{date}/\{mealType}`
+|Vide un créneau
+
+|`PATCH /api/v1/menu-plan/entries/\{date}/\{mealType}`
+|Déplace (ou échange) une recette planifiée vers un autre créneau — voir <<mode-attraper,Mode Attraper>>
+
+|`POST /api/v1/menu-plan/entries/\{date}/undefined`
+|Ajoute une recette « non définie » à un jour (`409` si déjà planifiée ce jour-là)
+
+|`DELETE /api/v1/menu-plan/entries/undefined/\{id}`
+|Retire une recette non définie
+
+|`PATCH /api/v1/menu-plan/entries/undefined/\{id}/relocate`
+|Déplace une recette non définie vers un créneau `LUNCH`/`DINNER` (ou un autre jour)
+
+|`POST /api/v1/menu-plan/entries/bulk`
+|Assigne plusieurs créneaux en une seule transaction (utilisé pour l'échange de deux recettes)
+
+|`GET /api/v1/menu-plan/suggestions?date=&mealType=`
+|Suggère des recettes aléatoires en excluant celles servies dans les 28 derniers jours (`RecipeRepository.findRandomRecipesExcluding`)
+
+|`GET /api/v1/menu-plan/history?recipeId=&limit=`
+|Historique des dates auxquelles une recette a été planifiée
+
+|`POST /api/v1/menu-plan/\{weekStart}/cookidoo-sync?replace=`
+|Pousse la semaine vers le calendrier Cookidoo — voir <<cookidoo-calendar-sync,Synchronisation avec le calendrier Cookidoo>>
+
+|`POST /api/v1/menu-plan/\{weekStart}/cookidoo-pull`
+|Importe les recettes planifiées côté Cookidoo — voir <<cookidoo-calendar-sync,Synchronisation avec le calendrier Cookidoo>>
+|===
+
+Le contrat complet (schémas, codes d'erreur) est consultable sur xref:api.adoc[API REST].
+
+[[mode-attraper]]
+== Mode Attraper (déplacement d'une recette planifiée)
+
+Le frontend n'utilise pas le drag & drop natif HTML5 mais un mode « clic pour attraper / clic pour poser », piloté par `MenuPlanComponent` :
+
+1. Clic sur une recette planifiée → `heldMeal` (signal) mémorise sa date/créneau/id. Le créneau source passe visuellement en mode `source`, les créneaux cibles possibles en `target-empty` ou `target-swap`.
+2. Clic sur un créneau cible :
+   - Cible vide, source `UNDEFINED` → `PATCH .../undefined/\{id}/relocate`
+   - Cible vide, source `LUNCH`/`DINNER` → `PATCH .../entries/\{date}/\{mealType}` (relocate)
+   - Cible occupée → échange atomique via `POST /entries/bulk` (deux upserts croisés) si la source est définie, ou relocate avec inversion si la source est `UNDEFINED`
+3. `Échap` ou un nouveau clic sur la source annule (`cancelHold()`).
+
+Le backend (`MealPlanService.relocateEntry`/`relocateUndefinedEntry`) refuse le déplacement si le créneau cible est déjà occupé par une opération concurrente (`SlotOccupiedException` → `409`), sauf dans le flux d'échange bulk qui gère l'occupation explicitement.
+
+[[cookidoo-calendar-sync]]
+== Synchronisation avec le calendrier Cookidoo
+
+Le plan de repas peut être poussé vers — ou importé depuis — le calendrier natif de l'application Cookidoo, via le microservice `cookidoo-service`. Ce flux est indépendant de la synchronisation recettes/collections décrite dans xref:sync.adoc[Synchronisation Cookidoo].
+
+=== Push (`cookidoo-sync`)
+
+`CookidooCalendarSyncService.syncWeek(weekStart, replace)` :
+
+* Regroupe les `MealPlanEntry` de la semaine par jour (`recipeIdSnapshot`), tous créneaux confondus.
+* Appelle `POST /calendar/\{date}` sur `cookidoo-service` pour chaque jour concerné.
+* Si `replace=true` (« écraser »), la sync repasse sur les **7 jours de la semaine**, y compris ceux devenus vides côté KitchenVault. C'est nécessaire car le microservice ne purge un jour côté Cookidoo que s'il reçoit explicitement une liste vide pour ce jour — sinon un jour vidé dans KitchenVault garderait ses anciennes recettes sur Cookidoo.
+* Si `replace=false`, seuls les jours ayant au moins une recette sont envoyés (ajout, pas de purge).
+
+=== Pull (`cookidoo-pull`)
+
+`CookidooCalendarPullService.pullWeek(weekStart)` :
+
+* Récupère le calendrier Cookidoo de la semaine (`GET /calendar/week`).
+* Pour chaque recette planifiée côté Cookidoo et absente du plan KitchenVault (même jour, tout créneau confondu) :
+  ** Si la recette n'existe pas encore en base, elle est importée via `SyncService.upsertRecipe` (un seul appel réseau, pas une synchro complète).
+  ** Elle est ajoutée en entrée `UNDEFINED` (mode Attraper) pour que l'utilisateur choisisse ensuite le créneau.
+* L'import d'une recette échoue individuellement sans interrompre le pull (log `warn`, boucle suivante) — le microservice `cookidoo_api` a un bug de parsing connu au vidage d'un jour, toléré côté KitchenVault de la même façon que côté sync classique (voir xref:sync.adoc[Synchronisation Cookidoo]).
+
+== Interface frontend
+
+`MenuPlanComponent` (`frontend/projects/app/src/app/menu-plan/`) orchestre :
+
+* `MenuDayComponent` / `MealSlotComponent` — grille des 7 jours, gestion du mode Attraper (`heldMode: 'none' | 'source' | 'target-empty' | 'target-swap'`)
+* `RecipePickerDialogComponent` — recherche/sélection d'une recette pour un créneau
+* `WeeklyPlanDrawerComponent` — panneau latéral pour la planification assistée par IA (formulaire de contraintes → génération → chat), voir xref:ai.adoc[Assistant IA culinaire]
+* `ChatModalComponent` — chat IA contextualisé sur un créneau précis
+
+Tout feedback de succès/échec (déplacement, sync Cookidoo) passe par `ToastService` (voir xref:frontend.adoc[Interface Angular]).

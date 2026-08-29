@@ -65,6 +65,54 @@ collections_synced {label: "int"}
 recipes_synced {label: "int"}
 error_message {label: "text"}
 
+[MealPlanEntry]
+*id {label: "bigint PK"}
+entry_date {label: "date"}
+meal_type {label: "LUNCH|DINNER|UNDEFINED"}
+recipe_id {label: "varchar FK, nullable"}
+recipe_name_snapshot {label: "varchar"}
+recipe_id_snapshot {label: "varchar"}
+
+[WeeklyPlanSession]
+*session_id {label: "varchar PK"}
+week_start {label: "date"}
+initial_done {label: "boolean"}
+pending_changes {label: "jsonb, nullable"}
+created_at {label: "timestamptz"}
+last_active_at {label: "timestamptz"}
+
+[ShoppingList]
+*id {label: "uuid PK"}
+consolidated_at {label: "timestamptz, nullable"}
+created_at {label: "timestamptz"}
+updated_at {label: "timestamptz"}
+
+[ShoppingListRecipe]
+*id {label: "uuid PK"}
+shopping_list_id {label: "uuid FK"}
+recipe_id {label: "varchar FK, nullable"}
+recipe_name_snapshot {label: "varchar"}
+recipe_id_snapshot {label: "varchar"}
+consolidated {label: "boolean"}
+added_at {label: "timestamptz"}
+
+[ShoppingListItem]
+*id {label: "uuid PK"}
+shopping_list_id {label: "uuid FK"}
+name {label: "varchar"}
+quantity {label: "varchar, nullable"}
+category {label: "PRODUCE|MEAT|DAIRY|BAKERY|GROCERY|FROZEN|SPICES|OTHER"}
+checked {label: "boolean"}
+source_recipe_ids {label: "jsonb"}
+source_recipe_names {label: "jsonb"}
+custom {label: "boolean"}
+sort_order {label: "int"}
+
+[SeasonalVegetable]
+*id {label: "bigint PK"}
+name {label: "varchar"}
+months {label: "integer[]"}
+
 Recipe 1--* IngredientGroup
 IngredientGroup 1--* Ingredient
 Recipe *--* Category
@@ -72,6 +120,10 @@ Recipe 1--* NutritionGroup
 NutritionGroup 1--* Nutrition
 Collection 1--* Chapter
 Chapter *--* Recipe
+Recipe 1--* MealPlanEntry
+ShoppingList 1--* ShoppingListRecipe
+ShoppingList 1--* ShoppingListItem
+Recipe 1--* ShoppingListRecipe
 ....
 
 == Tables de jointure
@@ -80,6 +132,14 @@ Chapter *--* Recipe
 * `chapter_recipe` : liaison Chapter ↔ Recipe avec `sort_order` (many-to-many ordonné)
 * `recipe_note` : collection de notes texte par recette
 * `recipe_utensil` : collection d'ustensiles par recette
+
+== Plan de repas et liste de courses
+
+`MealPlanEntry` et les tables `shopping_list*` sont détaillées respectivement dans xref:menu-plan.adoc[Plan de repas] et xref:shopping-list.adoc[Liste de courses]. Comme pour `Recipe`, ces entités conservent un `recipe_id_snapshot`/`recipe_name_snapshot` pour rester exploitables même si la recette source est supprimée.
+
+`WeeklyPlanSession` (colonne `pending_changes` en jsonb) suit l'état de conversation de l'assistant IA de planification hebdomadaire — voir xref:ai.adoc[Assistant IA culinaire].
+
+Les tables liées à la recherche sémantique (`recipe_embedding_store`, pgvector) et à la mémoire de conversation du chat (`chat_message`) sont documentées dans xref:ai.adoc[Assistant IA culinaire] et ne sont pas reprises ici.
 
 == Stratégie d'upsert
 

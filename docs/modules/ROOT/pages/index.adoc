@@ -24,15 +24,21 @@ L'application est composée de trois parties :
 |Angular 21 · TailwindCSS 4
 |===
 
-== Fonctionnalités Phase 1
+== Fonctionnalités
 
 * Synchronisation manuelle et automatique (cron) des recettes et collections Cookidoo
 * Stockage persistant en base PostgreSQL
 * Interface d'administration : statut des syncs, statistiques, déclenchement manuel
+* Plan de repas hebdomadaire (déjeuner/dîner), déplacement de recettes planifiées, synchronisation bidirectionnelle avec le calendrier Cookidoo
+* Liste de courses : sélection de recettes, consolidation automatique des ingrédients, articles personnalisés
+* Assistant IA culinaire : recherche sémantique de recettes, planification et liste de courses assistées par chat
 * API REST contract-first (OpenAPI Generator)
 
 == Liens rapides
 
 * xref:getting-started.adoc[Démarrage rapide]
 * xref:architecture.adoc[Architecture]
+* xref:menu-plan.adoc[Plan de repas]
+* xref:shopping-list.adoc[Liste de courses]
+* xref:ai.adoc[Assistant IA culinaire]
 * xref:api.adoc[Référence API]

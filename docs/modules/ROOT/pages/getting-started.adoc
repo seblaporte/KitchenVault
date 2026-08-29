@@ -34,10 +34,25 @@ Cela démarre :
 
 == 3. Démarrer le backend
 
+Activer Java 25 via sdkman (lit `.sdkmanrc`, requis avant toute commande Maven) :
+
 [source,bash]
 ----
-cd backend
-../mvnw spring-boot:run
+sdk env
+----
+
+Le module `contracts` génère les interfaces Java depuis `api.yaml` et doit être installé dans `~/.m2` avant que `backend` puisse compiler :
+
+[source,bash]
+----
+mvn clean install -pl contracts
+----
+
+Puis, à la racine du dépôt (pas de wrapper Maven dans ce dépôt, `mvn` doit être installé) :
+
+[source,bash]
+----
+mvn spring-boot:run -pl backend
 ----
 
 L'application démarre sur http://localhost:8080.
@@ -94,7 +109,7 @@ curl http://localhost:8001/health
 [source,bash]
 ----
 # Backend (unitaires + intégration via Testcontainers)
-./mvnw test
+mvn test -pl backend
 
 # Frontend
 cd frontend && ng test

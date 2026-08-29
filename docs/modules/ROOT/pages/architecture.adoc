@@ -81,6 +81,46 @@ UI -> Admin : Affiche résultat
 @enduml
 ....
 
+== Flux de synchronisation du calendrier (Menu Plan ↔ Cookidoo)
+
+Indépendamment de la synchronisation des recettes/collections ci-dessus, le plan de repas hebdomadaire (xref:menu-plan.adoc[Plan de repas]) peut être poussé vers — ou importé depuis — le calendrier natif Cookidoo.
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+
+actor Utilisateur
+participant "Angular\nMenuPlanComponent" as UI
+participant "Spring Boot\nMenuPlanDelegate" as Delegate
+participant "CookidooCalendarSyncService\n/ PullService" as Sync
+participant "cookidoo-service\nFastAPI" as Python
+database "PostgreSQL" as DB
+
+== Push (cookidoo-sync) ==
+Utilisateur -> UI : Synchroniser la semaine
+UI -> Delegate : POST /menu-plan/{weekStart}/cookidoo-sync?replace=
+Delegate -> Sync : syncWeek(weekStart, replace)
+Sync -> DB : Lire les MealPlanEntry de la semaine
+loop Pour chaque jour à synchroniser
+  note right: Si replace=true, les 7 jours\nsont renvoyés (purge des jours vidés)
+  Sync -> Python : POST /calendar/{date}
+end
+
+== Pull (cookidoo-pull) ==
+Utilisateur -> UI : Importer depuis Cookidoo
+UI -> Delegate : POST /menu-plan/{weekStart}/cookidoo-pull
+Delegate -> Sync : pullWeek(weekStart)
+Sync -> Python : GET /calendar/week
+loop Pour chaque recette planifiée côté Cookidoo\net absente du plan KitchenVault
+  Sync -> DB : Upsert recette si absente
+  Sync -> DB : Créer une entrée MealPlanEntry (UNDEFINED)
+end
+
+@enduml
+....
+
 == Principe contract-first
 
 [plantuml]

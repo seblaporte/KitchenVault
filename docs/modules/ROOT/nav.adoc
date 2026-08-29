@@ -4,6 +4,8 @@
 * xref:data-model.adoc[Modèle de données]
 * xref:api.adoc[API REST]
 * xref:sync.adoc[Synchronisation Cookidoo]
+* xref:menu-plan.adoc[Plan de repas]
+* xref:shopping-list.adoc[Liste de courses]
 * xref:ai.adoc[Assistant IA culinaire]
 ** xref:ai-meal-planner.adoc[Planification hebdomadaire]
 ** xref:ai-recipe-chat.adoc[Suggestion de recettes]

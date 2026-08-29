@@ -1,0 +1,99 @@
+= Liste de courses (Shopping List)
+:description: Sélection de recettes, consolidation IA des ingrédients et gestion des articles
+
+== Vue d'ensemble
+
+La liste de courses fonctionne en deux temps : une **sélection** de recettes (les recettes dont on veut acheter les ingrédients), puis une **consolidation** qui fusionne, catégorise et normalise les ingrédients de toutes les recettes sélectionnées en une liste d'articles cochables. Des articles personnalisés peuvent être ajoutés manuellement, indépendamment des recettes.
+
+Il n'existe qu'une seule liste active à la fois (`ShoppingList` — la plus ancienne créée, `findTopByOrderByCreatedAtAsc`), créée à la volée au premier ajout.
+
+== Modèle de données
+
+[cols="1,3"]
+|===
+|Entité |Rôle
+
+|`ShoppingList`
+|Racine : dates de création/consolidation, contient les recettes sélectionnées et les articles
+
+|`ShoppingListRecipe`
+|Une recette dans la sélection (`recipeIdSnapshot`/`recipeNameSnapshot`, flag `consolidated`)
+
+|`ShoppingListItem`
+|Un article de la liste : `name`, `quantity`, `category` (enum `ShoppingCategory`), `checked`, `custom`, `sourceRecipeIds`/`sourceRecipeNames` (jsonb — recettes d'origine, pour la fusion d'ingrédients communs)
+|===
+
+`ShoppingCategory` : `PRODUCE, MEAT, DAIRY, BAKERY, GROCERY, FROZEN, SPICES, OTHER`.
+
+== Cycle de vie
+
+[plantuml]
+....
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+
+start
+:Ajouter des recettes à la sélection\n(POST /shopping-list/selection/recipes/{id});
+:Consolider\n(POST /shopping-list/consolidate);
+:Agent IA regroupe les ingrédients\ndes recettes sélectionnées;
+note right
+  Exclut les produits de base
+  (ai.shopping-list.basic-necessities)
+  Catégorise + normalise les unités
+end note
+:Remplace les articles non-custom\npar le résultat consolidé;
+:Marque les recettes comme consolidated;
+:Cocher / décocher les articles\n(POST /shopping-list/items/{id}/toggle);
+:Ajouter des articles personnalisés\n(POST /shopping-list/items);
+stop
+@enduml
+....
+
+* La consolidation est **destructive pour les articles non personnalisés** : `consolidate()` supprime tous les `ShoppingListItem` où `custom=false` puis reconstruit la liste depuis le résultat de l'agent. Les articles ajoutés manuellement (`custom=true`) sont préservés.
+* Retirer une recette de la sélection (`DELETE /selection/recipes/\{recipeId}`) ne retire pas automatiquement les articles déjà consolidés — il faut relancer une consolidation.
+* `consolidate()` échoue avec `EmptySelectionException` (→ réponse d'erreur) si aucune recette n'est sélectionnée.
+
+L'algorithme de consolidation lui-même (agent LangChain4J, catégorisation automatique, normalisation des unités) est documenté dans xref:ai.adoc[Assistant IA culinaire] (section *ShoppingListTool*) — il n'est pas dupliqué ici.
+
+== Endpoints REST
+
+[cols="1,3"]
+|===
+|Endpoint |Rôle
+
+|`GET /api/v1/shopping-list`
+|Retourne la liste active (vide si aucune n'existe encore, sans écriture en base)
+
+|`DELETE /api/v1/shopping-list`
+|Vide la sélection de recettes et les articles
+
+|`POST /api/v1/shopping-list/selection/recipes/\{recipeId}`
+|Ajoute une recette à la sélection (idempotent)
+
+|`DELETE /api/v1/shopping-list/selection/recipes/\{recipeId}`
+|Retire une recette de la sélection
+
+|`POST /api/v1/shopping-list/consolidate`
+|Lance la consolidation IA (remplace les articles non personnalisés)
+
+|`POST /api/v1/shopping-list/items`
+|Ajoute un article personnalisé (`custom=true`)
+
+|`PATCH /api/v1/shopping-list/items/\{id}/toggle`
+|Coche/décoche un article
+
+|`DELETE /api/v1/shopping-list/items/\{id}`
+|Supprime un article
+|===
+
+Le contrat complet est consultable sur xref:api.adoc[API REST].
+
+== Interface frontend
+
+`ShoppingListComponent` (`frontend/projects/app/src/app/shopping-list/`) propose deux onglets :
+
+* **Sélection** — liste des recettes ajoutées, avec accordéon pour voir/masquer les ingrédients bruts de chaque recette
+* **Consolidé** — articles groupés par catégorie, cochables, avec indicateur de fusion (`mergedCount` — articles provenant de plusieurs recettes) et compteur de lignes économisées par la consolidation
+
+La liste est considérée « obsolète » (`isStale`) si au moins une recette de la sélection n'est pas encore `consolidated` — l'UI invite alors à relancer la consolidation. Un lien d'export par email (`emailExportUrl`) génère un `mailto:` avec le contenu de la liste.

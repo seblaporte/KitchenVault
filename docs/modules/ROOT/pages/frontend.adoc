@@ -66,6 +66,51 @@ Http --> Admin : isSyncing = true
 . **Bouton de synchronisation** — Désactivé (avec spinner) pendant une sync en cours
 . **Statut de la dernière sync** — Badge coloré, compteurs, durée, message d'erreur éventuel
 
+== Plan de repas (`MenuPlanComponent`)
+
+URL : http://localhost:4200/menu-plan
+
+Composant racine du module xref:menu-plan.adoc[Plan de repas], structuré en sous-composants :
+
+[cols="1,3"]
+|===
+|Composant |Rôle
+
+|`MenuDayComponent`
+|Une colonne-jour de la grille hebdomadaire
+
+|`MealSlotComponent`
+|Un créneau (déjeuner/dîner/non défini) ; gère l'état visuel du mode Attraper (`heldMode`)
+
+|`RecipePickerDialogComponent`
+|Recherche et sélection d'une recette pour un créneau
+
+|`WeeklyPlanDrawerComponent` (+ `WeekConstraintFormComponent`)
+|Panneau latéral de planification assistée par IA — voir xref:ai.adoc[Assistant IA culinaire]
+
+|`ChatModalComponent`
+|Chat IA contextualisé sur un créneau précis
+|===
+
+Le déplacement d'une recette planifiée (mode Attraper) est piloté entièrement côté composant racine via le signal `heldMeal` — aucun état n'est stocké dans les sous-composants, qui ne font que remonter des événements (`moveRequested`, `placeRequested`). Détails du protocole : xref:menu-plan.adoc#mode-attraper[Mode Attraper].
+
+Le panneau `WeeklyPlanDrawerComponent` est `position: fixed; right: 0`. Quand il est ouvert, `MenuPlanComponent` ajoute la classe `drawer-open` sur `<body>` via `Renderer2` (nettoyée dans `ngOnDestroy`). Une règle dans `styles.css` retire la contrainte `max-w-6xl` sur `<main>` et ajoute `padding-right: 400px` pour laisser la place au panneau :
+
+[source,css]
+----
+body.drawer-open main { max-width: none; padding-right: 400px; }
+----
+
+== Liste de courses (`ShoppingListComponent`)
+
+URL : http://localhost:4200/shopping-list
+
+Deux onglets — *Sélection* (recettes ajoutées, ingrédients consultables par accordéon) et *Consolidé* (articles groupés par catégorie, cochables). Détails fonctionnels : xref:shopping-list.adoc[Liste de courses].
+
+== Notifications (`ToastService`)
+
+`ToastService` (`app/shared/toast/toast.service.ts`) est le point d'entrée unique pour tout feedback utilisateur ponctuel (succès/échec d'une action : sync, déplacement, sauvegarde, suppression). Le composant `ToastComponent` est monté une seule fois de façon globale dans `app.component.ts` ; les composants métier ne font qu'injecter le service et appeler `toast.show({ type, title, message? })`. Les erreurs persistantes (échec de chargement, validation de formulaire) utilisent des bannières inline (`role="alert"`) plutôt que des toasts.
+
 == TailwindCSS 4
 
 Intégration via `@tailwind/vite` (plugin Vite natif d'Angular 21) :

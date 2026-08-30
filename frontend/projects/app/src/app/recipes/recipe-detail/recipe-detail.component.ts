@@ -6,7 +6,7 @@ import { catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AdminService, MenuPlanService, RecipeListsService, RecipeListRole } from '@KitchenVault/api-client';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { heroArrowLeft, heroArrowsRightLeft } from '@ng-icons/heroicons/outline';
+import { heroArrowLeft, heroArrowsRightLeft, heroClipboardDocumentList } from '@ng-icons/heroicons/outline';
 import { ToastService } from '../../shared/toast/toast.service';
 
 const ALL_ROLES: RecipeListRole[] = ['FAVORITES', 'DISCOVERY', 'REJECTED'];
@@ -62,7 +62,7 @@ interface RecipeDetail {
   selector: 'app-recipe-detail',
   standalone: true,
   imports: [CommonModule, NgIconComponent],
-  providers: [provideIcons({ heroArrowLeft, heroArrowsRightLeft })],
+  providers: [provideIcons({ heroArrowLeft, heroArrowsRightLeft, heroClipboardDocumentList })],
   template: `
     <div class="space-y-6">
       <!-- Retour -->
@@ -260,7 +260,18 @@ interface RecipeDetail {
           <!-- Ingrédients -->
           @if (r.ingredientGroups.length > 0) {
             <section class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 shadow-sm" aria-labelledby="ingredients-title">
-              <h2 id="ingredients-title" class="mb-4 text-base font-semibold text-stone-900 dark:text-stone-100">Ingrédients</h2>
+              <div class="mb-4 flex items-center justify-between">
+                <h2 id="ingredients-title" class="text-base font-semibold text-stone-900 dark:text-stone-100">Ingrédients</h2>
+                <button
+                  type="button"
+                  (click)="copyIngredients()"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 px-2.5 py-1 text-xs font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors cursor-pointer"
+                  aria-label="Copier la liste des ingrédients"
+                >
+                  <ng-icon name="heroClipboardDocumentList" class="h-3.5 w-3.5" aria-hidden="true" />
+                  Copier
+                </button>
+              </div>
               <div class="space-y-4">
                 @for (group of r.ingredientGroups; track $index) {
                   <div>
@@ -513,5 +524,30 @@ export class RecipeDetailComponent implements OnInit {
     } else {
       this.router.navigate(['/recipes']);
     }
+  }
+
+  copyIngredients(): void {
+    const r = this.recipe();
+    if (!r) return;
+
+    const lines = [r.name, ''];
+    for (const group of r.ingredientGroups) {
+      if (group.name) {
+        lines.push(group.name);
+      }
+      for (const ingredient of group.ingredients) {
+        const quantity = ingredient.description ? `${ingredient.description} ` : '';
+        lines.push(`• ${quantity}${ingredient.name}`);
+      }
+    }
+
+    navigator.clipboard.writeText(lines.join('\n')).then(
+      () => this.toast.show({ type: 'success', title: 'Ingrédients copiés' }),
+      () => this.toast.show({
+        type: 'error',
+        title: 'Échec de la copie',
+        message: 'Impossible d\'accéder au presse-papier.',
+      }),
+    );
   }
 }

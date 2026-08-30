@@ -21,6 +21,23 @@ describe('Détail d\'une recette', () => {
     cy.contains('Beurre').should('be.visible');
   });
 
+  it('copie la liste des ingrédients dans le presse-papier', () => {
+    cy.visit('/recipes/recipe-1');
+    cy.wait('@recipeDetail');
+
+    cy.window().then(win => {
+      cy.stub(win.navigator.clipboard, 'writeText').resolves().as('writeText');
+    });
+
+    cy.get('[aria-label="Copier la liste des ingrédients"]').click();
+
+    cy.get('@writeText').should(
+      'have.been.calledWith',
+      'Poulet rôti\n\n• 1,5 kg Poulet entier\n• 50 g Beurre',
+    );
+    cy.get('[role="status"]').should('contain.text', 'Ingrédients copiés');
+  });
+
   it('retourne à la liste en cliquant sur "Retour"', () => {
     cy.intercept('GET', '**/api/v1/collections', { fixture: 'collections.json' });
     cy.intercept('GET', '**/api/v1/categories', { fixture: 'categories.json' });

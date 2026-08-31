@@ -11,3 +11,4 @@
 ** xref:ai-recipe-chat.adoc[Suggestion de recettes]
 ** xref:ai-shopping-list.adoc[Liste de courses]
 * xref:frontend.adoc[Interface Angular]
+* xref:e2e-tests.adoc[Parcours utilisateurs (E2E)]

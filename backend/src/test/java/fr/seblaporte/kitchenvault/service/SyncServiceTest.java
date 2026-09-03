@@ -12,10 +12,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClientException;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -52,9 +54,11 @@ class SyncServiceTest {
 
         savedRun = SyncRun.start();
         savedStatuses = new ArrayList<>();
-        when(properties.sync()).thenReturn(syncProperties);
-        when(syncProperties.resyncAfterHours()).thenReturn(24);
-        when(syncRunRepository.save(any(SyncRun.class))).thenAnswer(inv -> {
+        // lenient: not every test exercises the full flow (some short-circuit on the
+        // "already running" guard before ever reaching resyncAfterHours()/save()).
+        lenient().when(properties.sync()).thenReturn(syncProperties);
+        lenient().when(syncProperties.resyncAfterHours()).thenReturn(24);
+        lenient().when(syncRunRepository.save(any(SyncRun.class))).thenAnswer(inv -> {
             SyncRun r = inv.getArgument(0);
             savedStatuses.add(r.getStatus());
             savedRun = r;
@@ -64,7 +68,7 @@ class SyncServiceTest {
 
     @Test
     void triggerSync_whenNoSyncRunning_savesRunningAndReturnsIt() {
-        when(syncRunRepository.existsByStatus(SyncStatus.RUNNING)).thenReturn(false);
+        when(syncRunRepository.findTopByStatusOrderByStartedAtDesc(SyncStatus.RUNNING)).thenReturn(Optional.empty());
         when(cookidooServiceClient.getCollections()).thenReturn(List.of());
 
         SyncRun run = syncService.triggerSync();
@@ -76,6 +80,43 @@ class SyncServiceTest {
         assertThat(savedStatuses).isNotEmpty();
         assertThat(savedStatuses.get(0)).isEqualTo(SyncStatus.RUNNING);
         verify(syncRunRepository, atLeastOnce()).save(any());
+    }
+
+    @Test
+    void triggerSync_whenAnotherSyncIsActivelyRunning_throws() {
+        SyncRun activeRun = SyncRun.start(); // startedAt = now, well within the staleness window
+        when(syncRunRepository.findTopByStatusOrderByStartedAtDesc(SyncStatus.RUNNING))
+                .thenReturn(Optional.of(activeRun));
+        when(syncProperties.staleAfterMinutes()).thenReturn(10);
+
+        assertThatThrownBy(() -> syncService.triggerSync())
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(syncRunRepository, never()).save(argThat(r -> r.getStatus() == SyncStatus.RUNNING && r != activeRun));
+    }
+
+    @Test
+    void triggerSync_whenRunningRowIsStale_marksItFailedAndProceeds() {
+        SyncRun staleRun = SyncRun.start();
+        ReflectionTestUtils.setField(staleRun, "startedAt", Instant.now().minus(30, ChronoUnit.MINUTES));
+        when(syncRunRepository.findTopByStatusOrderByStartedAtDesc(SyncStatus.RUNNING))
+                .thenReturn(Optional.of(staleRun));
+        when(syncProperties.staleAfterMinutes()).thenReturn(10);
+        when(cookidooServiceClient.getCollections()).thenReturn(List.of());
+
+        SyncRun run = syncService.triggerSync();
+
+        assertThat(staleRun.getStatus()).isEqualTo(SyncStatus.FAILED);
+        assertThat(run).isNotNull();
+    }
+
+    @Test
+    void triggerSync_whenConcurrentTriggerWinsTheRace_throwsIllegalState() {
+        when(syncRunRepository.findTopByStatusOrderByStartedAtDesc(SyncStatus.RUNNING)).thenReturn(Optional.empty());
+        when(syncRunRepository.save(any(SyncRun.class))).thenThrow(new DataIntegrityViolationException("duplicate RUNNING row"));
+
+        assertThatThrownBy(() -> syncService.triggerSync())
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

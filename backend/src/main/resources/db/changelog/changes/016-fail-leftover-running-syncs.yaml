@@ -1,0 +1,13 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 016-fail-leftover-running-syncs
+      author: seblaporte
+      changes:
+        - sql:
+            sql: >
+              UPDATE sync_run
+              SET status = 'FAILED',
+                  completed_at = now(),
+                  error_message = 'Marqué en échec lors du déploiement du correctif anti-blocage des synchronisations'
+              WHERE status = 'RUNNING';

@@ -9,6 +9,7 @@ import fr.seblaporte.kitchenvault.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -61,14 +62,45 @@ public class SyncService {
      * Throws IllegalStateException if a sync is already running.
      */
     public SyncRun triggerSync() {
-        if (syncRunRepository.existsByStatus(SyncStatus.RUNNING)) {
+        if (self.isSyncRunning()) {
             throw new IllegalStateException("A synchronization is already running");
         }
-        // Commits in its own transaction before firing the async sync, otherwise the
-        // background thread could start before the RUNNING row is visible to its own session.
-        SyncRun run = self.startRun();
+        SyncRun run;
+        try {
+            // Commits in its own transaction before firing the async sync, otherwise the
+            // background thread could start before the RUNNING row is visible to its own session.
+            run = self.startRun();
+        } catch (DataIntegrityViolationException e) {
+            // Lost the race against a concurrent trigger — the unique partial index on
+            // sync_run(status) WHERE status = 'RUNNING' is the authoritative guard.
+            throw new IllegalStateException("A synchronization is already running");
+        }
         self.executeSyncAsync(run);
         return run;
+    }
+
+    /**
+     * True if a sync is currently running. A RUNNING row older than
+     * {@code cookidoo.sync.stale-after-minutes} is considered stuck (e.g. the app crashed or an
+     * upstream HTTP call hung) and is marked FAILED so a new sync can start.
+     */
+    @Transactional
+    public boolean isSyncRunning() {
+        return syncRunRepository.findTopByStatusOrderByStartedAtDesc(SyncStatus.RUNNING)
+                .map(this::isFreshlyRunning)
+                .orElse(false);
+    }
+
+    private boolean isFreshlyRunning(SyncRun run) {
+        int staleAfterMinutes = properties.sync().staleAfterMinutes();
+        Instant staleThreshold = Instant.now().minus(staleAfterMinutes, ChronoUnit.MINUTES);
+        if (run.getStartedAt().isBefore(staleThreshold)) {
+            log.warn("SyncRun {} is stuck in RUNNING since {} — marking it FAILED", run.getId(), run.getStartedAt());
+            run.fail("Marqué en échec automatiquement après " + staleAfterMinutes + " minutes sans progression");
+            syncRunRepository.save(run);
+            return false;
+        }
+        return true;
     }
 
     @Transactional
@@ -86,13 +118,18 @@ public class SyncService {
 
     @Scheduled(cron = "${cookidoo.sync.cron:0 0 3 * * *}")
     public void scheduledSync() {
-        if (syncRunRepository.existsByStatus(SyncStatus.RUNNING)) {
+        if (self.isSyncRunning()) {
             log.info("Scheduled sync skipped — a sync is already running");
             return;
         }
         log.info("Starting scheduled Cookidoo synchronization");
-        SyncRun run = SyncRun.start();
-        syncRunRepository.save(run);
+        SyncRun run;
+        try {
+            run = self.startRun();
+        } catch (DataIntegrityViolationException e) {
+            log.info("Scheduled sync skipped — a sync was started concurrently");
+            return;
+        }
         self.executeSync(run);
         recipeEmbeddingService.indexAllRecipes();
     }

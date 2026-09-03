@@ -8,6 +8,7 @@ import fr.seblaporte.kitchenvault.entity.*;
 import fr.seblaporte.kitchenvault.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class SyncService {
     private final SyncRunRepository syncRunRepository;
     private final CookidooProperties properties;
     private final RecipeEmbeddingService recipeEmbeddingService;
+    private SyncService self;
 
     public SyncService(
             CookidooServiceClient cookidooServiceClient,
@@ -41,7 +43,8 @@ public class SyncService {
             CategoryRepository categoryRepository,
             SyncRunRepository syncRunRepository,
             CookidooProperties properties,
-            RecipeEmbeddingService recipeEmbeddingService
+            RecipeEmbeddingService recipeEmbeddingService,
+            @Lazy SyncService self
     ) {
         this.cookidooServiceClient = cookidooServiceClient;
         this.recipeRepository = recipeRepository;
@@ -50,26 +53,34 @@ public class SyncService {
         this.syncRunRepository = syncRunRepository;
         this.properties = properties;
         this.recipeEmbeddingService = recipeEmbeddingService;
+        this.self = self;
     }
 
     /**
      * Triggers a sync asynchronously. Returns immediately with the created SyncRun.
      * Throws IllegalStateException if a sync is already running.
      */
-    @Transactional
     public SyncRun triggerSync() {
         if (syncRunRepository.existsByStatus(SyncStatus.RUNNING)) {
             throw new IllegalStateException("A synchronization is already running");
         }
+        // Commits in its own transaction before firing the async sync, otherwise the
+        // background thread could start before the RUNNING row is visible to its own session.
+        SyncRun run = self.startRun();
+        self.executeSyncAsync(run);
+        return run;
+    }
+
+    @Transactional
+    public SyncRun startRun() {
         SyncRun run = SyncRun.start();
         syncRunRepository.save(run);
-        executeSyncAsync(run);
         return run;
     }
 
     @Async
     public void executeSyncAsync(SyncRun run) {
-        executeSync(run);
+        self.executeSync(run);
         recipeEmbeddingService.indexAllRecipes();
     }
 
@@ -82,7 +93,7 @@ public class SyncService {
         log.info("Starting scheduled Cookidoo synchronization");
         SyncRun run = SyncRun.start();
         syncRunRepository.save(run);
-        executeSync(run);
+        self.executeSync(run);
         recipeEmbeddingService.indexAllRecipes();
     }
 

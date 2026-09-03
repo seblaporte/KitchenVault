@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClientException;
 
 import java.time.Instant;
@@ -45,6 +46,10 @@ class SyncServiceTest {
 
     @BeforeEach
     void setUp() {
+        // No Spring context in this unit test, so the @Lazy self-proxy used in production
+        // to keep @Transactional/@Async working across internal calls must be wired manually.
+        ReflectionTestUtils.setField(syncService, "self", syncService);
+
         savedRun = SyncRun.start();
         savedStatuses = new ArrayList<>();
         when(properties.sync()).thenReturn(syncProperties);
@@ -64,9 +69,9 @@ class SyncServiceTest {
 
         SyncRun run = syncService.triggerSync();
 
-        // Sans @Async actif en test unitaire, executeSyncAsync() s'exécute de façon synchrone
-        // et mute le run vers SUCCESS avant le retour de triggerSync(). On vérifie donc que
-        // le premier save a bien eu lieu avec le statut RUNNING.
+        // No Spring context in this unit test, so @Async never actually hands off to another
+        // thread — executeSyncAsync() runs synchronously and mutates the run to SUCCESS before
+        // triggerSync() returns. We only assert the first save happened with status RUNNING.
         assertThat(run).isNotNull();
         assertThat(savedStatuses).isNotEmpty();
         assertThat(savedStatuses.get(0)).isEqualTo(SyncStatus.RUNNING);

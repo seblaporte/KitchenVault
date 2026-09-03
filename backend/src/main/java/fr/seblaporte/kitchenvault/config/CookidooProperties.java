@@ -19,6 +19,7 @@ public record CookidooProperties(
 
     public record SyncProperties(
             @NotBlank String cron,
-            @Min(1) int resyncAfterHours
+            @Min(1) int resyncAfterHours,
+            @Min(1) int staleAfterMinutes
     ) {}
 }

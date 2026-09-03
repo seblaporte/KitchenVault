@@ -15,6 +15,7 @@ cookidoo:
   sync:
     cron: "-"  # Disable scheduled sync in tests
     resync-after-hours: 24
+    stale-after-minutes: 10
 
 ai:
   session:

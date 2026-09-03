@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
@@ -19,6 +20,7 @@ import javax.sql.DataSource;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -133,16 +135,25 @@ class SyncRunRepositoryIT {
     }
 
     @Test
-    void existsByStatus_RUNNING_returnsTrueWhenRunningExists() {
+    void save_secondRunningRow_violatesUniquePartialIndex() {
         syncRunRepository.save(SyncRun.start());
 
-        org.assertj.db.api.Assertions.assertThat(new Table(dataSource, "sync_run"))
-                .hasNumberOfRows(1)
-                .column("status")
-                    .hasValues("RUNNING");
+        assertThatThrownBy(() -> syncRunRepository.saveAndFlush(SyncRun.start()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
 
-        assertThat(syncRunRepository.existsByStatus(SyncStatus.RUNNING)).isTrue();
-        assertThat(syncRunRepository.existsByStatus(SyncStatus.SUCCESS)).isFalse();
+    @Test
+    void save_secondRunningRow_succeedsOnceFirstOneIsNoLongerRunning() {
+        SyncRun first = SyncRun.start();
+        syncRunRepository.save(first);
+        first.complete(1, 1);
+        syncRunRepository.save(first);
+
+        SyncRun second = SyncRun.start();
+        syncRunRepository.saveAndFlush(second);
+
+        org.assertj.db.api.Assertions.assertThat(new Table(dataSource, "sync_run"))
+                .hasNumberOfRows(2);
     }
 
     @Test

@@ -61,6 +61,7 @@ cookidoo:
   sync:
     cron: "0 0 3 * * *"
     resync-after-hours: 24
+    stale-after-minutes: 10
 
 kitchenvault:
   cors:

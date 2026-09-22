@@ -1,0 +1,7 @@
+node_modules
+dist
+dist-pdf
+.netlify
+components.d.ts
+*.local
+.DS_Store

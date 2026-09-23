@@ -155,7 +155,7 @@ flowchart LR
 
 # ...jusqu'au déploiement
 
-Le déploiement, sur Kubernetes (repo séparé `k3s-at-home`)
+Le déploiement sur Kubernetes (repo séparé `k3s-at-home`)
 
 ```mermaid {scale: 0.48}
 flowchart LR
@@ -231,7 +231,7 @@ Objectif : Socle technique et documentaire.
 **Premières features métier**
 <br>Recherche et consultation des recettes, filtres par collection et par ingrédient, affichage nutritionnel
 
-**Documentation technique sur Github Pages**
+**Documentation technique sur GitHub Pages**
 <br>Documentation Antora déployée automatiquement sur GitHub Pages
 
 </div>
@@ -278,7 +278,7 @@ Objectifs : Évolution de la méthode de spécification / réalisation.
 <br>
 
 <div class="pt-4 p-4 rounded border-l-4 border-blue-400 bg-blue-400/10">
-Objectifs : Évolution de la méthode de spécification / réalisation.
+Objectifs : Mise en place de l'assistant IA.
 </div>
 
 ---
@@ -537,7 +537,7 @@ avant de l'utiliser.
 </div>
 
 <div class="pt-2 p-4 rounded border-l-4 border-blue-400 bg-blue-400/10">
-Concret sur KitchenVault : la mise en place de LangChain4J (PR #8) s'est appuyée sur Context7 pour
+Sur ce projet : la mise en place de LangChain4J (PR #8) s'est appuyée sur Context7 pour
 vérifier la doc à jour du framework — plutôt que sur les connaissances d'entraînement du modèle.
 </div>
 
@@ -617,7 +617,7 @@ layout: section
 1. **Session d'étude de faisabilité** à part entière, avant d'écrire la moindre ligne —
    explorer l'API tierce Cookidoo, valider que la sync inverse (pull) est possible
 2. **Implémentation complète multi-couches, en une session** : microservice Python →
-   contrats OpenAPI → backend Spring (delegate, mapping, persistence) → frontend Angular
+   contrats OpenAPI → backend Spring (delegate, mapping, persistance) → frontend Angular
 3. Mise en production
 
 ---
@@ -666,16 +666,16 @@ layout: section
 
 ---
 
-# Takeway
+# Takeaway
 
 - **Mode Plan** pour cadrer le quoi avant le comment — pas juste avant du code compliqué,
   avant tout ce qui compte
 - **Mode Plan pour challenger ses idées** : l'IA questionne et co-construit la spec, elle ne
   se contente pas de la valider
 - **Un worktree par tâche** : pour paralléliser les tâches
-- Donner les mêmes outils au harness qu'à un humain (CLI, MCP) : boucle de réatroaction autonome.
+- Donner les mêmes outils au harness qu'à un humain (CLI, MCP) : boucle de rétroaction autonome.
 - **Documentation à jour** (Context7/MCP) : vérifier plutôt que faire confiance à la mémoire du modèle
-- **Sur les sujets complexes ou ambigus** : ne pas hésiter, mais cadrer en entonnoir — ou une phase de faisabilité dédiée
+- **Sur les sujets complexes ou ambigus** : cadrer en entonnoir, voire lancer une phase de faisabilité dédiée avant d'implémenter
 - **La revue comme session séparée**, pas une relecture confondue avec le build
 
 ---
@@ -684,7 +684,7 @@ layout: statement
 
 # La suite ?
 
-## Utiliser l'IA une application
+## Utiliser l'IA dans une application
 
 <div class="pt-4 text-lg opacity-70">
 Assistant IA, RAG, agents métier, ...

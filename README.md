@@ -44,7 +44,34 @@ Accessible via le bouton **"Planifier avec l'IA"** dans la vue planning. L'assis
 
 L'orchestration est entièrement déterministe : le LLM retourne une sortie structurée (`mealAssignments`, `action`) et le service Java applique les écritures en base — le LLM ne touche jamais la base directement.
 
-## Prérequis
+## Démarrage
+
+### Option A — Devcontainer (recommandé)
+
+Le repo fournit une configuration `.devcontainer/` prête à l'emploi (Java 25, Node 22, Python 3.12, Maven, tmux) qui démarre automatiquement **toute la stack** : PostgreSQL, cookidoo-service, et le **backend + frontend eux-mêmes**, en mode debug, avec hot reload — rien à lancer à la main.
+
+- **GitHub Codespaces** : bouton *Code → Codespaces → Create codespace* sur GitHub. Configurer au préalable les secrets `OVH_AI_ENDPOINTS_ACCESS_TOKEN`, `COOKIDOO_EMAIL`, `COOKIDOO_PASSWORD` dans *Settings → Secrets and variables → Codespaces* du repo. Activer les [prebuilds](https://docs.github.com/fr/codespaces/prebuilding-your-codespaces) pour un démarrage quasi instantané.
+- **Local — VS Code** : extension "Dev Containers" → *Reopen in Container*. Nécessite un fichier `.env` à la racine (voir `.env.example`).
+- **Local — IntelliJ** : Gateway → *Dev Containers*, pointer sur ce repo.
+- **CLI** (`@devcontainers/cli`) : `devcontainer up --workspace-folder .`
+
+Une fois le conteneur démarré :
+
+| Service            | URL                       |
+|--------------------|---------------------------|
+| Frontend (Angular) | http://localhost:4200     |
+| Backend (Spring Boot) | http://localhost:8080  |
+| Debug backend (JDWP)  | port `5005`             |
+| cookidoo-service   | http://localhost:8001     |
+| PostgreSQL         | `localhost:5432`          |
+
+Backend et frontend tournent dans une session tmux (`tmux attach -t kitchenvault`) — Spring Boot DevTools recharge à chaud sur recompilation, `ng serve` recharge en direct. Une config de débogueur prête à l'emploi est fournie pour les deux IDE : `.vscode/launch.json` ("Attach to Backend (5005)") et `.idea/runConfigurations/` ("Attach: Backend (5005)").
+
+Détails complets (secrets Codespaces, particularités IntelliJ Gateway, dépannage Testcontainers) dans la [documentation Antora](#documentation-antora), page *Démarrage rapide*.
+
+### Option B — Installation locale manuelle
+
+#### Prérequis
 
 - [Podman](https://podman.io/) + podman-compose
 - Java 25
@@ -52,16 +79,14 @@ L'orchestration est entièrement déterministe : le LLM retourne une sortie stru
 - Node.js 22+
 - Python 3.12+
 
-## Démarrage
-
-### 1. Variables d'environnement
+#### 1. Variables d'environnement
 
 ```bash
 cp .env.example .env
 # Renseigner COOKIDOO_EMAIL et COOKIDOO_PASSWORD
 ```
 
-### 2. Infrastructure (PostgreSQL + pgAdmin + microservice Python)
+#### 2. Infrastructure (PostgreSQL + pgAdmin + microservice Python)
 
 ```bash
 podman compose up -d
@@ -73,7 +98,7 @@ podman compose up -d
 | pgAdmin          | http://localhost:5050 (admin@gmail.com / admin) |
 | cookidoo-service | http://localhost:8001/health                    |
 
-### 3. Backend Spring Boot
+#### 3. Backend Spring Boot
 
 **Mode JVM (développement)**
 
@@ -107,7 +132,7 @@ podman run -p 8080:8080 kitchen-vault:native
 > ```
 > Swagger UI : http://localhost:8080/swagger-ui.html
 
-### 4. Frontend Angular
+#### 4. Frontend Angular
 
 ```bash
 cd frontend

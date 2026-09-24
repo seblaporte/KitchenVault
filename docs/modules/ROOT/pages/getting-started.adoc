@@ -1,7 +1,51 @@
 = Démarrage rapide
 :description: Comment lancer l'environnement de développement
 
-== Prérequis
+== Option A — Devcontainer (recommandé pour les sessions courtes)
+
+Le repo fournit une configuration `.devcontainer/` prête pour GitHub Codespaces, VS Code (extension Dev Containers) ou IntelliJ (JetBrains Gateway → Dev Containers). Elle embarque Java 25, Node 22, Python 3.12, Maven, et démarre automatiquement PostgreSQL + cookidoo-service (pgAdmin reste disponible à la demande) **ainsi que le backend et le frontend eux-mêmes**, prêts à déboguer, dès l'ouverture de l'environnement.
+
+* **Codespaces** : bouton *Code → Codespaces → Create codespace* sur GitHub. Pour un démarrage quasi instantané, activer les https://docs.github.com/fr/codespaces/prebuilding-your-codespaces[prebuilds] dans *Settings → Codespaces* du repo — sans ça, le premier `onCreateCommand` (install Maven/npm/pip) prend quelques minutes.
+* **Secrets Codespaces** : configurer `OVH_AI_ENDPOINTS_ACCESS_TOKEN`, `COOKIDOO_EMAIL`, `COOKIDOO_PASSWORD`, `COOKIDOO_COUNTRY_CODE`, `COOKIDOO_LANGUAGE` dans *Settings → Secrets and variables → Codespaces* (niveau repo suffit pour un usage perso).
+* **Local (VS Code)** : extension "Dev Containers" → *Reopen in Container*. Nécessite `.env` à la racine (voir ci-dessous) — Docker Compose le charge automatiquement.
+* **Local (IntelliJ)** : Gateway → *Dev Containers* / *Docker Compose*, pointer sur ce repo. Les modules Maven `contracts` + `backend` s'importent automatiquement (racine = `pom.xml` parent).
+* **CLI** (`@devcontainers/cli`) : `devcontainer up --workspace-folder .` puis `devcontainer exec --workspace-folder . bash`.
+
+Dans le conteneur `app`, `localhost` ne désigne pas les conteneurs voisins : le backend est lancé par `postStartCommand` (`.devcontainer/scripts/start-dev.sh`) avec `-Dspring-boot.run.profiles=devcontainer -pl backend` (le profil `devcontainer`, dans `backend/src/main/resources/application-devcontainer.yml`, pointe le datasource et `cookidoo.service.url` vers `postgres`/`cookidoo-service` par nom de service). Ce flag est scopé à cette seule commande — il ne modifie pas la config utilisée par `mvn test`, qui continue d'utiliser `jdbc:tc:postgresql:17:///cookidoo` (Testcontainers) via `application-test.yml`.
+
+=== Backend et frontend auto-démarrés, prêts à déboguer
+
+`postStartCommand` s'exécute à chaque (re)démarrage du conteneur (pas seulement à la création, contrairement à `postCreateCommand`) et ouvre une session tmux `kitchenvault` avec deux fenêtres :
+
+* `backend` : `mvn spring-boot:run -pl backend -Dspring-boot.run.profiles=devcontainer`, avec l'agent JDWP ouvert sur le port `5005` (`suspend=n` — le backend démarre sans attendre qu'un débogueur s'attache). Spring Boot DevTools recharge automatiquement au save (hot reload), pas besoin de relancer.
+* `frontend` : `ng serve --host 0.0.0.0` (live reload par défaut).
+
+Pour voir les logs ou relancer un service à la main :
+
+[source,bash]
+----
+tmux attach -t kitchenvault   # Ctrl+B puis D pour se détacher sans arrêter les process
+bash .devcontainer/scripts/start-dev.sh   # relance les deux depuis zéro
+----
+
+Une config de débogueur prête à l'emploi est fournie dans le repo pour les deux IDE (exception ciblée aux `.gitignore` de `.vscode/`/`.idea/`, sinon inchangés) :
+
+* **VS Code / Codespaces** : onglet *Run and Debug* → *Attach to Backend (5005)* (`.vscode/launch.json`).
+* **IntelliJ Gateway** : *Run/Debug Configurations* → *Attach: Backend (5005)* (`.idea/runConfigurations/Attach_Backend_5005.xml`).
+
+Le frontend n'a pas besoin de config de débogueur dédiée : Angular sert déjà des sourcemaps en mode dev, utilisables directement depuis les DevTools du navigateur.
+
+CAUTION: Le support natif "Dev Containers" de JetBrains (`postStartCommand`, `forwardPorts`) évolue encore régulièrement d'une version de Gateway à l'autre — si l'auto-démarrage ou le port 5005 ne sont pas visibles après un rebuild, vérifier la version de Gateway/plugin Dev Containers avant de creuser ailleurs.
+
+Les tests backend utilisant Testcontainers (`mvn test -pl backend`) nécessitent l'accès au socket Docker de l'hôte — fourni via la Feature `docker-outside-of-docker`, déjà configurée.
+
+TIP: **macOS/Windows en local (Podman machine, Docker Desktop)** : si `mvn test -pl backend` reste bloqué avec `Can not connect to Ryuk at localhost:...`, c'est que Testcontainers n'arrive pas à joindre les conteneurs frères qu'il démarre car ils tournent dans la VM du moteur de conteneurs, pas dans le namespace réseau de `app`. Fix : `export TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal` avant `mvn test` (Podman machine et Docker Desktop exposent tous deux ce nom DNS spécial). Sur Linux natif (dont GitHub Codespaces), Testcontainers détecte automatiquement l'IP de la gateway par défaut et ce correctif n'est en principe pas nécessaire — ne pas le positionner globalement dans `.devcontainer/` pour ne pas casser ce cas.
+
+Pour démarrer pgAdmin à la demande : `docker compose -f compose.yaml up -d pgadmin` (http://localhost:5050).
+
+== Option B — Installation locale manuelle
+
+=== Prérequis
 
 * Podman + podman-compose
 * Java 25
@@ -9,7 +53,7 @@
 * Node.js 22+
 * Python 3.12+
 
-== 1. Variables d'environnement
+=== 1. Variables d'environnement
 
 Copier le fichier template et renseigner les credentials Cookidoo :
 
@@ -19,7 +63,7 @@ cp .env.example .env
 # Éditer .env avec l'email et le mot de passe du compte Cookidoo
 ----
 
-== 2. Démarrer l'infrastructure
+=== 2. Démarrer l'infrastructure
 
 [source,bash]
 ----
@@ -32,7 +76,7 @@ Cela démarre :
 * pgAdmin sur http://localhost:5050 (admin@kitchenvault.local / admin)
 * cookidoo-service (FastAPI) sur le port `8001`
 
-== 3. Démarrer le backend
+=== 3. Démarrer le backend
 
 Activer Java 25 via sdkman (lit `.sdkmanrc`, requis avant toute commande Maven) :
 
@@ -60,7 +104,7 @@ Liquibase crée le schéma automatiquement au premier démarrage.
 
 Swagger UI : http://localhost:8080/swagger-ui.html
 
-== 4. Régénérer le client Angular (si le contrat a changé)
+=== 4. Régénérer le client Angular (si le contrat a changé)
 
 [source,bash]
 ----
@@ -68,7 +112,7 @@ cd frontend
 npm run generate:api
 ----
 
-== 5. Démarrer le frontend
+=== 5. Démarrer le frontend
 
 [source,bash]
 ----
@@ -79,7 +123,7 @@ npm start
 
 Application disponible sur http://localhost:4200.
 
-== 6. Lancer une synchronisation
+=== 6. Lancer une synchronisation
 
 Via curl :
 
@@ -90,7 +134,7 @@ curl -X POST http://localhost:8080/api/v1/sync
 
 Ou via l'interface http://localhost:4200/admin.
 
-== Vérification de l'état
+=== Vérification de l'état
 
 [source,bash]
 ----
@@ -104,7 +148,7 @@ curl http://localhost:8080/api/v1/admin/stats
 curl http://localhost:8001/health
 ----
 
-== Lancer les tests
+=== Lancer les tests
 
 [source,bash]
 ----

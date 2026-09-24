@@ -1,0 +1,69 @@
+= Parcours utilisateurs (tests E2E)
+:description: Vidéos générées depuis les tests Cypress, illustrant les principaux parcours utilisateurs
+
+Cette page présente les principaux parcours utilisateurs de KitchenVault sous forme de vidéo, générées directement depuis les tests Cypress du frontend (`frontend/cypress/e2e/`). Chaque vidéo correspond à un fichier de spec et illustre l'ensemble des scénarios qu'il couvre — utilisez les contrôles du lecteur pour mettre en pause et avancer/reculer à votre rythme.
+
+== Régénérer les vidéos
+
+[source,bash]
+----
+cd frontend
+npm start          # dans un terminal, laisser tourner (http://localhost:4200)
+npm run e2e:video   # dans un second terminal
+----
+
+Chaque commande d'action Cypress (clic, saisie, navigation...) déclenche automatiquement un screenshot (voir `cypress/support/e2e.ts`), stocké par spec dans `cypress/screenshots/`. Chaque image porte un bandeau à deux niveaux — le scénario (`describe`/`it`) en cours, et une légende précise de l'action effectuée (ex. « Clic : Retour à la liste ») — ainsi qu'un point rouge sur l'élément ciblé par un clic. Ces images sont ensuite assemblées en vidéo mp4 via `sharp` (bandeau) puis `ffmpeg` (une image affichée ~0.9s) directement dans `docs/modules/ROOT/assets/images/e2e/`.
+
+== Chargement de l'application
+
+Bootstrap de l'application et rendu initial de la page d'administration.
+
+video::e2e/app-loads.mp4[opts="controls"]
+
+== Navigation principale
+
+Navigation entre les sections Administration, Recettes et Menu.
+
+video::e2e/navigation.mp4[opts="controls"]
+
+== Parcours des recettes
+
+Navigation par collections et accès au détail d'une recette.
+
+video::e2e/recipes-browse.mp4[opts="controls"]
+
+== Recherche et filtres de recettes
+
+Recherche textuelle, filtres par collection et par temps total, réinitialisation des filtres.
+
+video::e2e/recipes-search.mp4[opts="controls"]
+
+== Détail d'une recette
+
+Affichage des informations d'une recette, retour à la liste, gestion d'une recette introuvable.
+
+video::e2e/recipe-detail.mp4[opts="controls"]
+
+== Planning de la semaine
+
+Consultation du planning hebdomadaire, ajout et suggestion de recettes sur un créneau.
+
+video::e2e/menu-plan.mp4[opts="controls"]
+
+== Liste de courses et export email
+
+Consultation de la liste consolidée et export par email.
+
+video::e2e/shopping-list.mp4[opts="controls"]
+
+== Administration et synchronisation
+
+Statistiques de la base et déclenchement d'une synchronisation Cookidoo.
+
+video::e2e/admin.mp4[opts="controls"]
+
+== Interface mobile
+
+Barre de navigation mobile et vue cartes du planning de la semaine (viewport iPhone 14).
+
+video::e2e/mobile-responsive.mp4[opts="controls"]

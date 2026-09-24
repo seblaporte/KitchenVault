@@ -29,3 +29,7 @@ databaseChangeLog:
       file: db/changelog/changes/014-meal-plan-undefined-category.yaml
   - include:
       file: db/changelog/changes/015-recipe-list-settings.yaml
+  - include:
+      file: db/changelog/changes/016-fail-leftover-running-syncs.yaml
+  - include:
+      file: db/changelog/changes/017-sync-run-single-running-index.yaml

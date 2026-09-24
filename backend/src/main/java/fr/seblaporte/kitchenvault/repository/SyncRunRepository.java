@@ -15,7 +15,5 @@ public interface SyncRunRepository extends JpaRepository<SyncRun, UUID> {
 
     Optional<SyncRun> findTopByStatusOrderByStartedAtDesc(SyncStatus status);
 
-    boolean existsByStatus(SyncStatus status);
-
     Page<SyncRun> findAllByOrderByStartedAtDesc(Pageable pageable);
 }

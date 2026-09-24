@@ -1,0 +1,10 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 017-sync-run-single-running-index
+      author: seblaporte
+      changes:
+        - sql:
+            sql: >
+              CREATE UNIQUE INDEX IF NOT EXISTS ux_sync_run_single_running
+              ON sync_run (status) WHERE status = 'RUNNING';

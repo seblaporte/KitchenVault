@@ -29,3 +29,5 @@ databaseChangeLog:
       file: db/changelog/changes/014-meal-plan-undefined-category.yaml
   - include:
       file: db/changelog/changes/015-recipe-list-settings.yaml
+  - include:
+      file: db/changelog/changes/016-weekly-plan-session-proposed-recipes.yaml

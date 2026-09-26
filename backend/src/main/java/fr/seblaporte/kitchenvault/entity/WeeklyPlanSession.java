@@ -36,6 +36,11 @@ public class WeeklyPlanSession {
     @Column(name = "pending_changes", columnDefinition = "jsonb")
     private String pendingChanges;
 
+    @Nullable
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "proposed_recipe_ids", columnDefinition = "jsonb")
+    private String proposedRecipeIds;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

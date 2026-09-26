@@ -36,6 +36,8 @@ ai:
     model-name: bge-m3
     base-url: https://oai.endpoints.kepler.ai.cloud.ovh.net/v1
     dimension: 1024
+  weekly-plan:
+    diversity-lookback-days: 28
   shopping-list:
     basic-necessities:
       - eau

@@ -6,6 +6,7 @@ import org.springframework.validation.annotation.Validated;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.util.List;
 
 @ConfigurationProperties(prefix = "ai")
@@ -13,7 +14,8 @@ import java.util.List;
 public record AiProperties(
         @Valid @NotNull OvhProperties ovh,
         @Valid @NotNull OvhEmbeddingProperties ovhEmbedding,
-        @Valid @NotNull ShoppingListProperties shoppingList
+        @Valid @NotNull ShoppingListProperties shoppingList,
+        @Valid @NotNull WeeklyPlanProperties weeklyPlan
 ) {
 
     public record OvhProperties(
@@ -31,5 +33,9 @@ public record AiProperties(
 
     public record ShoppingListProperties(
             @NotNull List<String> basicNecessities
+    ) {}
+
+    public record WeeklyPlanProperties(
+            @Positive int diversityLookbackDays
     ) {}
 }

@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -119,6 +120,9 @@ public class WeeklyMealPlanService {
         }
 
         if (!assignments.isEmpty()) {
+            recordProposedRecipes(session, assignments);
+            session = sessionRepository.findById(request.getSessionId()).orElseThrow();
+
             if (!session.isInitialDone()) {
                 assignments.forEach(a -> {
                     try {
@@ -230,6 +234,36 @@ public class WeeklyMealPlanService {
         session.setPendingChanges(null);
         session.setLastActiveAt(Instant.now());
         sessionRepository.save(session);
+    }
+
+    /**
+     * Tracks recipes already proposed within this session so the RAG retriever (see
+     * RoleAwareRecipeContentRetriever) can exclude them from subsequent draws — guarantees that
+     * asking for an alternative ("Proposer autre chose") with the same criteria doesn't just
+     * resurface the exact same suggestions.
+     */
+    private void recordProposedRecipes(WeeklyPlanSession session, List<MealSlotAssignment> assignments) {
+        Set<String> proposed = new LinkedHashSet<>(deserializeProposedRecipeIds(session.getProposedRecipeIds()));
+        assignments.forEach(a -> proposed.add(a.recipeId()));
+        try {
+            session.setProposedRecipeIds(objectMapper.writeValueAsString(proposed));
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize proposed recipe ids", e);
+        }
+        session.setLastActiveAt(Instant.now());
+        sessionRepository.save(session);
+    }
+
+    private List<String> deserializeProposedRecipeIds(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("Failed to deserialize proposed recipe ids", e);
+            return List.of();
+        }
     }
 
     private void storePendingChanges(WeeklyPlanSession session, List<MealSlotAssignment> assignments) {

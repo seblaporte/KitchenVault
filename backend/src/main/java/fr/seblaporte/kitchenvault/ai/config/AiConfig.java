@@ -20,6 +20,8 @@ import fr.seblaporte.kitchenvault.ai.agent.WeeklyMealPlanAgent;
 import fr.seblaporte.kitchenvault.ai.memory.PostgresChatMemoryStore;
 import fr.seblaporte.kitchenvault.ai.service.RoleAwareRecipeContentRetriever;
 import fr.seblaporte.kitchenvault.config.AiProperties;
+import fr.seblaporte.kitchenvault.repository.MealPlanEntryRepository;
+import fr.seblaporte.kitchenvault.repository.WeeklyPlanSessionRepository;
 import fr.seblaporte.kitchenvault.service.RecipeListService;
 import fr.seblaporte.kitchenvault.service.WeeklyMealPlanService;
 import org.springframework.context.annotation.Bean;
@@ -113,13 +115,21 @@ public class AiConfig {
     public ContentRetriever weeklyPlanContentRetriever(
             EmbeddingStore<TextSegment> embeddingStore,
             EmbeddingModel embeddingModel,
-            RecipeListService recipeListService) {
-        // Rejected-list recipes are excluded at the vector search level (metadata filter) so
-        // they're never proposable, and favorites/discovery matches are fetched via a separate
-        // bounded, filtered search and tagged inline — see RoleAwareRecipeContentRetriever.
-        // This replaces dumping the 3 recipe lists as raw text in the prompt, which scaled with
-        // list size and could overflow the embedding model's context window.
-        return new RoleAwareRecipeContentRetriever(embeddingStore, embeddingModel, recipeListService);
+            RecipeListService recipeListService,
+            MealPlanEntryRepository mealPlanEntryRepository,
+            WeeklyPlanSessionRepository weeklyPlanSessionRepository) {
+        // Rejected recipes, recipes planned within the last N days (favorites included), and
+        // recipes already proposed earlier in the same session are all excluded at the vector
+        // search level (metadata filter), and the general search draws a weighted random sample
+        // from a wider candidate band — see RoleAwareRecipeContentRetriever for the full strategy
+        // behind week-to-week and within-session recipe diversity.
+        return new RoleAwareRecipeContentRetriever(
+                embeddingStore,
+                embeddingModel,
+                recipeListService,
+                mealPlanEntryRepository,
+                weeklyPlanSessionRepository,
+                aiProperties.weeklyPlan().diversityLookbackDays());
     }
 
     @Bean
